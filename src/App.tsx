@@ -14,22 +14,6 @@ import {
   Menu,
   X,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Accordion,
-  AccordionItem,
-  AccordionTrigger,
-  AccordionContent,
-} from "@/components/ui/accordion";
-import { Separator } from "@/components/ui/separator";
-
-/* This build uses shadcn/ui primitives (Button, Badge, Card, Switch,
-   Tabs, Accordion, Separator) wired into the Waypoint palette via
-   className overrides, instead of hand-rolled buttons/toggles/accordions. */
 
 const FONT_IMPORT =
   "@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');";
@@ -47,14 +31,6 @@ const fontMono: React.CSSProperties = {
   fontFamily: "'Poppins', sans-serif",
   fontWeight: 500,
 };
-
-const FOCUS_RING =
-  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8FE3C4] focus-visible:rounded-sm";
-
-function prefersReducedMotion() {
-  if (typeof window === "undefined") return false;
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
 
 /* ---------------------------------------------------------
    TOKENS
@@ -359,14 +335,18 @@ function loadColor(pct: number) {
 }
 
 /* ---------------------------------------------------------
-   Scroll reveal
+   Scroll reveal — a single orchestrated device used everywhere,
+   respects prefers-reduced-motion.
 --------------------------------------------------------- */
 
 function useReveal<T extends HTMLElement>() {
   const ref = useRef<T | null>(null);
   const [shown, setShown] = useState(false);
   useEffect(() => {
-    if (prefersReducedMotion()) {
+    const reduce = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    if (reduce) {
       setShown(true);
       return;
     }
@@ -410,7 +390,9 @@ function Reveal({
 }
 
 /* ---------------------------------------------------------
-   Count-up
+   Count-up — parses the leading numeric portion of a stat string
+   and animates it from 0 once it scrolls into view, keeping any
+   suffix (%, +, ,) intact.
 --------------------------------------------------------- */
 
 function useCountUp(value: string, shouldRun: boolean, duration = 1400) {
@@ -421,7 +403,10 @@ function useCountUp(value: string, shouldRun: boolean, duration = 1400) {
   useEffect(() => {
     if (!shouldRun || ran.current) return;
     ran.current = true;
-    if (prefersReducedMotion()) {
+    const reduce = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    if (reduce) {
       setDisplay(value);
       return;
     }
@@ -458,7 +443,8 @@ function useCountUp(value: string, shouldRun: boolean, duration = 1400) {
 }
 
 /* ---------------------------------------------------------
-   Scroll progress
+   Scroll progress — thin rail under the navbar, a quiet nod to
+   "how far along" that fits a product about tracking progress.
 --------------------------------------------------------- */
 
 function useScrollProgress() {
@@ -478,6 +464,9 @@ function useScrollProgress() {
 
 /* ---------------------------------------------------------
    LOGOMARK
+   A rising three-node path — the same visual language as the
+   dependency graph and Gantt bars, reduced to a single mark:
+   work moves forward, node to node, always trending up and right.
 --------------------------------------------------------- */
 
 function WaypointMark({ size = 22 }: { size?: number }) {
@@ -507,56 +496,50 @@ function WaypointMark({ size = 22 }: { size?: number }) {
 }
 
 /* ---------------------------------------------------------
-   PRIMITIVES — shadcn Button wired to the Waypoint palette
+   PRIMITIVES
 --------------------------------------------------------- */
 
-function CtaButton({
+function Pill({
   children,
   variant = "solid",
   dark = false,
   icon = false,
-  href = "#pricing",
   onClick,
 }: {
   children: React.ReactNode;
   variant?: "solid" | "outline";
   dark?: boolean;
   icon?: boolean;
-  href?: string;
   onClick?: () => void;
 }) {
+  const base =
+    "inline-flex items-center gap-1.5 rounded-lg px-5 py-2.5 text-[13.5px] font-semibold transition-all duration-150 cursor-pointer";
   if (variant === "solid") {
     return (
-      <Button
-        asChild
-        className={`bg-[#8FE3C4] text-[#0F2D29] hover:bg-[#7BD6B4] hover:shadow-[0_8px_20px_rgba(143,227,196,0.3)] rounded-lg px-5 py-2.5 h-auto text-[13.5px] font-semibold ${FOCUS_RING}`}
-        style={fontBody}
+      <a
+        href="#pricing"
+        onClick={onClick}
+        className={`${base} bg-[#8FE3C4] text-[#0F2D29] hover:bg-[#7BD6B4] hover:shadow-[0_8px_20px_rgba(143,227,196,0.3)]`}
       >
-        <a
-          href={href}
-          onClick={onClick}
-          className="inline-flex items-center gap-1.5"
-        >
-          {children}
-          {icon && <ArrowRight size={15} strokeWidth={2.5} />}
-        </a>
-      </Button>
+        {children}
+        {icon && <ArrowRight size={15} strokeWidth={2.5} />}
+      </a>
     );
   }
   return (
-    <Button
-      asChild
-      variant="outline"
-      className={`rounded-lg px-5 py-2.5 h-auto text-[13.5px] font-semibold bg-transparent ${dark ? "border-white/20 text-white hover:bg-white/10 hover:text-white" : "border-[#0F2D29]/20 text-[#0F2D29] hover:bg-[#0F2D29]/5"} ${FOCUS_RING}`}
-      style={fontBody}
+    <a
+      href="#"
+      onClick={onClick}
+      className={`${base} border ${dark ? "border-white/20 text-white hover:bg-white/10" : "border-[#0F2D29]/20 text-[#0F2D29] hover:bg-[#0F2D29]/5"}`}
     >
-      <a href={href} onClick={onClick}>
-        {children}
-      </a>
-    </Button>
+      {children}
+    </a>
   );
 }
 
+/* Solid highlight block — a clean, deliberate substitute for a
+   hand-drawn circle/underline; reads as an instrument marking a
+   value on a chart rather than a marketing flourish. */
 function Highlight({
   children,
   tone = "mint",
@@ -567,10 +550,9 @@ function Highlight({
   const bg = tone === "mint" ? "#8FE3C4" : "#E98A57";
   return (
     <span
-      className="relative inline-flex items-center gap-1.5 px-2.5 rounded-md align-middle"
+      className="relative inline-block px-2 rounded-md"
       style={{ background: bg, color: "#0F2D29" }}
     >
-      <CheckCircle2 size={16} strokeWidth={2.5} className="shrink-0 -ml-0.5" />
       {children}
     </span>
   );
@@ -590,12 +572,12 @@ function SectionHead({
   return (
     <Reveal>
       <div className="max-w-[580px] mx-auto text-center mb-14">
-        <Badge
-          className={`mb-3 px-2.5 py-1 rounded-md uppercase tracking-wide text-[11px] font-semibold border-0 ${dark ? "text-[#8FE3C4] bg-white/5 hover:bg-white/5" : "text-[#3FA787] bg-[#3FA787]/10 hover:bg-[#3FA787]/10"}`}
+        <div
+          className={`inline-flex items-center gap-1.5 text-[11px] font-semibold mb-3 px-2.5 py-1 rounded-md uppercase tracking-wide ${dark ? "text-[#8FE3C4] bg-white/5" : "text-[#3FA787] bg-[#3FA787]/10"}`}
           style={fontMono}
         >
           {eyebrow}
-        </Badge>
+        </div>
         <h2
           className={`text-[28px] md:text-[34px] font-bold tracking-tight mb-3.5 leading-tight ${dark ? "text-white" : "text-[#0F2D29]"}`}
           style={fontDisplay}
@@ -627,12 +609,8 @@ const STATUS_COLOR: Record<DepNode["status"], string> = {
 };
 
 function DependencyGraph() {
-  const [revealed, setRevealed] = useState(
-    prefersReducedMotion() ? DEP_EDGES.length : 0,
-  );
-  const reduceMotion = useRef(prefersReducedMotion());
+  const [revealed, setRevealed] = useState(0);
   useEffect(() => {
-    if (reduceMotion.current) return;
     const t = setInterval(() => {
       setRevealed((r) => (r < DEP_EDGES.length ? r + 1 : r));
     }, 260);
@@ -642,100 +620,90 @@ function DependencyGraph() {
   const nodeById = (id: string) => DEP_NODES.find((n) => n.id === id)!;
 
   return (
-    <Card className="bg-[#143631] rounded-2xl p-5 shadow-[0_30px_60px_rgba(0,0,0,0.35)] border-white/5 gap-0">
-      <CardContent className="p-0">
-        <div className="flex items-center justify-between mb-4">
-          <span
-            className="text-[10.5px] font-semibold text-[#B7CFC7] uppercase tracking-wide"
-            style={fontMono}
-          >
-            Dependency graph — Launch v2.3
-          </span>
-          <Badge
-            className="flex items-center gap-1.5 text-[10px] text-[#8FE3C4] bg-[#8FE3C4]/10 hover:bg-[#8FE3C4]/10 rounded-md px-2.5 py-1 border-0"
-            style={fontMono}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-[#8FE3C4] motion-safe:animate-pulse" />
-            Live
-          </Badge>
-        </div>
-        <svg
-          viewBox="0 0 100 100"
-          className="w-full h-[240px]"
-          role="img"
-          aria-label="Dependency graph showing schema, auth service, billing API, web client, mobile client, and launch nodes with their status"
+    <div className="bg-[#143631] rounded-2xl p-5 shadow-[0_30px_60px_rgba(0,0,0,0.35)] border border-white/5">
+      <div className="flex items-center justify-between mb-4">
+        <span
+          className="text-[10.5px] font-semibold text-[#B7CFC7] uppercase tracking-wide"
+          style={fontMono}
         >
-          {DEP_EDGES.map(([from, to], i) => {
-            const a = nodeById(from);
-            const b = nodeById(to);
-            const show = i < revealed;
-            return (
-              <line
-                key={`${from}-${to}`}
-                x1={a.x}
-                y1={a.y}
-                x2={b.x}
-                y2={b.y}
-                stroke="rgba(255,255,255,0.22)"
-                strokeWidth="0.6"
-                strokeDasharray="2 2"
-                style={{
-                  opacity: show ? 1 : 0,
-                  transition: "opacity 0.5s ease",
-                }}
-              />
-            );
-          })}
-          {DEP_NODES.map((n) => (
-            <g key={n.id}>
-              <circle
-                cx={n.x}
-                cy={n.y}
-                r={n.status === "active" ? 3.6 : 3}
-                fill={STATUS_COLOR[n.status]}
-                stroke="#143631"
-                strokeWidth="1"
-              >
-                {n.status === "active" && !reduceMotion.current && (
-                  <animate
-                    attributeName="r"
-                    values="3.2;4.4;3.2"
-                    dur="1.8s"
-                    repeatCount="indefinite"
-                  />
-                )}
-              </circle>
-              <text
-                x={n.x}
-                y={n.y + 8}
-                textAnchor="middle"
-                fontSize="3.2"
-                fill="#B7CFC7"
-                style={fontMono}
-              >
-                {n.label}
-              </text>
-            </g>
-          ))}
-        </svg>
-        <div className="flex items-center gap-4 mt-3 px-1">
-          {(["done", "active", "blocked", "pending"] as const).map((s) => (
-            <div key={s} className="flex items-center gap-1.5">
-              <span
-                className="w-2 h-2 rounded-full"
-                style={{ background: STATUS_COLOR[s] }}
-              />
-              <span
-                className="text-[10px] text-[#B7CFC7] capitalize"
-                style={fontMono}
-              >
-                {s}
-              </span>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+          Dependency graph — Launch v2.3
+        </span>
+        <span
+          className="flex items-center gap-1.5 text-[10px] text-[#8FE3C4] bg-[#8FE3C4]/10 rounded-md px-2.5 py-1"
+          style={fontMono}
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-[#8FE3C4] animate-pulse" />
+          Live
+        </span>
+      </div>
+      <svg viewBox="0 0 100 100" className="w-full h-[240px]">
+        {DEP_EDGES.map(([from, to], i) => {
+          const a = nodeById(from);
+          const b = nodeById(to);
+          const show = i < revealed;
+          return (
+            <line
+              key={`${from}-${to}`}
+              x1={a.x}
+              y1={a.y}
+              x2={b.x}
+              y2={b.y}
+              stroke="rgba(255,255,255,0.22)"
+              strokeWidth="0.6"
+              strokeDasharray="2 2"
+              style={{ opacity: show ? 1 : 0, transition: "opacity 0.5s ease" }}
+            />
+          );
+        })}
+        {DEP_NODES.map((n) => (
+          <g key={n.id}>
+            <circle
+              cx={n.x}
+              cy={n.y}
+              r={n.status === "active" ? 3.6 : 3}
+              fill={STATUS_COLOR[n.status]}
+              stroke="#143631"
+              strokeWidth="1"
+            >
+              {n.status === "active" && (
+                <animate
+                  attributeName="r"
+                  values="3.2;4.4;3.2"
+                  dur="1.8s"
+                  repeatCount="indefinite"
+                />
+              )}
+            </circle>
+            <text
+              x={n.x}
+              y={n.y + 8}
+              textAnchor="middle"
+              fontSize="3.2"
+              fill="#B7CFC7"
+              style={fontMono}
+            >
+              {n.label}
+            </text>
+          </g>
+        ))}
+      </svg>
+      <div className="flex items-center gap-4 mt-3 px-1">
+        {(["done", "active", "blocked", "pending"] as const).map((s) => (
+          <div key={s} className="flex items-center gap-1.5">
+            <span
+              className="w-2 h-2 rounded-full"
+              style={{ background: STATUS_COLOR[s] }}
+            />
+            <span
+              className="text-[10px] text-[#B7CFC7] capitalize"
+              style={fontMono}
+            >
+              {s}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -763,7 +731,7 @@ function Navbar() {
       <nav className="px-5 lg:px-40 mx-auto py-4 flex items-center justify-between">
         <a
           href="#"
-          className={`flex items-center gap-2.5 text-[17px] font-bold text-white shrink-0 ${FOCUS_RING}`}
+          className="flex items-center gap-2.5 text-[17px] font-bold text-white shrink-0"
           style={fontDisplay}
           onClick={() => setOpen(false)}
         >
@@ -776,7 +744,7 @@ function Navbar() {
             <a
               key={href}
               href={href}
-              className={`relative hover:text-white transition-colors group ${FOCUS_RING}`}
+              className="relative hover:text-white transition-colors group"
             >
               {label}
               <span className="absolute -bottom-1 left-0 w-0 h-px bg-[#8FE3C4] group-hover:w-full transition-all duration-200" />
@@ -785,23 +753,23 @@ function Navbar() {
         </div>
 
         <div className="hidden md:flex items-center gap-3">
-          <CtaButton variant="outline" dark href="#">
+          <Pill variant="outline" dark>
             Talk to sales
-          </CtaButton>
-          <CtaButton icon>Get started free</CtaButton>
+          </Pill>
+          <Pill icon>Get started free</Pill>
         </div>
 
         <button
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
-          aria-controls="mobile-menu"
           aria-label={open ? "Close menu" : "Open menu"}
-          className={`md:hidden w-9 h-9 flex items-center justify-center rounded-lg text-white/80 hover:text-white hover:bg-white/5 transition-colors ${FOCUS_RING}`}
+          className="md:hidden w-9 h-9 flex items-center justify-center rounded-lg text-white/80 hover:text-white hover:bg-white/5 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#8FE3C4]"
         >
           {open ? <X size={20} /> : <Menu size={20} />}
         </button>
       </nav>
 
+      {/* thin scroll-progress rail */}
       <div className="h-[2px] bg-white/5">
         <div
           className="h-full bg-[#8FE3C4]"
@@ -812,9 +780,8 @@ function Navbar() {
         />
       </div>
 
+      {/* mobile menu panel */}
       <div
-        id="mobile-menu"
-        aria-hidden={!open}
         className={`md:hidden overflow-hidden transition-[max-height,opacity] duration-300 ease-out border-b border-white/5 ${open ? "max-h-[420px] opacity-100" : "max-h-0 opacity-0"}`}
       >
         <div className="px-6 py-5 flex flex-col gap-1 bg-[#0F2D29]">
@@ -823,25 +790,19 @@ function Navbar() {
               key={href}
               href={href}
               onClick={() => setOpen(false)}
-              className={`text-[15px] font-medium text-white/80 hover:text-white py-3 border-b border-white/5 last:border-b-0 transition-colors ${FOCUS_RING}`}
+              className="text-[15px] font-medium text-white/80 hover:text-white py-3 border-b border-white/5 last:border-b-0 transition-colors"
               style={fontBody}
-              tabIndex={open ? 0 : -1}
             >
               {label}
             </a>
           ))}
           <div className="flex flex-col gap-2.5 mt-4">
-            <CtaButton icon onClick={() => setOpen(false)}>
+            <Pill icon onClick={() => setOpen(false)}>
               Get started free
-            </CtaButton>
-            <CtaButton
-              variant="outline"
-              dark
-              href="#"
-              onClick={() => setOpen(false)}
-            >
+            </Pill>
+            <Pill variant="outline" dark onClick={() => setOpen(false)}>
               Talk to sales
-            </CtaButton>
+            </Pill>
           </div>
         </div>
       </div>
@@ -868,13 +829,13 @@ function Hero() {
       />
       <div className="max-w-[1160px] mx-auto pt-16 pb-20 grid lg:grid-cols-[1fr_1.05fr] gap-14 items-center relative">
         <div>
-          <Badge
-            className="inline-flex items-center gap-2 text-[11px] font-medium text-[#B7CFC7] bg-white/5 hover:bg-white/5 border border-white/10 rounded-md px-3 py-1.5 mb-7 uppercase tracking-wide"
+          <div
+            className="inline-flex items-center gap-2 text-[11px] font-medium text-[#B7CFC7] bg-white/5 border border-white/10 rounded-md px-3 py-1.5 mb-7 uppercase tracking-wide"
             style={fontMono}
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-[#8FE3C4] motion-safe:animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[#8FE3C4] animate-pulse" />
             Advanced scheduling, built in
-          </Badge>
+          </div>
           <h1
             className="text-white text-[36px] md:text-[46px] font-bold leading-[1.14] tracking-tight mb-6"
             style={fontDisplay}
@@ -891,10 +852,10 @@ function Hero() {
             used to do by hand.
           </p>
           <div className="flex flex-wrap items-center gap-3 mb-9">
-            <CtaButton icon>Get started free</CtaButton>
-            <CtaButton variant="outline" dark href="#">
+            <Pill icon>Get started free</Pill>
+            <Pill variant="outline" dark>
               No card required
-            </CtaButton>
+            </Pill>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-0.5">
@@ -966,7 +927,7 @@ function LogoStrip() {
         </div>
       </div>
       <div className="relative w-full overflow-hidden mask-fade">
-        <div className="flex gap-14 w-max motion-safe:animate-[marquee_28s_linear_infinite]">
+        <div className="flex gap-14 w-max animate-[marquee_28s_linear_infinite]">
           {doubled.map((l, i) => (
             <span
               key={i}
@@ -997,72 +958,66 @@ function GanttSection() {
           description="Drag a task and everything downstream of it moves with it. The critical path — the chain that actually controls your ship date — stays highlighted at all times."
         />
         <Reveal delay={100}>
-          <Card className="bg-white rounded-2xl border-[#0F2D29]/8 p-6 overflow-x-auto gap-0">
-            <CardContent className="p-0">
-              <div className="flex items-center justify-between mb-5 px-1">
-                <span
-                  className="text-[12px] font-semibold text-[#0F2D29]"
-                  style={fontMono}
-                >
-                  LAUNCH-V2.3 · 6 WEEKS
-                </span>
-                <div
-                  className="flex items-center gap-4 text-[11px] text-[#5E6D68]"
-                  style={fontMono}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-1.5 rounded-full bg-[#3FA787]" />
-                    Critical path
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-1.5 rounded-full bg-[#B7CFC7]" />
-                    Buffered
-                  </div>
+          <div className="bg-white rounded-2xl border border-[#0F2D29]/8 p-6 overflow-x-auto">
+            <div className="flex items-center justify-between mb-5 px-1">
+              <span
+                className="text-[12px] font-semibold text-[#0F2D29]"
+                style={fontMono}
+              >
+                LAUNCH-V2.3 · 6 WEEKS
+              </span>
+              <div
+                className="flex items-center gap-4 text-[11px] text-[#5E6D68]"
+                style={fontMono}
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-1.5 rounded-full bg-[#3FA787]" />
+                  Critical path
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-1.5 rounded-full bg-[#B7CFC7]" />
+                  Buffered
                 </div>
               </div>
-              <div className="min-w-[560px]">
-                {GANTT_ROWS.map((row) => (
-                  <div
-                    key={row.label}
-                    className="flex items-center gap-3 py-2 group"
-                    onMouseEnter={() => setHovered(row.label)}
-                    onMouseLeave={() => setHovered(null)}
-                  >
-                    <div className="w-[180px] shrink-0">
-                      <div
-                        className="text-[12.5px] font-medium text-[#0F2D29] truncate"
-                        style={fontBody}
-                      >
-                        {row.label}
-                      </div>
-                      <div
-                        className="text-[10px] text-[#5E6D68]"
-                        style={fontMono}
-                      >
-                        {row.owner}
-                      </div>
+            </div>
+            <div className="min-w-[560px]">
+              {GANTT_ROWS.map((row) => (
+                <div
+                  key={row.label}
+                  className="flex items-center gap-3 py-2 group"
+                  onMouseEnter={() => setHovered(row.label)}
+                  onMouseLeave={() => setHovered(null)}
+                >
+                  <div className="w-[180px] shrink-0">
+                    <div
+                      className="text-[12.5px] font-medium text-[#0F2D29] truncate"
+                      style={fontBody}
+                    >
+                      {row.label}
                     </div>
-                    <div className="relative flex-1 h-6 bg-[#F2EADA] rounded-md">
-                      <div
-                        className={`absolute top-0.5 bottom-0.5 rounded-md transition-all duration-200 ${row.critical ? "shadow-[0_0_0_1px_rgba(63,167,135,0.4)]" : ""}`}
-                        style={{
-                          left: `${row.start}%`,
-                          width: `${row.width}%`,
-                          background: row.critical
-                            ? row.color
-                            : `${row.color}55`,
-                          transform:
-                            hovered === row.label
-                              ? "scaleY(1.15)"
-                              : "scaleY(1)",
-                        }}
-                      />
+                    <div
+                      className="text-[10px] text-[#5E6D68]"
+                      style={fontMono}
+                    >
+                      {row.owner}
                     </div>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  <div className="relative flex-1 h-6 bg-[#F2EADA] rounded-md">
+                    <div
+                      className={`absolute top-0.5 bottom-0.5 rounded-md transition-all duration-200 ${row.critical ? "shadow-[0_0_0_1px_rgba(63,167,135,0.4)]" : ""}`}
+                      style={{
+                        left: `${row.start}%`,
+                        width: `${row.width}%`,
+                        background: row.critical ? row.color : `${row.color}55`,
+                        transform:
+                          hovered === row.label ? "scaleY(1.15)" : "scaleY(1)",
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </Reveal>
       </div>
     </section>
@@ -1079,83 +1034,81 @@ function CapacitySection() {
           description="Every assignment writes to a person's real capacity. Overcommitment shows up here before it shows up in a missed date."
         />
         <Reveal delay={100}>
-          <Card className="bg-white rounded-2xl border-[#0F2D29]/8 p-6 overflow-x-auto gap-0">
-            <CardContent className="p-0">
-              <div className="min-w-[520px]">
-                <div className="grid grid-cols-[120px_repeat(5,1fr)] gap-2 mb-3 px-1">
-                  <span />
-                  {CAPACITY_WEEKS.map((w) => (
-                    <span
-                      key={w}
-                      className="text-[10.5px] text-[#5E6D68] text-center"
-                      style={fontMono}
-                    >
-                      {w}
-                    </span>
-                  ))}
-                </div>
-                {CAPACITY_PEOPLE.map((p) => (
-                  <div
-                    key={p.name}
-                    className="grid grid-cols-[120px_repeat(5,1fr)] gap-2 items-center py-1.5"
+          <div className="bg-white rounded-2xl border border-[#0F2D29]/8 p-6 overflow-x-auto">
+            <div className="min-w-[520px]">
+              <div className="grid grid-cols-[120px_repeat(5,1fr)] gap-2 mb-3 px-1">
+                <span />
+                {CAPACITY_WEEKS.map((w) => (
+                  <span
+                    key={w}
+                    className="text-[10.5px] text-[#5E6D68] text-center"
+                    style={fontMono}
                   >
-                    <div>
-                      <div
-                        className="text-[12.5px] font-medium text-[#0F2D29]"
-                        style={fontBody}
-                      >
-                        {p.name}
-                      </div>
-                      <div
-                        className="text-[10px] text-[#5E6D68]"
-                        style={fontMono}
-                      >
-                        {p.role}
-                      </div>
-                    </div>
-                    {p.load.map((pct, i) => (
-                      <div
-                        key={i}
-                        className="h-8 rounded-md flex items-center justify-center text-[10.5px] font-semibold transition-transform hover:scale-[1.04]"
-                        style={{
-                          background: loadColor(pct),
-                          color: pct >= 75 ? "#FBF3E6" : "#0F2D29",
-                        }}
-                      >
-                        <span style={fontMono}>{pct}%</span>
-                      </div>
-                    ))}
-                  </div>
+                    {w}
+                  </span>
                 ))}
               </div>
-              <div
-                className="flex items-center gap-4 mt-5 px-1 text-[10.5px] text-[#5E6D68]"
-                style={fontMono}
-              >
-                <div className="flex items-center gap-1.5">
-                  <span
-                    className="w-2.5 h-2.5 rounded-sm"
-                    style={{ background: "#E98A57" }}
-                  />
-                  At risk (95%+)
+              {CAPACITY_PEOPLE.map((p) => (
+                <div
+                  key={p.name}
+                  className="grid grid-cols-[120px_repeat(5,1fr)] gap-2 items-center py-1.5"
+                >
+                  <div>
+                    <div
+                      className="text-[12.5px] font-medium text-[#0F2D29]"
+                      style={fontBody}
+                    >
+                      {p.name}
+                    </div>
+                    <div
+                      className="text-[10px] text-[#5E6D68]"
+                      style={fontMono}
+                    >
+                      {p.role}
+                    </div>
+                  </div>
+                  {p.load.map((pct, i) => (
+                    <div
+                      key={i}
+                      className="h-8 rounded-md flex items-center justify-center text-[10.5px] font-semibold transition-transform hover:scale-[1.04]"
+                      style={{
+                        background: loadColor(pct),
+                        color: pct >= 75 ? "#FBF3E6" : "#0F2D29",
+                      }}
+                    >
+                      <span style={fontMono}>{pct}%</span>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span
-                    className="w-2.5 h-2.5 rounded-sm"
-                    style={{ background: "#3FA787" }}
-                  />
-                  Full
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span
-                    className="w-2.5 h-2.5 rounded-sm"
-                    style={{ background: "#8FE3C4" }}
-                  />
-                  Available
-                </div>
+              ))}
+            </div>
+            <div
+              className="flex items-center gap-4 mt-5 px-1 text-[10.5px] text-[#5E6D68]"
+              style={fontMono}
+            >
+              <div className="flex items-center gap-1.5">
+                <span
+                  className="w-2.5 h-2.5 rounded-sm"
+                  style={{ background: "#E98A57" }}
+                />
+                At risk (95%+)
               </div>
-            </CardContent>
-          </Card>
+              <div className="flex items-center gap-1.5">
+                <span
+                  className="w-2.5 h-2.5 rounded-sm"
+                  style={{ background: "#3FA787" }}
+                />
+                Full
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span
+                  className="w-2.5 h-2.5 rounded-sm"
+                  style={{ background: "#8FE3C4" }}
+                />
+                Available
+              </div>
+            </div>
+          </div>
         </Reveal>
       </div>
     </section>
@@ -1176,45 +1129,43 @@ function FeatureLineup() {
             const Icon = card.icon;
             return (
               <Reveal key={card.title} delay={i * 80}>
-                <Card className="bg-white rounded-2xl p-5 flex flex-col h-full hover:-translate-y-1 hover:shadow-[0_16px_32px_rgba(15,45,41,0.08)] transition-all duration-200 border-[#0F2D29]/8 gap-0">
-                  <CardContent className="p-0 flex flex-col h-full">
-                    <div className="flex items-center justify-between mb-5">
-                      <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center"
-                        style={{
-                          background: `${card.accent}1A`,
-                          color: card.accent,
-                        }}
-                      >
-                        <Icon size={19} strokeWidth={2} />
-                      </div>
-                      <span
-                        className="text-[10.5px] font-semibold"
-                        style={{ color: card.accent, ...fontMono }}
-                      >
-                        {card.stat}
-                      </span>
+                <div className="bg-white rounded-2xl p-5 flex flex-col h-full hover:-translate-y-1 hover:shadow-[0_16px_32px_rgba(15,45,41,0.08)] transition-all duration-200 border border-[#0F2D29]/8">
+                  <div className="flex items-center justify-between mb-5">
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center"
+                      style={{
+                        background: `${card.accent}1A`,
+                        color: card.accent,
+                      }}
+                    >
+                      <Icon size={19} strokeWidth={2} />
                     </div>
                     <span
-                      className="text-[11px] font-semibold text-[#5E6D68] uppercase tracking-wide mb-1.5"
-                      style={fontMono}
+                      className="text-[10.5px] font-semibold"
+                      style={{ color: card.accent, ...fontMono }}
                     >
-                      {card.tag}
+                      {card.stat}
                     </span>
-                    <h3
-                      className="text-[16px] font-semibold mb-2 leading-snug"
-                      style={fontDisplay}
-                    >
-                      {card.title}
-                    </h3>
-                    <p
-                      className="text-[13px] text-[#5E6D68] leading-relaxed"
-                      style={fontBody}
-                    >
-                      {card.description}
-                    </p>
-                  </CardContent>
-                </Card>
+                  </div>
+                  <span
+                    className="text-[11px] font-semibold text-[#5E6D68] uppercase tracking-wide mb-1.5"
+                    style={fontMono}
+                  >
+                    {card.tag}
+                  </span>
+                  <h3
+                    className="text-[16px] font-semibold mb-2 leading-snug"
+                    style={fontDisplay}
+                  >
+                    {card.title}
+                  </h3>
+                  <p
+                    className="text-[13px] text-[#5E6D68] leading-relaxed"
+                    style={fontBody}
+                  >
+                    {card.description}
+                  </p>
+                </div>
               </Reveal>
             );
           })}
@@ -1270,18 +1221,23 @@ function AutomationSection() {
                     <ArrowRight size={12} className="text-[#B7CFC7] shrink-0" />
                     <span className="text-[#B7CFC7]">{rule.action}</span>
                   </div>
-                  <Switch
-                    checked={on}
-                    onCheckedChange={() => toggle(i)}
+                  <button
+                    onClick={() => toggle(i)}
+                    aria-pressed={on}
                     aria-label={`Toggle rule: ${rule.trigger}`}
-                    className={`data-[state=checked]:bg-[#8FE3C4] data-[state=unchecked]:bg-white/15 ${FOCUS_RING}`}
-                  />
+                    className={`relative w-9 h-5 rounded-full shrink-0 transition-colors ${on ? "bg-[#8FE3C4]" : "bg-white/15"}`}
+                  >
+                    <span
+                      className="absolute top-0.5 w-4 h-4 rounded-full bg-[#0F2D29] transition-transform"
+                      style={{
+                        transform: on ? "translateX(18px)" : "translateX(2px)",
+                      }}
+                    />
+                  </button>
                 </div>
               );
             })}
-            <button
-              className={`flex items-center justify-center gap-2 text-[12.5px] font-medium text-[#8FE3C4] border border-dashed border-[#8FE3C4]/30 rounded-xl py-3.5 mt-1 hover:bg-[#8FE3C4]/5 transition-colors ${FOCUS_RING}`}
-            >
+            <button className="flex items-center justify-center gap-2 text-[12.5px] font-medium text-[#8FE3C4] border border-dashed border-[#8FE3C4]/30 rounded-xl py-3.5 mt-1 hover:bg-[#8FE3C4]/5 transition-colors">
               <Plus size={14} />
               Build a custom rule
             </button>
@@ -1303,39 +1259,36 @@ function Testimonials() {
         <div className="grid md:grid-cols-3 gap-5">
           {TESTIMONIALS.map((t, i) => (
             <Reveal key={t.name} delay={i * 80}>
-              <Card
-                className={`rounded-2xl p-6 flex flex-col h-full gap-0 ${t.dark ? "bg-[#0F2D29] border-transparent" : "bg-white border-[#0F2D29]/8"}`}
+              <div
+                className={`rounded-2xl p-6 flex flex-col h-full ${t.dark ? "bg-[#0F2D29]" : "bg-white border border-[#0F2D29]/8"}`}
               >
-                <CardContent className="p-0 flex flex-col h-full">
-                  <span
-                    className={`text-[28px] leading-none mb-2 ${t.dark ? "text-[#8FE3C4]/50" : "text-[#3FA787]/30"}`}
+                <span
+                  className={`text-[28px] leading-none mb-2 ${t.dark ? "text-[#8FE3C4]/50" : "text-[#3FA787]/30"}`}
+                  style={fontDisplay}
+                >
+                  "
+                </span>
+                <p
+                  className={`text-[13.5px] leading-relaxed mb-6 flex-1 ${t.dark ? "text-white" : "text-[#0F2D29]"}`}
+                  style={fontBody}
+                >
+                  {t.quote}
+                </p>
+                <div>
+                  <div
+                    className={`text-[13px] font-semibold ${t.dark ? "text-white" : "text-[#0F2D29]"}`}
                     style={fontDisplay}
-                    aria-hidden="true"
                   >
-                    "
-                  </span>
-                  <p
-                    className={`text-[13.5px] leading-relaxed mb-6 flex-1 ${t.dark ? "text-white" : "text-[#0F2D29]"}`}
+                    {t.name}
+                  </div>
+                  <div
+                    className={`text-[11.5px] ${t.dark ? "text-[#B7CFC7]" : "text-[#5E6D68]"}`}
                     style={fontBody}
                   >
-                    {t.quote}
-                  </p>
-                  <div>
-                    <div
-                      className={`text-[13px] font-semibold ${t.dark ? "text-white" : "text-[#0F2D29]"}`}
-                      style={fontDisplay}
-                    >
-                      {t.name}
-                    </div>
-                    <div
-                      className={`text-[11.5px] ${t.dark ? "text-[#B7CFC7]" : "text-[#5E6D68]"}`}
-                      style={fontBody}
-                    >
-                      {t.role}
-                    </div>
+                    {t.role}
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </Reveal>
           ))}
         </div>
@@ -1345,8 +1298,7 @@ function Testimonials() {
 }
 
 function Pricing() {
-  const [period, setPeriod] = useState<"monthly" | "yearly">("yearly");
-  const yearly = period === "yearly";
+  const [yearly, setYearly] = useState(true);
   return (
     <section id="pricing" className="bg-[#F2EADA] py-20 px-6 lg:px-10">
       <div className="max-w-[1160px] mx-auto">
@@ -1357,32 +1309,25 @@ function Pricing() {
         />
 
         <div className="flex justify-center mb-11">
-          <Tabs
-            value={period}
-            onValueChange={(v) => setPeriod(v as "monthly" | "yearly")}
-          >
-            <TabsList className="bg-white p-1 h-auto rounded-lg border border-[#0F2D29]/10">
-              <TabsTrigger
-                value="monthly"
-                className={`px-4 py-2 rounded-md text-[13px] font-semibold data-[state=active]:bg-[#0F2D29] data-[state=active]:text-white text-[#5E6D68] ${FOCUS_RING}`}
-                style={fontBody}
+          <div className="inline-flex items-center bg-white rounded-lg p-1 border border-[#0F2D29]/10">
+            <button
+              onClick={() => setYearly(false)}
+              className={`px-4 py-2 rounded-md text-[13px] font-semibold transition-colors ${!yearly ? "bg-[#0F2D29] text-white" : "text-[#5E6D68]"}`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setYearly(true)}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-[13px] font-semibold transition-colors ${yearly ? "bg-[#0F2D29] text-white" : "text-[#5E6D68]"}`}
+            >
+              Yearly
+              <span
+                className={`text-[10px] px-1.5 py-0.5 rounded-md ${yearly ? "bg-[#8FE3C4] text-[#0F2D29]" : "bg-[#3FA787]/15 text-[#3FA787]"}`}
               >
-                Monthly
-              </TabsTrigger>
-              <TabsTrigger
-                value="yearly"
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-[13px] font-semibold data-[state=active]:bg-[#0F2D29] data-[state=active]:text-white text-[#5E6D68] ${FOCUS_RING}`}
-                style={fontBody}
-              >
-                Yearly
-                <span
-                  className={`text-[10px] px-1.5 py-0.5 rounded-md ${yearly ? "bg-[#8FE3C4] text-[#0F2D29]" : "bg-[#3FA787]/15 text-[#3FA787]"}`}
-                >
-                  -25%
-                </span>
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+                -25%
+              </span>
+            </button>
+          </div>
         </div>
 
         <div className="grid md:grid-cols-3 gap-5 items-stretch">
@@ -1391,74 +1336,99 @@ function Pricing() {
               plan.priceLabel ?? `$${yearly ? plan.yearly : plan.monthly}`;
             return (
               <Reveal key={plan.name} delay={i * 80}>
-                <Card
-                  className={`relative rounded-2xl p-6 flex flex-col h-full transition-transform duration-200 gap-0 ${plan.featured ? "bg-[#0F2D29] text-white md:-translate-y-2 shadow-[0_24px_48px_rgba(15,45,41,0.22)] border-transparent" : "bg-white text-[#0F2D29] border-[#0F2D29]/8"}`}
+                <div
+                  className={`relative rounded-2xl p-6 flex flex-col h-full transition-transform duration-200 ${plan.featured ? "bg-[#0F2D29] text-white md:-translate-y-2 shadow-[0_24px_48px_rgba(15,45,41,0.22)]" : "bg-white text-[#0F2D29] border border-[#0F2D29]/8"}`}
                 >
-                  <CardContent className="p-0 flex flex-col h-full">
-                    {plan.featured && (
-                      <Badge
-                        className="absolute -top-3 right-6 bg-[#8FE3C4] text-[#0F2D29] hover:bg-[#8FE3C4] text-[10.5px] font-semibold px-2.5 py-1 rounded-md border-0"
-                        style={fontMono}
-                      >
-                        MOST POPULAR
-                      </Badge>
-                    )}
-                    <div
-                      className="text-[16px] font-semibold mb-1.5"
-                      style={fontDisplay}
-                    >
-                      {plan.name}
-                    </div>
-                    <div
-                      className={`text-[13px] mb-5 ${plan.featured ? "text-[#B7CFC7]" : "text-[#5E6D68]"}`}
-                      style={fontBody}
-                    >
-                      {plan.description}
-                    </div>
-                    <div
-                      className="text-[34px] font-bold mb-1"
+                  {plan.featured && (
+                    <span
+                      className="absolute -top-3 right-6 bg-[#8FE3C4] text-[#0F2D29] text-[10.5px] font-semibold px-2.5 py-1 rounded-md"
                       style={fontMono}
                     >
-                      {price}
-                      {!plan.priceLabel && (
-                        <span
-                          className={`text-[13px] font-medium ${plan.featured ? "text-[#B7CFC7]" : "text-[#5E6D68]"}`}
-                          style={fontBody}
-                        >
-                          /user/mo
-                        </span>
-                      )}
-                    </div>
-                    <ul className="flex flex-col gap-2.5 my-5 flex-1">
-                      {plan.features.map((f) => (
-                        <li
-                          key={f}
-                          className={`text-[13px] flex gap-2 ${plan.featured ? "text-[#B7CFC7]" : "text-[#5E6D68]"}`}
-                          style={fontBody}
-                        >
-                          <CheckCircle2
-                            size={15}
-                            className="text-[#3FA787] mt-0.5 shrink-0"
-                          />
-                          {f}
-                        </li>
-                      ))}
-                    </ul>
-                    <Button
-                      asChild
-                      className={`text-center rounded-lg px-4 py-2.5 h-auto text-[13.5px] font-semibold ${FOCUS_RING} ${plan.featured ? "bg-[#8FE3C4] text-[#0F2D29] hover:bg-[#7BD6B4]" : "bg-transparent border border-[#0F2D29]/15 text-[#0F2D29] hover:bg-[#0F2D29]/5"}`}
-                      style={fontBody}
-                    >
-                      <a href="#">{plan.cta}</a>
-                    </Button>
-                  </CardContent>
-                </Card>
+                      MOST POPULAR
+                    </span>
+                  )}
+                  <div
+                    className="text-[16px] font-semibold mb-1.5"
+                    style={fontDisplay}
+                  >
+                    {plan.name}
+                  </div>
+                  <div
+                    className={`text-[13px] mb-5 ${plan.featured ? "text-[#B7CFC7]" : "text-[#5E6D68]"}`}
+                    style={fontBody}
+                  >
+                    {plan.description}
+                  </div>
+                  <div className="text-[34px] font-bold mb-1" style={fontMono}>
+                    {price}
+                    {!plan.priceLabel && (
+                      <span
+                        className={`text-[13px] font-medium ${plan.featured ? "text-[#B7CFC7]" : "text-[#5E6D68]"}`}
+                        style={fontBody}
+                      >
+                        /user/mo
+                      </span>
+                    )}
+                  </div>
+                  <ul className="flex flex-col gap-2.5 my-5 flex-1">
+                    {plan.features.map((f) => (
+                      <li
+                        key={f}
+                        className={`text-[13px] flex gap-2 ${plan.featured ? "text-[#B7CFC7]" : "text-[#5E6D68]"}`}
+                        style={fontBody}
+                      >
+                        <CheckCircle2
+                          size={15}
+                          className="text-[#3FA787] mt-0.5 shrink-0"
+                        />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                  <a
+                    href="#"
+                    className={`text-center rounded-lg px-4 py-2.5 text-[13.5px] font-semibold transition-colors ${plan.featured ? "bg-[#8FE3C4] text-[#0F2D29] hover:bg-[#7BD6B4]" : "border border-[#0F2D29]/15 hover:bg-[#0F2D29]/5"}`}
+                  >
+                    {plan.cta}
+                  </a>
+                </div>
               </Reveal>
             );
           })}
         </div>
       </div>
     </section>
+  );
+}
+
+function FaqRow({ item }: { item: FaqItem }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border-b border-[#0F2D29]/10 py-5">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between text-left gap-4"
+      >
+        <span
+          className="text-[14.5px] font-semibold text-[#0F2D29]"
+          style={fontDisplay}
+        >
+          {item.q}
+        </span>
+        <ChevronDown
+          size={18}
+          className={`text-[#5E6D68] shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      {open && (
+        <p
+          className="text-[13.5px] text-[#5E6D68] leading-relaxed mt-3 pr-8"
+          style={fontBody}
+        >
+          {item.a}
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -1471,28 +1441,11 @@ function Faq() {
           title="Questions, answered"
           description="Everything you need to know before bringing your schedule over."
         />
-        <Accordion type="single" collapsible className="w-full">
-          {FAQS.map((f, i) => (
-            <AccordionItem
-              key={f.q}
-              value={`item-${i}`}
-              className="border-b border-[#0F2D29]/10"
-            >
-              <AccordionTrigger
-                className={`text-[14.5px] font-semibold text-[#0F2D29] py-5 hover:no-underline ${FOCUS_RING}`}
-                style={fontDisplay}
-              >
-                {f.q}
-              </AccordionTrigger>
-              <AccordionContent
-                className="text-[13.5px] text-[#5E6D68] leading-relaxed pr-8"
-                style={fontBody}
-              >
-                {f.a}
-              </AccordionContent>
-            </AccordionItem>
+        <div>
+          {FAQS.map((f) => (
+            <FaqRow key={f.q} item={f} />
           ))}
-        </Accordion>
+        </div>
       </div>
     </section>
   );
@@ -1514,18 +1467,17 @@ function FinalCta() {
           className="text-white text-[30px] font-bold mb-4 leading-tight"
           style={fontDisplay}
         >
-          Put your next launch on a <Highlight tone="coral">real</Highlight>{" "}
-          schedule
+          Put your next launch on a <Highlight>real</Highlight> schedule
         </h2>
         <p className="text-[#B7CFC7] text-[15px] mb-8" style={fontBody}>
           Map your first dependency graph in under five minutes. No credit card
           required.
         </p>
         <div className="flex justify-center gap-3">
-          <CtaButton icon>Get started free</CtaButton>
-          <CtaButton variant="outline" dark href="#">
+          <Pill icon>Get started free</Pill>
+          <Pill variant="outline" dark>
             Talk to sales
-          </CtaButton>
+          </Pill>
         </div>
       </div>
     </section>
@@ -1557,7 +1509,7 @@ function Footer() {
                 <a
                   key={i}
                   href="#"
-                  className={`w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white/70 hover:text-[#8FE3C4] hover:bg-white/10 transition-colors ${FOCUS_RING}`}
+                  className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white/70 hover:text-[#8FE3C4] hover:bg-white/10 transition-colors"
                 >
                   <Icon size={14} />
                 </a>
@@ -1580,7 +1532,7 @@ function Footer() {
                 <a
                   key={i}
                   href="#"
-                  className={`block text-[13.5px] text-white/80 mb-2.5 hover:text-[#8FE3C4] transition-colors ${FOCUS_RING}`}
+                  className="block text-[13.5px] text-white/80 mb-2.5 hover:text-[#8FE3C4] transition-colors"
                   style={fontBody}
                 >
                   {i}
@@ -1589,23 +1541,16 @@ function Footer() {
             </div>
           ))}
         </div>
-        <Separator className="bg-white/10" />
         <div
-          className="flex justify-between items-center pt-5 text-[12px] text-[#B7CFC7]"
+          className="flex justify-between items-center border-t border-white/10 pt-5 text-[12px] text-[#B7CFC7]"
           style={fontMono}
         >
           <span>© 2026 Waypoint. All rights reserved.</span>
           <div className="flex gap-5">
-            <a
-              href="#"
-              className={`hover:text-white transition-colors ${FOCUS_RING}`}
-            >
+            <a href="#" className="hover:text-white transition-colors">
               Privacy
             </a>
-            <a
-              href="#"
-              className={`hover:text-white transition-colors ${FOCUS_RING}`}
-            >
+            <a href="#" className="hover:text-white transition-colors">
               Terms
             </a>
           </div>
