@@ -29,3 +29,9 @@ export interface FeatureCard {
   description: string;
   accent: string;
 }
+
+export interface AutomationRule {
+  trigger: string;
+  action: string;
+  icon: React.ElementType;
+}

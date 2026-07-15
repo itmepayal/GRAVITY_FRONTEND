@@ -1,6 +1,6 @@
-import { Badge } from "../common/badge";
+import { Badge } from "@/components/common/badge";
 import { FEATURES } from "@/constants/feature";
-import { Reveal } from "../common/reveal";
+import { Reveal } from "@/components/common/reveal";
 
 export const FeatureLineup = () => {
   return (

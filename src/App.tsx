@@ -7,6 +7,7 @@ import { LogoStrip } from "./components/sections/logo-stripe";
 import { GanttChart } from "./components/sections/gantt";
 import { Capacity } from "./components/sections/capacity";
 import { FeatureLineup } from "./components/sections/feature-lineup";
+import { Automation } from "./components/sections/automation";
 
 function App(): JSX.Element {
   return (
@@ -18,6 +19,7 @@ function App(): JSX.Element {
       <GanttChart/>
       <Capacity/>
       <FeatureLineup/>
+      <Automation/>
       <Footer/>
     </div>
   );

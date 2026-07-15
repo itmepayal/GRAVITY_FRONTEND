@@ -67,4 +67,9 @@ export const LOGOS = [
   "Cascade",
   "Marlin",
 ];
+
+export const TRACK_W = 42;
+export const TRACK_H = 22;
+export const THUMB = 18;
+export const PAD = 2;
  
