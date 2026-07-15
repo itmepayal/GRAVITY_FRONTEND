@@ -56,3 +56,15 @@ export const STATS: Stat[] = [
   { value: "12,400", label: "Teams onboarded", icon: Users },
   { value: "98.7%", label: "Uptime, last 12 months", icon: Workflow },
 ];
+
+export const LOGOS = [
+  "Atlas",
+  "Harbor",
+  "Beacon",
+  "Northwind",
+  "Fathom",
+  "Loop",
+  "Cascade",
+  "Marlin",
+];
+ 
