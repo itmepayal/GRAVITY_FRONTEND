@@ -1,3 +1,13 @@
+export type GravityMarkProps = {
+  size?: number;
+  className?: string;
+};
+
+export interface LoaderProps {
+  progress?: number;
+  label?: string;
+}
+
 export type DepStatus = "done" | "active" | "blocked" | "pending";
 
 export interface DepNode {
