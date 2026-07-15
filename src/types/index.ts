@@ -11,3 +11,21 @@ export interface DepNode {
 export type DepEdge = [string, string];
 
 export type StatusColorMap = Record<DepStatus, string>;
+
+export interface GanttRow {
+  label: string;
+  owner: string;
+  color: string;
+  start: number;
+  width: number;
+  critical?: boolean;
+}
+
+export interface FeatureCard {
+  icon: React.ElementType;
+  tag: string;
+  stat: string;
+  title: string;
+  description: string;
+  accent: string;
+}
