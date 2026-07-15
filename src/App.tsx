@@ -9,6 +9,8 @@ import { Capacity } from "./components/sections/capacity";
 import { FeatureLineup } from "./components/sections/feature-lineup";
 import { Automation } from "./components/sections/automation";
 import { Testimonials } from "./components/sections/testimonial";
+import { Pricing } from "./components/sections/pricing";
+import { Cta } from "./components/sections/cta";
 
 function App(): JSX.Element {
   return (
@@ -22,6 +24,8 @@ function App(): JSX.Element {
       <FeatureLineup/>
       <Automation/>
       <Testimonials/>
+      <Pricing/>
+      <Cta/>
       <Footer/>
     </div>
   );

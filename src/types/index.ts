@@ -42,3 +42,13 @@ export interface Testimonial {
   role: string;
   dark?: boolean;
 }
+export interface PricingPlan {
+  name: string;
+  description: string;
+  monthly: number | null;
+  yearly: number | null;
+  priceLabel?: string;
+  features: string[];
+  cta: string;
+  featured?: boolean;
+}

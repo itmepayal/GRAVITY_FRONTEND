@@ -30,7 +30,7 @@ export const Hero = () => {
 
             <h1 className="text-white text-[28px] xs:text-[32px] sm:text-[36px] md:text-[42px] lg:text-[46px] font-bold leading-[1.15] tracking-tight mb-5 sm:mb-6">
               Scheduling software that finds your{" "}
-              <Highlight>critical path</Highlight> automatically
+              <Highlight><span className="capitalize">critical path</span></Highlight> automatically
             </h1>
 
             <p className="text-[#B7CFC7] text-[15px] sm:text-[16px] max-w-[440px] mx-auto lg:mx-0 mb-7 sm:mb-8 leading-relaxed">
