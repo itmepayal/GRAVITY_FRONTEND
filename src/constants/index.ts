@@ -73,3 +73,5 @@ export const TRACK_H = 22;
 export const THUMB = 18;
 export const PAD = 2;
  
+
+export const AUTOPLAY_MS = 5500;

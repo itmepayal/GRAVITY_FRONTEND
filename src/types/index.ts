@@ -35,3 +35,10 @@ export interface AutomationRule {
   action: string;
   icon: React.ElementType;
 }
+
+export interface Testimonial {
+  quote: string;
+  name: string;
+  role: string;
+  dark?: boolean;
+}
