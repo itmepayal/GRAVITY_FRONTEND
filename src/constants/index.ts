@@ -1,3 +1,5 @@
+import type { ElementType } from "react";
+import { GitBranch, Clock, Users, Workflow } from "lucide-react";
 import type { DepEdge, DepNode, DepStatus, StatusColorMap } from "@/types";
 
 export const NAV_LINKS: [string, string][] = [
@@ -39,3 +41,18 @@ export const NODES = DEP_NODES as DepNode[];
 export const EDGES = DEP_EDGES as DepEdge[];
 export const COLORS = STATUS_COLOR as StatusColorMap;
 export const STATUS_LIST: DepStatus[] = ["done", "active", "blocked", "pending"];
+
+
+
+export interface Stat {
+  value: string;
+  label: string;
+  icon: ElementType;
+}
+
+export const STATS: Stat[] = [
+  { value: "3.2M", label: "Dependencies tracked", icon: GitBranch },
+  { value: "41%", label: "Fewer schedule slips", icon: Clock },
+  { value: "12,400", label: "Teams onboarded", icon: Users },
+  { value: "98.7%", label: "Uptime, last 12 months", icon: Workflow },
+];

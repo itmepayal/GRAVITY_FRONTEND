@@ -925,41 +925,6 @@ function Hero() {
   );
 }
 
-/* ---------------------------------------------------------
-   STATS BAR
---------------------------------------------------------- */
-function StatsBar() {
-  const { ref, shown } = useReveal<HTMLDivElement>();
-  return (
-    <section className="bg-[#143631] border-y border-white/5 py-10 px-5 lg:px-40">
-      <div
-        ref={ref}
-        className="max-w-[1400px] mx-auto grid grid-cols-2 md:grid-cols-4 gap-8"
-      >
-        {STATS.map((s) => (
-          <StatItem key={s.label} stat={s} shown={shown} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function StatItem({ stat, shown }: { stat: Stat; shown: boolean }) {
-  const display = useCountUp(stat.value, shown);
-  return (
-    <div className="text-center md:text-left">
-      <div
-        className="text-[26px] md:text-[32px] font-bold text-white mb-1"
-        style={fontDisplay}
-      >
-        {display}
-      </div>
-      <div className="text-[12.5px] text-[#B7CFC7]" style={fontMono}>
-        {stat.label}
-      </div>
-    </div>
-  );
-}
 
 /* ---------------------------------------------------------
    FEATURES
