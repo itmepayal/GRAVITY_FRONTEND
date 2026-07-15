@@ -11,6 +11,7 @@ export const NAV_LINKS: [string, string][] = [
   ["resources", "Resources"],
 ];
 
+
 export const DEP_NODES = [
   { id: "a", label: "Schema", x: 8, y: 50, status: "done" },
   { id: "b", label: "Auth service", x: 32, y: 20, status: "done" },

@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { ArrowRight, Plus } from "lucide-react";
-import { Badge } from "../common/badge";
+import { Badge } from "@/components/common/badge";
 import { AUTOMATIONS } from "@/constants/automation";
-import { Reveal } from "../common/reveal";
-import { Switch } from "../common/switch";
+import { Reveal } from "@/components/common/reveal";
+import { Switch } from "@/components/common/switch";
 
 export function Automation() {
   const [enabled, setEnabled] = useState<boolean[]>(
@@ -13,7 +13,7 @@ export function Automation() {
     setEnabled((e) => e.map((v, idx) => (idx === i ? !v : v)));
 
   return (
-    <section className="bg-[#0F2D29]">
+    <section className="bg-[#0F2D29]" id="solutions">
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.05]"
         style={{

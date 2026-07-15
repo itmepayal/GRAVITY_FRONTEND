@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Reveal } from "../common/reveal";
-import { Badge } from "../common/badge";
+import { Reveal } from "@/components/common/reveal";
+import { Badge } from "@/components/common/badge";
 import { TESTIMONIALS } from "@/constants/testimonial";
 import { useVisibleCount } from "@/hooks/use-visible";
 import { AUTOPLAY_MS } from "@/constants";
@@ -64,7 +64,7 @@ export const Testimonials = () => {
   };
 
   return (
-    <section id="testimonials" className="bg-[#FBF3E6]">
+    <section id="resources" className="bg-[#FBF3E6]">
         <div className="max-w-[1400px] mx-auto py-6 sm:py-8 md:py-9 lg:py-10 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-20 2xl:px-40">
         <Badge eyebrow="Our customers" title="Teams that stopped guessing at the ship date" />
         <Reveal delay={100}>

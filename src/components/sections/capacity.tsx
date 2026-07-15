@@ -4,7 +4,7 @@ import { CAPACITY_PEOPLE, CAPACITY_WEEKS, loadColor } from "@/constants/capacity
 
 export const Capacity = () => {
   return (
-    <section id="capacity" className="bg-[#F2EADA]">
+    <section id="enterprise" className="bg-[#F2EADA]">
       <div className="max-w-[1400px] mx-auto py-6 sm:py-8 md:py-9 lg:py-10 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-20 2xl:px-40">
         <Badge
           eyebrow="Capacity"

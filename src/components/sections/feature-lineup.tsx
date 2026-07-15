@@ -4,7 +4,7 @@ import { Reveal } from "@/components/common/reveal";
 
 export const FeatureLineup = () => {
   return (
-    <section id="features" className="bg-[#FBF3E6]">
+    <section id="product" className="bg-[#FBF3E6]">
       <div className="max-w-[1400px] mx-auto py-6 sm:py-8 md:py-9 lg:py-10 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-20 2xl:px-40">
         <Badge
           eyebrow="Platform"
