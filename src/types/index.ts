@@ -8,6 +8,16 @@ export interface LoaderProps {
   label?: string;
 }
 
+export type PillProps = {
+  children: React.ReactNode;
+  variant?: "solid" | "outline";
+  dark?: boolean;
+  icon?: boolean;
+  href?: string;
+  onClick?: () => void;
+  className?: string;
+};
+
 export type DepStatus = "done" | "active" | "blocked" | "pending";
 
 export interface DepNode {
