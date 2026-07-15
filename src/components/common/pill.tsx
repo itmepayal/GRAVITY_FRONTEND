@@ -12,6 +12,7 @@ export const Pill = ({
 }: PillProps) => {
   const base =
     "inline-flex items-center gap-1.5 rounded-lg px-5 py-2.5 text-[13.5px] font-semibold transition-all duration-150 cursor-pointer";
+
   if (variant === "solid") {
     return (
       <a
@@ -24,6 +25,7 @@ export const Pill = ({
       </a>
     );
   }
+
   return (
     <a
       href={href}
