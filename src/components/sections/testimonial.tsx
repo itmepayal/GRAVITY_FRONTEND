@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Reveal } from "../common/reveal";
 import { Badge } from "../common/badge";
 import { TESTIMONIALS } from "@/constants/testimonial";
@@ -127,27 +126,7 @@ export const Testimonials = () => {
                 })}
               </div>
             </div>
-
-            {maxIndex > 0 && (
-              <>
-                <button
-                  onClick={() => go(index - 1)}
-                  aria-label="Previous testimonial"
-                  className="absolute top-1/2 -translate-y-1/2 left-0 sm:-left-4 w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-white border border-[#0F2D29]/10 shadow-sm flex items-center justify-center text-[#0F2D29] hover:bg-[#0F2D29] hover:text-white transition-colors"
-                >
-                  <ChevronLeft size={16} />
-                </button>
-                <button
-                  onClick={() => go(index + 1)}
-                  aria-label="Next testimonial"
-                  className="absolute top-1/2 -translate-y-1/2 right-0 sm:-right-4 w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-white border border-[#0F2D29]/10 shadow-sm flex items-center justify-center text-[#0F2D29] hover:bg-[#0F2D29] hover:text-white transition-colors"
-                >
-                  <ChevronRight size={16} />
-                </button>
-              </>
-            )}
           </div>
-
           {maxIndex > 0 && (
             <div className="flex items-center justify-center gap-2 mt-6">
               {Array.from({ length: maxIndex + 1 }).map((_, i) => (

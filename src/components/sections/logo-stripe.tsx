@@ -10,7 +10,6 @@ export const LogoStrip = () => {
           Running schedules for delivery teams at growing companies
         </div>
       </div>
- 
       <div className="relative w-full overflow-hidden mask-fade">
         <div className="flex gap-10 sm:gap-12 md:gap-14 w-max animate-[marquee_28s_linear_infinite]">
           {doubled.map(({ name, Icon }, i) => (

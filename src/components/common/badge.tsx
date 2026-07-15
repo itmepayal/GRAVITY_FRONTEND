@@ -1,11 +1,5 @@
-import { Reveal } from "./reveal";
-
-interface BadgeProps {
-  eyebrow: string;
-  title: React.ReactNode;
-  description?: string;
-  dark?: boolean;
-}
+import type { BadgeProps } from "@/types";
+import { Reveal } from "@/components/common/reveal";
 
 export const Badge = ({
   eyebrow,
@@ -15,30 +9,39 @@ export const Badge = ({
 }: BadgeProps) => {
   return (
     <Reveal>
-      <div className="max-w-[580px] mx-auto text-center px-4 sm:px-6 mb-10">
+      <div className="w-full max-w-3xl mx-auto px-5 sm:px-6 lg:px-8 text-center mb-10 sm:mb-12 lg:mb-14">
         <span
-          className={`inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] font-semibold mb-2.5 sm:mb-3 px-2 sm:px-2.5 py-[3px] sm:py-1 rounded-md uppercase tracking-wide ${
+          className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] sm:text-xs font-semibold uppercase tracking-[0.15em] ${
             dark
-              ? "text-[#8FE3C4] bg-white/5"
-              : "text-[#3FA787] bg-[#3FA787]/10"
+              ? "bg-white/10 text-[#8FE3C4]"
+              : "bg-[#3FA787]/10 text-[#3FA787]"
           }`}
         >
           {eyebrow}
         </span>
 
         <h2
-          className={`font-bold tracking-tight mb-3 sm:mb-3.5 leading-[1.15] text-[clamp(1.5rem,4.5vw+0.5rem,2.125rem)] ${
-            dark ? "text-white" : "text-[#0F2D29]"
-          }`}
+          className={`mt-4 font-bold leading-tight tracking-tight
+            text-3xl
+            sm:text-4xl
+            lg:text-5xl
+            ${
+              dark ? "text-white" : "text-[#0F2D29]"
+            }`}
         >
           {title}
         </h2>
 
         {description && (
           <p
-            className={`text-[clamp(0.875rem,1.5vw+0.5rem,0.9375rem)] leading-relaxed ${
-              dark ? "text-[#B7CFC7]" : "text-[#5E6D68]"
-            }`}
+            className={`mt-4 mx-auto max-w-2xl
+              text-sm
+              sm:text-base
+              lg:text-lg
+              leading-7
+              ${
+                dark ? "text-[#B7CFC7]" : "text-[#5E6D68]"
+              }`}
           >
             {description}
           </p>

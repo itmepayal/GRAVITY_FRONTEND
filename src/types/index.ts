@@ -18,6 +18,13 @@ export type PillProps = {
   className?: string;
 };
 
+export interface BadgeProps {
+  eyebrow: string;
+  title: React.ReactNode;
+  description?: string;
+  dark?: boolean;
+}
+
 
 export type DepStatus = "done" | "active" | "blocked" | "pending";
 
