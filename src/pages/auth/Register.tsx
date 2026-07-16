@@ -1,0 +1,174 @@
+"use client";
+
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { User, Mail, Loader2, ArrowRight, Sparkles } from "lucide-react";
+import { AuthLayout } from "@/components/layout/AuthLayout";
+import { FormField } from "@/components/form/BaseFromField";
+import { BaseInput } from "@/components/form/BaseInput";
+import { BasePasswordInput } from "@/components/form/BasePasswordInput";
+import { GoogleIcon, SocialButton } from "@/components/button/SocialButton";
+import { INCLUDED_ITEMS } from "@/constants/auth";
+
+const WhatsIncludedCard = () => {
+  return (
+    <div className="relative rounded-[16px] border border-white/[0.08] bg-white/[0.04] backdrop-blur-sm p-4 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-[11px] uppercase tracking-[0.08em] text-[#B7CFC7]">
+          What's included
+        </span>
+        <Sparkles size={14} className="text-[#8FE3C4]" />
+      </div>
+      <div className="flex flex-col gap-2.5">
+        {INCLUDED_ITEMS.map((item) => (
+          <div key={item} className="flex items-center gap-2.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#8FE3C4] shrink-0" />
+            <span className="text-[13px] text-white/85">{item}</span>
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 pt-4 border-t border-white/[0.08] flex items-center gap-1.5">
+        <div className="flex -space-x-2">
+          {["#8FE3C4", "#E98A57", "#B7CFC7"].map((c) => (
+            <div key={c} className="w-6 h-6 rounded-full border-2 border-[#0F2D29]" style={{ backgroundColor: c }} />
+          ))}
+        </div>
+        <span className="text-[11.5px] text-[#B7CFC7] ml-1">
+          Join 12,000+ teams already in orbit
+        </span>
+      </div>
+    </div>
+  );
+}
+
+const Register = () => {
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    // TODO: wire up to your auth flow
+    setTimeout(() => setLoading(false), 1200);
+  };
+
+  return (
+    <AuthLayout
+      title="Give your team something to orbit around."
+      description="Set up your workspace in under a minute — projects, teammates, and deadlines, all pulled into one shared field."
+      panelContent={<WhatsIncludedCard />}
+    >
+      <div className="flex flex-col items-center gap-1.5 text-center">
+        <h2 className="text-[#0F2D29] text-[26px] sm:text-[28px] font-bold leading-tight tracking-[-0.02em]">
+          Create your account
+        </h2>
+        <p className="text-[#5B6E68] text-[13.5px]">Start free — no credit card needed.</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4 w-full">
+        <FormField label="Full name" htmlFor="name">
+          <BaseInput
+            icon={User}
+            id="name"
+            type="text"
+            placeholder="Ada Lovelace"
+            autoComplete="name"
+            required
+          />
+        </FormField>
+
+        <FormField label="Email" htmlFor="email">
+          <BaseInput
+            icon={Mail}
+            id="email"
+            type="email"
+            placeholder="you@example.com"
+            autoComplete="email"
+            required
+          />
+        </FormField>
+
+        <FormField label="Password" htmlFor="password">
+          <BasePasswordInput
+            id="password"
+            placeholder="At least 8 characters"
+            autoComplete="new-password"
+            required
+            minLength={8}
+          />
+        </FormField>
+
+        <FormField label="Confirm password" htmlFor="confirmPassword">
+          <BasePasswordInput
+            id="confirmPassword"
+            placeholder="Re-enter your password"
+            autoComplete="new-password"
+            required
+            minLength={8}
+          />
+        </FormField>
+
+        <div className="flex items-start gap-2 mt-1">
+          <Checkbox
+            id="terms"
+            required
+            className="mt-0.5 border-[#0F2D29]/20 data-[state=checked]:bg-[#8FE3C4] data-[state=checked]:border-[#8FE3C4] data-[state=checked]:text-[#0F2D29]"
+          />
+          <Label
+            htmlFor="terms"
+            className="text-[#5B6E68] text-[12.5px] font-normal cursor-pointer leading-snug"
+          >
+            I agree to the{" "}
+            <a href="/terms" className="text-[#0F8A65] hover:text-[#0F8A65]/80 transition-colors">
+              Terms of Service
+            </a>{" "}
+            and{" "}
+            <a href="/privacy" className="text-[#0F8A65] hover:text-[#0F8A65]/80 transition-colors">
+              Privacy Policy
+            </a>
+          </Label>
+        </div>
+
+        <Button
+          type="submit"
+          disabled={loading}
+          className="group h-11 rounded-xl mt-1 font-semibold text-[14px] bg-[#0F2D29] text-white hover:bg-[#0F2D29]/90 transition-all disabled:opacity-70"
+        >
+          {loading ? (
+            <span className="flex items-center gap-2">
+              <Loader2 size={16} className="animate-spin" />
+              Creating account…
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5">
+              Create account
+              <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />
+            </span>
+          )}
+        </Button>
+      </form>
+
+      <div className="flex items-center gap-3 w-full">
+        <div className="h-px flex-1 bg-[#0F2D29]/10" />
+        <span className="text-[#5B6E68]/70 text-[11.5px] uppercase tracking-[0.04em]">
+          or continue with
+        </span>
+        <div className="h-px flex-1 bg-[#0F2D29]/10" />
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 w-full">
+        <SocialButton icon={<GoogleIcon />} label="Google" />
+      </div>
+
+      <p className="text-[#5B6E68] text-[13px]">
+        Already have an account?{" "}
+        <a href="/login" className="text-[#0F8A65] font-medium hover:text-[#0F8A65]/80 transition-colors">
+          Sign in
+        </a>
+      </p>
+    </AuthLayout>
+  );
+}
+
+export default Register

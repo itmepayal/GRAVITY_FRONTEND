@@ -3,7 +3,7 @@ import { AMBIENT_NODES } from "@/constants/loader";
 import type { LoaderProps } from "@/types";
 import { GravityMarkLoader } from "@/components/common/logo";
 
-export default function Loader({ progress, label = "Loading your schedule" }: LoaderProps) {
+export const Loader = ({ progress, label = "Loading your schedule" }: LoaderProps) => {
   const [step, setStep] = useState(0);
   const [dots, setDots] = useState("");
   const indeterminate = progress === undefined;
