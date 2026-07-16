@@ -1,6 +1,6 @@
 import { type JSX, useEffect, useState } from "react";
 
-import Loader from "@/components/common/loader";
+import {Loader} from "@/components/common/loader";
 import { Navbar } from "@/components/sections/navbar";
 import { Footer } from "@/components/sections/footer";
 import { Hero } from "@/components/sections/hero";
