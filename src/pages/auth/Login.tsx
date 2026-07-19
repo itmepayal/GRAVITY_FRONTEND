@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -12,10 +12,14 @@ import { BaseInput } from "@/components/form/BaseInput";
 import { BasePasswordInput } from "@/components/form/BasePasswordInput";
 import { GoogleIcon, SocialButton } from "@/components/button/SocialButton";
 import { WEEKLY_TASKS } from "@/constants/auth";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useLogin } from "@/hooks/mutations/auth/use-login";
+import { loginSchema, type LoginFormData } from "@/validations/auth.validation";
 
 const OrbitCard = () => {
   return (
-    <div className="relative rounded-[16px] border border-white/[0.08] bg-white/[0.04] backdrop-blur-sm p-4 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
+    <div className="relative rounded-[16px] border border-white/8 bg-white/4 backdrop-blur-sm p-4 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
       <div className="flex items-center justify-between mb-4">
         <span className="text-[11px] uppercase tracking-[0.08em] text-[#B7CFC7]">
           This week's orbit
@@ -25,32 +29,60 @@ const OrbitCard = () => {
       <div className="flex flex-col gap-2.5">
         {WEEKLY_TASKS.map((task) => (
           <div key={task.label} className="flex items-center gap-2.5">
-            <CheckCircle2 size={15} className={task.done ? "text-[#8FE3C4]" : "text-white/20"} />
-            <span className={cn("text-[13px]", task.done ? "text-white/50 line-through" : "text-white/85")}>
+            <CheckCircle2
+              size={15}
+              className={task.done ? "text-[#8FE3C4]" : "text-white/20"}
+            />
+            <span
+              className={cn(
+                "text-[13px]",
+                task.done ? "text-white/50 line-through" : "text-white/85",
+              )}
+            >
               {task.label}
             </span>
           </div>
         ))}
       </div>
-      <div className="mt-4 pt-4 border-t border-white/[0.08] flex items-center gap-1.5">
+      <div className="mt-4 pt-4 border-t border-white/8 flex items-center gap-1.5">
         <div className="flex -space-x-2">
           {["#8FE3C4", "#E98A57", "#B7CFC7"].map((c) => (
-            <div key={c} className="w-6 h-6 rounded-full border-2 border-[#0F2D29]" style={{ backgroundColor: c }} />
+            <div
+              key={c}
+              className="w-6 h-6 rounded-full border-2 border-[#0F2D29]"
+              style={{ backgroundColor: c }}
+            />
           ))}
         </div>
-        <span className="text-[11.5px] text-[#B7CFC7] ml-1">6 teammates active now</span>
+        <span className="text-[11.5px] text-[#B7CFC7] ml-1">
+          6 teammates active now
+        </span>
       </div>
     </div>
   );
-}
+};
 
 const Login = () => {
-  const [loading, setLoading] = useState(false);
+  const { mutate, isPending } = useLogin();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setTimeout(() => setLoading(false), 1200);
+  const form = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+      remember: false,
+    },
+  });
+
+  const handleSubmit = (values: LoginFormData) => {
+    mutate(values);
+  };
+
+  const onInvalid = (errors: typeof form.formState.errors) => {
+    const firstError = Object.values(errors)[0];
+    if (firstError?.message) {
+      toast.error(firstError.message as string);
+    }
   };
 
   return (
@@ -63,10 +95,15 @@ const Login = () => {
         <h2 className="text-[#0F2D29] text-[26px] sm:text-[28px] font-bold leading-tight tracking-[-0.02em]">
           Welcome back
         </h2>
-        <p className="text-[#5B6E68] text-[13.5px]">Sign in to pick up right where you left orbit.</p>
+        <p className="text-[#5B6E68] text-[13.5px]">
+          Sign in to pick up right where you left orbit.
+        </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4 w-full">
+      <form
+        onSubmit={form.handleSubmit(handleSubmit, onInvalid)}
+        className="flex flex-col gap-4 w-full"
+      >
         <FormField label="Email" htmlFor="email">
           <BaseInput
             icon={Mail}
@@ -74,7 +111,7 @@ const Login = () => {
             type="email"
             placeholder="you@example.com"
             autoComplete="email"
-            required
+            {...form.register("email")}
           />
         </FormField>
 
@@ -82,30 +119,44 @@ const Login = () => {
           label="Password"
           htmlFor="password"
           action={
-            <a href="/forgot-password" className="text-[#0F8A65] text-[12px] hover:text-[#0F8A65]/80 transition-colors">
+            <a
+              href="/forgot-password"
+              className="text-[#0F8A65] text-[12px] hover:text-[#0F8A65]/80 transition-colors"
+            >
               Forgot Password?
             </a>
           }
         >
-          <BasePasswordInput id="password" placeholder="••••••••" autoComplete="current-password" required />
+          <BasePasswordInput
+            id="password"
+            placeholder="••••••••"
+            autoComplete="current-password"
+            {...form.register("password")}
+          />
         </FormField>
 
         <div className="flex items-center gap-2 mt-1">
           <Checkbox
             id="remember"
+            onCheckedChange={(checked) =>
+              form.setValue("remember", checked === true)
+            }
             className="border-[#0F2D29]/20 data-[state=checked]:bg-[#8FE3C4] data-[state=checked]:border-[#8FE3C4] data-[state=checked]:text-[#0F2D29]"
           />
-          <Label htmlFor="remember" className="text-[#5B6E68] text-[12.5px] font-normal cursor-pointer">
+          <Label
+            htmlFor="remember"
+            className="text-[#5B6E68] text-[12.5px] font-normal cursor-pointer"
+          >
             Keep me signed in
           </Label>
         </div>
 
         <Button
           type="submit"
-          disabled={loading}
+          disabled={isPending}
           className="group h-11 rounded-xl mt-1 font-semibold text-[14px] bg-[#0F2D29] text-white hover:bg-[#0F2D29]/90 transition-all disabled:opacity-70"
         >
-          {loading ? (
+          {isPending ? (
             <span className="flex items-center gap-2">
               <Loader2 size={16} className="animate-spin" />
               Signing in…
@@ -113,7 +164,10 @@ const Login = () => {
           ) : (
             <span className="flex items-center gap-1.5">
               Sign in
-              <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />
+              <ArrowRight
+                size={15}
+                className="transition-transform group-hover:translate-x-0.5"
+              />
             </span>
           )}
         </Button>
@@ -125,12 +179,15 @@ const Login = () => {
 
       <p className="text-[#5B6E68] text-[13px]">
         New to Gravity?{" "}
-        <a href="/register" className="text-[#0F8A65] font-medium hover:text-[#0F8A65]/80 transition-colors">
+        <a
+          href="/register"
+          className="text-[#0F8A65] font-medium hover:text-[#0F8A65]/80 transition-colors"
+        >
           Create an account
         </a>
       </p>
     </AuthLayout>
   );
-}
+};
 
-export default Login
+export default Login;

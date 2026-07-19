@@ -1,16 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { toast } from "sonner";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowRight, ArrowLeft, ShieldCheck, CheckCircle2 } from "lucide-react";
+import {
+  Loader2,
+  ArrowRight,
+  ArrowLeft,
+  ShieldCheck,
+  CheckCircle2,
+  KeyRound,
+} from "lucide-react";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { FormField } from "@/components/form/BaseFromField";
+import { BaseInput } from "@/components/form/BaseInput";
 import { BasePasswordInput } from "@/components/form/BasePasswordInput";
 import { TIPS } from "@/constants/auth";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useResetPassword } from "@/hooks/mutations/auth/use-reset-password";
+import {
+  resetPasswordSchema,
+  type ResetPasswordFormData,
+} from "@/validations/auth.validation";
 
 const KeepItStrongCard = () => {
   return (
-    <div className="relative rounded-[16px] border border-white/[0.08] bg-white/[0.04] backdrop-blur-sm p-4 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
+    <div className="relative rounded-[16px] border border-white/8 bg-white/4 backdrop-blur-sm p-4 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
       <div className="flex items-center justify-between mb-4">
         <span className="text-[11px] uppercase tracking-[0.08em] text-[#B7CFC7]">
           Keep it strong
@@ -27,26 +43,48 @@ const KeepItStrongCard = () => {
       </div>
     </div>
   );
-}
+};
 
 const ResetPassword = () => {
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [reset, setReset] = useState(false);
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
 
-  const mismatch = confirmPassword.length > 0 && password !== confirmPassword;
+  const email =
+    (location.state as { email?: string; otp?: string })?.email ||
+    searchParams.get("email") ||
+    "";
+  const otp =
+    (location.state as { email?: string; otp?: string })?.otp ||
+    searchParams.get("otp") ||
+    "";
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (password.length < 8 || password !== confirmPassword) return;
-    setLoading(true);
-    // TODO: submit new password against your auth flow (with the reset token from the URL)
-    setTimeout(() => {
-      setLoading(false);
-      setReset(true);
-    }, 1200);
+  const { mutate, isPending, isSuccess } = useResetPassword();
+
+  const form = useForm<ResetPasswordFormData>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: {
+      email,
+      otp,
+      password: "",
+      confirmPassword: "",
+    },
+  });
+
+  const handleSubmit = (values: ResetPasswordFormData) => {
+    const { confirmPassword, ...payload } = values;
+    mutate(payload);
   };
+
+  const onInvalid = (errors: typeof form.formState.errors) => {
+    const firstError = Object.values(errors)[0];
+    if (firstError?.message) {
+      toast.error(firstError.message as string);
+    }
+  };
+
+  const password = form.watch("password");
+  const confirmPassword = form.watch("confirmPassword");
+  const mismatch = confirmPassword.length > 0 && password !== confirmPassword;
 
   return (
     <AuthLayout
@@ -54,27 +92,48 @@ const ResetPassword = () => {
       description="Choose a fresh password for your account. You'll be signed out everywhere else once it's set."
       panelContent={<KeepItStrongCard />}
     >
-      {!reset ? (
+      {!isSuccess ? (
         <>
           <div className="flex flex-col items-center gap-1.5 text-center">
             <h2 className="text-[#0F2D29] text-[26px] sm:text-[28px] font-bold leading-tight tracking-[-0.02em]">
               Set a new password
             </h2>
-            <p className="text-[#5B6E68] text-[13.5px] max-w-[300px]">
-              Make it something you haven't used before on Gravity.
+            <p className="text-[#5B6E68] text-[13.5px] max-w-75">
+              {email ? (
+                <>
+                  Enter the code sent to{" "}
+                  <span className="font-medium text-[#0F2D29]">{email}</span>{" "}
+                  and choose a new password.
+                </>
+              ) : (
+                "Make it something you haven't used before on Gravity."
+              )}
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4 w-full">
+          <form
+            onSubmit={form.handleSubmit(handleSubmit, onInvalid)}
+            className="flex flex-col gap-4 w-full"
+          >
+            <FormField label="Verification code" htmlFor="otp">
+              <BaseInput
+                icon={KeyRound}
+                id="otp"
+                type="text"
+                inputMode="numeric"
+                placeholder="Enter 6-digit code"
+                maxLength={6}
+                autoFocus
+                {...form.register("otp")}
+              />
+            </FormField>
+
             <FormField label="New password" htmlFor="password">
               <BasePasswordInput
                 id="password"
                 placeholder="At least 8 characters"
                 autoComplete="new-password"
-                required
-                minLength={8}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                {...form.register("password")}
               />
             </FormField>
 
@@ -83,23 +142,22 @@ const ResetPassword = () => {
                 id="confirmPassword"
                 placeholder="Re-enter your password"
                 autoComplete="new-password"
-                required
-                minLength={8}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                {...form.register("confirmPassword")}
               />
             </FormField>
 
             {mismatch && (
-              <p className="text-[#E98A57] text-[12.5px] -mt-2">Passwords don't match yet.</p>
+              <p className="text-[#E98A57] text-[12.5px] -mt-2">
+                Passwords don't match yet.
+              </p>
             )}
 
             <Button
               type="submit"
-              disabled={loading || password.length < 8 || password !== confirmPassword}
+              disabled={isPending}
               className="group h-11 rounded-xl mt-1 font-semibold text-[14px] bg-[#0F2D29] text-white hover:bg-[#0F2D29]/90 transition-all disabled:opacity-70"
             >
-              {loading ? (
+              {isPending ? (
                 <span className="flex items-center gap-2">
                   <Loader2 size={16} className="animate-spin" />
                   Resetting…
@@ -107,7 +165,10 @@ const ResetPassword = () => {
               ) : (
                 <span className="flex items-center gap-1.5">
                   Reset password
-                  <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />
+                  <ArrowRight
+                    size={15}
+                    className="transition-transform group-hover:translate-x-0.5"
+                  />
                 </span>
               )}
             </Button>
@@ -122,23 +183,13 @@ const ResetPassword = () => {
             <h2 className="text-[#0F2D29] text-[22px] font-bold leading-tight tracking-[-0.02em]">
               Password reset
             </h2>
-            <p className="text-[#5B6E68] text-[13.5px] max-w-[300px]">
+            <p className="text-[#5B6E68] text-[13.5px] max-w-75">
               Your password has been updated. Sign in with your new password to
               continue.
             </p>
           </div>
-
-          <Button
-            className="group h-11 w-full rounded-xl mt-1 font-semibold text-[14px] bg-[#0F2D29] text-white hover:bg-[#0F2D29]/90 transition-all"
-            onClick={() => {
-              window.location.href = "/login";
-            }}
-          >
-            Continue to sign in
-          </Button>
         </div>
       )}
-
       <a
         href="/login"
         className="flex items-center gap-1.5 text-[#5B6E68] text-[13px] hover:text-[#0F2D29] transition-colors"
@@ -148,6 +199,6 @@ const ResetPassword = () => {
       </a>
     </AuthLayout>
   );
-}
+};
 
-export default ResetPassword
+export default ResetPassword;

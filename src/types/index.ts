@@ -25,7 +25,6 @@ export interface BadgeProps {
   dark?: boolean;
 }
 
-
 export type DepStatus = "done" | "active" | "blocked" | "pending";
 
 export interface DepNode {

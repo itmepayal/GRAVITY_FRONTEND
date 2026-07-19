@@ -1,15 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Loader2, ArrowLeft, MailCheck, ShieldCheck } from "lucide-react";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { REASONS } from "@/constants/auth";
 import { BaseOtpInput } from "@/components/form/BaseOtpInput";
+import { useVerifyEmail } from "@/hooks/mutations/auth/use-verify-email";
+import { useResendVerificationEmail } from "@/hooks/mutations/auth/use-reset-verify-email";
 
 const WhyWeAskCard = () => {
   return (
-    <div className="relative rounded-[16px] border border-white/[0.08] bg-white/[0.04] backdrop-blur-sm p-4 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
+    <div className="relative rounded-[16px] border border-white/8 bg-white/4 backdrop-blur-sm p-4 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
       <div className="flex items-center justify-between mb-4">
         <span className="text-[11px] uppercase tracking-[0.08em] text-[#B7CFC7]">
           Why we ask
@@ -26,39 +29,49 @@ const WhyWeAskCard = () => {
       </div>
     </div>
   );
-}
+};
 
 const RESEND_SECONDS = 30;
 
 const VerifyEmail = () => {
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+
+  const email =
+    (location.state as { email?: string })?.email ||
+    searchParams.get("email") ||
+    "";
+
   const [code, setCode] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [verified, setVerified] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const {
+    mutate: verify,
+    isPending: isVerifying,
+    isSuccess,
+  } = useVerifyEmail();
+  const { mutate: resend, isPending: isResending } =
+    useResendVerificationEmail();
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (code.length < 6) return;
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setVerified(true);
-    }, 1200);
+    if (code.length < 6 || !email) return;
+    verify({ email, otp: code });
   };
 
   const handleResend = () => {
-    if (resendCooldown > 0) return;
+    if (resendCooldown > 0 || !email) return;
+    resend({ email });
     setResendCooldown(RESEND_SECONDS);
-    const timer = setInterval(() => {
-      setResendCooldown((s) => {
-        if (s <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return s - 1;
-      });
-    }, 1000);
   };
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((s) => (s <= 1 ? 0 : s - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
 
   return (
     <AuthLayout
@@ -66,25 +79,36 @@ const VerifyEmail = () => {
       description="A quick code keeps Gravity secure and makes sure updates land in the right inbox."
       panelContent={<WhyWeAskCard />}
     >
-      {!verified ? (
+      {!isSuccess ? (
         <>
           <div className="flex flex-col items-center gap-1.5 text-center">
             <h2 className="text-[#0F2D29] text-[26px] sm:text-[28px] font-bold leading-tight tracking-[-0.02em]">
               Enter your code
             </h2>
-            <p className="text-[#5B6E68] text-[13.5px] max-w-[300px]">
+            <p className="text-[#5B6E68] text-[13.5px] max-w-75">
               We sent a 6-digit code to{" "}
+              {email && (
+                <span className="font-medium text-[#0F2D29]">{email}</span>
+              )}
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5 w-full items-center">
-            <BaseOtpInput length={6} value={code} onChange={setCode} autoFocus />
+          <form
+            onSubmit={handleSubmit}
+            className="flex flex-col gap-5 w-full items-center"
+          >
+            <BaseOtpInput
+              length={6}
+              value={code}
+              onChange={setCode}
+              autoFocus
+            />
             <Button
               type="submit"
-              disabled={loading || code.length < 6}
+              disabled={isVerifying || code.length < 6}
               className="group h-11 w-full rounded-xl font-semibold text-[14px] bg-[#0F2D29] text-white hover:bg-[#0F2D29]/90 transition-all disabled:opacity-70"
             >
-              {loading ? (
+              {isVerifying ? (
                 <span className="flex items-center gap-2">
                   <Loader2 size={16} className="animate-spin" />
                   Verifying…
@@ -100,10 +124,14 @@ const VerifyEmail = () => {
             <button
               type="button"
               onClick={handleResend}
-              disabled={resendCooldown > 0}
+              disabled={resendCooldown > 0 || isResending}
               className="text-[#0F8A65] font-medium hover:text-[#0F8A65]/80 transition-colors disabled:text-[#5B6E68]/60 disabled:cursor-not-allowed"
             >
-              {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend code"}
+              {isResending
+                ? "Sending…"
+                : resendCooldown > 0
+                  ? `Resend in ${resendCooldown}s`
+                  : "Resend code"}
             </button>
           </p>
         </>
@@ -116,22 +144,12 @@ const VerifyEmail = () => {
             <h2 className="text-[#0F2D29] text-[22px] font-bold leading-tight tracking-[-0.02em]">
               Email verified
             </h2>
-            <p className="text-[#5B6E68] text-[13.5px] max-w-[300px]">
+            <p className="text-[#5B6E68] text-[13.5px] max-w-75">
               You're all set — your account is confirmed and ready to go.
             </p>
           </div>
-
-          <Button
-            className="group h-11 w-full rounded-xl mt-1 font-semibold text-[14px] bg-[#0F2D29] text-white hover:bg-[#0F2D29]/90 transition-all"
-            onClick={() => {
-              window.location.href = "/login";
-            }}
-          >
-            Continue to sign in
-          </Button>
         </div>
       )}
-
       <a
         href="/login"
         className="flex items-center gap-1.5 text-[#5B6E68] text-[13px] hover:text-[#0F2D29] transition-colors"
@@ -141,6 +159,6 @@ const VerifyEmail = () => {
       </a>
     </AuthLayout>
   );
-}
+};
 
-export default VerifyEmail
+export default VerifyEmail;
