@@ -17,31 +17,36 @@ api.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
-// api.interceptors.response.use(
-//   (response) => response,
-//   async (error) => {
-//     const originalRequest = error.config;
-//     if (error.response?.status === 401 && !originalRequest._retry) {
-//       originalRequest._retry = true;
-//       try {
-//         const { data } = await axios.post(
-//           `${import.meta.env.VITE_API_URL}/auth/refresh-token`,
-//           {},
-//           {
-//             withCredentials: true,
-//           },
-//         );
-//         co
-//         const { accessToken, refreshToken, user } = data.data;
-//         useAuthStore.getState().setAuth(user, accessToken, refreshToken);
-//         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-//         return api(originalRequest);
-//       } catch (err) {
-//         useAuthStore.getState().clearAuth();
-//         window.location.href = "/login";
-//         return Promise.reject(err);
-//       }
-//     }
-//     return Promise.reject(error);
-//   },
-// );
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      const currentRefreshToken = useAuthStore.getState().refreshToken;
+
+      if (!currentRefreshToken) {
+        useAuthStore.getState().clearAuth();
+        window.location.href = "/login";
+        return Promise.reject(error);
+      }
+
+      try {
+        const { data } = await axios.post(
+          `${import.meta.env.VITE_API_URL}/auth/refresh-token`,
+          { refreshToken: currentRefreshToken },
+          { withCredentials: true },
+        );
+        const { accessToken, refreshToken, user } = data.data;
+        useAuthStore.getState().setAuth(user, accessToken, refreshToken);
+        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        return api(originalRequest);
+      } catch (err) {
+        useAuthStore.getState().clearAuth();
+        window.location.href = "/login";
+        return Promise.reject(err);
+      }
+    }
+    return Promise.reject(error);
+  },
+);

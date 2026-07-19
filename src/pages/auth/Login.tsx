@@ -16,6 +16,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLogin } from "@/hooks/mutations/auth/use-login";
 import { loginSchema, type LoginFormData } from "@/validations/auth.validation";
+import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
+import { useGoogleLogin } from "@/hooks/mutations/auth/use-google-login.ts";
 
 const OrbitCard = () => {
   return (
@@ -64,6 +66,7 @@ const OrbitCard = () => {
 
 const Login = () => {
   const { mutate, isPending } = useLogin();
+  const { mutate: googleMutate, isPending: isGooglePending } = useGoogleLogin();
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -84,6 +87,20 @@ const Login = () => {
       toast.error(firstError.message as string);
     }
   };
+
+  const handleGoogleSuccess = (credentialResponse: CredentialResponse) => {
+    if (!credentialResponse.credential) {
+      toast.error("Google sign-in failed. Please try again.");
+      return;
+    }
+    googleMutate(credentialResponse.credential);
+  };
+
+  const handleGoogleError = () => {
+    toast.error("Google sign-in failed. Please try again.");
+  };
+
+  const isBusy = isPending || isGooglePending;
 
   return (
     <AuthLayout
@@ -153,7 +170,7 @@ const Login = () => {
 
         <Button
           type="submit"
-          disabled={isPending}
+          disabled={isBusy}
           className="group h-11 rounded-xl mt-1 font-semibold text-[14px] bg-[#0F2D29] text-white hover:bg-[#0F2D29]/90 transition-all disabled:opacity-70"
         >
           {isPending ? (
@@ -174,7 +191,27 @@ const Login = () => {
       </form>
 
       <div className="grid grid-cols-1 gap-3 w-full">
-        <SocialButton icon={<GoogleIcon />} label="Google" />
+        <div className="relative h-11">
+          <SocialButton
+            icon={
+              isGooglePending ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <GoogleIcon />
+              )
+            }
+            label={isGooglePending ? "Signing in…" : "Google"}
+            className="w-full"
+          />
+          <div className="absolute inset-0 opacity-0 [&>div]:h-full [&>div]:w-full [&_iframe]:h-full! [&_iframe]:w-full! overflow-hidden">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              width="100%"
+              text="continue_with"
+            />
+          </div>
+        </div>
       </div>
 
       <p className="text-[#5B6E68] text-[13px]">

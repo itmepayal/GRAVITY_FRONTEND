@@ -5,11 +5,11 @@ import "./index.css";
 import { BrowserRouter } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
-import { ReactQueryProvider } from "@/providers";
+import { AppProvider } from "@/providers";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <ReactQueryProvider>
+    <AppProvider>
       <TooltipProvider>
         <BrowserRouter>
           <App />
@@ -21,6 +21,6 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           />
         </BrowserRouter>
       </TooltipProvider>
-    </ReactQueryProvider>
+    </AppProvider>
   </React.StrictMode>,
 );

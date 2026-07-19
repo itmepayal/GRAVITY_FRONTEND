@@ -23,31 +23,42 @@ export const login = async (data: LoginFormData): Promise<LoginResponse> => {
   return response.data;
 };
 
+export const googleLogin = async (idToken: string): Promise<LoginResponse> => {
+  const response = await api.post<LoginResponse>("/auth/login/google", {
+    idToken,
+  });
+
+  return response.data;
+};
+
 export const verifyEmail = async (
   data: VerifyEmailFormData,
 ): Promise<MessageResponse> => {
   const response = await api.post<MessageResponse>("/auth/verify-email", data);
+
   return response.data;
 };
 
 export const resendVerificationEmail = async (
   data: EmailFormData,
 ): Promise<MessageResponse> => {
-  const { email } = data;
   const response = await api.post<MessageResponse>(
     "/auth/resend-verification-email",
-    { email },
+    {
+      email: data.email,
+    },
   );
+
   return response.data;
 };
 
 export const forgotPassword = async (
   data: EmailFormData,
 ): Promise<MessageResponse> => {
-  const { email } = data;
   const response = await api.post<MessageResponse>("/auth/forgot-password", {
-    email,
+    email: data.email,
   });
+
   return response.data;
 };
 
@@ -58,6 +69,7 @@ export const resetPassword = async (
     "/auth/reset-password",
     data,
   );
+
   return response.data;
 };
 
@@ -65,6 +77,17 @@ export const verifyTwoFA = async (
   data: VerifyTwoFAFormData,
 ): Promise<LoginResponse> => {
   const response = await api.post<LoginResponse>("/auth/2fa/verify", data);
+
+  return response.data;
+};
+
+export const refreshToken = async (
+  refreshToken: string,
+): Promise<LoginResponse> => {
+  const response = await api.post<LoginResponse>("/auth/refresh-token", {
+    refreshToken,
+  });
+
   return response.data;
 };
 
