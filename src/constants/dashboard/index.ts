@@ -5,6 +5,23 @@ import {
   Archive,
   Settings,
   type LucideIcon,
+  Bell,
+  BarChart3,
+  CalendarDays,
+  KanbanSquare,
+  FolderKanban,
+  CreditCard,
+  Plug,
+  LineChart,
+  FolderOpen,
+  FileText,
+  Inbox,
+  UsersRound,
+  ShieldCheck,
+  Target,
+  GanttChartSquare,
+  TimerReset,
+  BriefcaseBusiness,
 } from "lucide-react";
 
 export type NavItem = {
@@ -13,12 +30,88 @@ export type NavItem = {
   icon: LucideIcon;
 };
 
-export const DASHBOARD_NAV: NavItem[] = [
-  { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
-  { label: "My Tasks", path: "/dashboard/tasks", icon: ListTodo },
-  { label: "Members", path: "/dashboard/members", icon: Users },
-  { label: "Archived", path: "/dashboard/archived", icon: Archive },
-  { label: "Settings", path: "/dashboard/settings", icon: Settings },
+export type NavSection = {
+  label: string | null;
+  items: NavItem[];
+};
+
+// Grouped for the sidebar so it reads as sections instead of one long flat
+// list. `label: null` is used for the first section (Dashboard) which
+// doesn't need a heading.
+export const DASHBOARD_NAV: NavSection[] = [
+  {
+    label: null,
+    items: [{ label: "Dashboard", path: "/dashboard", icon: LayoutDashboard }],
+  },
+  {
+    label: "Workspace",
+    items: [
+      {
+        label: "Workspaces",
+        path: "/dashboard/workspaces",
+        icon: BriefcaseBusiness,
+      },
+      { label: "Projects", path: "/dashboard/projects", icon: FolderKanban },
+      { label: "Boards", path: "/dashboard/boards", icon: KanbanSquare },
+      { label: "Sprints", path: "/dashboard/sprints", icon: TimerReset },
+    ],
+  },
+  {
+    label: "Tasks",
+    items: [
+      { label: "My Tasks", path: "/dashboard/tasks", icon: ListTodo },
+      { label: "Calendar", path: "/dashboard/calendar", icon: CalendarDays },
+      {
+        label: "Timeline",
+        path: "/dashboard/timeline",
+        icon: GanttChartSquare,
+      },
+      { label: "Goals", path: "/dashboard/goals", icon: Target },
+    ],
+  },
+  {
+    label: "Team",
+    items: [
+      { label: "Members", path: "/dashboard/members", icon: Users },
+      { label: "Teams", path: "/dashboard/teams", icon: UsersRound },
+      {
+        label: "Roles & Permissions",
+        path: "/dashboard/roles",
+        icon: ShieldCheck,
+      },
+    ],
+  },
+  {
+    label: "Communication",
+    items: [
+      { label: "Inbox", path: "/dashboard/inbox", icon: Inbox },
+      { label: "Notifications", path: "/dashboard/notifications", icon: Bell },
+      { label: "Activity", path: "/dashboard/activity", icon: Bell },
+    ],
+  },
+  {
+    label: "Files",
+    items: [
+      { label: "Files", path: "/dashboard/files", icon: FolderOpen },
+      { label: "Documents", path: "/dashboard/documents", icon: FileText },
+    ],
+  },
+  {
+    label: "Analytics",
+    items: [
+      { label: "Reports", path: "/dashboard/reports", icon: BarChart3 },
+      { label: "Analytics", path: "/dashboard/analytics", icon: LineChart },
+    ],
+  },
+  {
+    label: "Other",
+    items: [
+      { label: "Archived", path: "/dashboard/archived", icon: Archive },
+      { label: "Integrations", path: "/dashboard/integrations", icon: Plug },
+      { label: "Billing", path: "/dashboard/billing", icon: CreditCard },
+      { label: "Settings", path: "/dashboard/settings", icon: Settings },
+    ],
+  },
 ];
 
 export type TaskStatus = "done" | "active" | "blocked" | "pending";
