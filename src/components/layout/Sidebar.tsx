@@ -2,24 +2,22 @@ import { NavLink } from "react-router-dom";
 import { LogOut } from "lucide-react";
 import { DASHBOARD_NAV } from "@/constants/dashboard";
 import { GravityMark } from "@/components/common/logo";
-import { useAuthStore } from "@/store/auth.store";
+import { useCurrentUser } from "@/hooks/mutations/settings/use-current-user";
+import { useLogout } from "@/hooks/mutations/auth/use-logout";
 
 export const Sidebar = () => {
-  const user = useAuthStore((s) => s.user);
-  const clearAuth = useAuthStore((s) => s.clearAuth);
+  const { data: user } = useCurrentUser();
+  const logoutMutation = useLogout();
 
   const initials =
     user?.name
       ?.split(" ")
-      .map((p) => p[0])
+      .map((p: string) => p[0])
       .slice(0, 2)
       .join("")
       .toUpperCase() ?? "?";
 
-  const handleLogout = () => {
-    clearAuth();
-    window.location.href = "/login";
-  };
+  const avatar = (user as any)?.avatar as string | undefined;
 
   return (
     <aside className="hidden md:flex md:flex-col w-62 shrink-0 h-screen sticky top-0 bg-[#0F2D29] border-r border-white/8">
@@ -62,12 +60,20 @@ export const Sidebar = () => {
 
       <div className="p-3 border-t border-white/8">
         <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg">
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold text-[#0F2D29] shrink-0"
-            style={{ backgroundColor: "#8FE3C4" }}
-          >
-            {initials}
-          </div>
+          {avatar ? (
+            <img
+              src={avatar}
+              alt={user?.name ?? "User"}
+              className="w-8 h-8 rounded-full object-cover shrink-0"
+            />
+          ) : (
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold text-[#0F2D29] shrink-0"
+              style={{ backgroundColor: "#8FE3C4" }}
+            >
+              {initials}
+            </div>
+          )}
           <div className="min-w-0 flex-1">
             <p className="text-white text-[13px] font-medium truncate">
               {user?.name ?? "Guest"}
@@ -77,9 +83,10 @@ export const Sidebar = () => {
             </p>
           </div>
           <button
-            onClick={handleLogout}
+            onClick={() => logoutMutation.mutate()}
+            disabled={logoutMutation.isPending}
             aria-label="Log out"
-            className="w-8 h-8 shrink-0 flex items-center justify-center rounded-md text-[#B7CFC7] hover:text-white hover:bg-white/8 transition-colors focus-visible:outline focus-visible:outline-[#8FE3C4]"
+            className="w-8 h-8 shrink-0 flex items-center justify-center rounded-md text-[#B7CFC7] hover:text-white hover:bg-white/8 transition-colors focus-visible:outline focus-visible:outline-[#8FE3C4] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <LogOut size={15} />
           </button>

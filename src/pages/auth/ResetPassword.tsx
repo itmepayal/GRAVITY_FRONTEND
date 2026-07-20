@@ -1,5 +1,3 @@
-"use client";
-
 import { toast } from "sonner";
 import { useLocation, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -7,7 +5,6 @@ import {
   Loader2,
   ArrowRight,
   ArrowLeft,
-  ShieldCheck,
   CheckCircle2,
   KeyRound,
 } from "lucide-react";
@@ -15,7 +12,6 @@ import { AuthLayout } from "@/components/layout/AuthLayout";
 import { FormField } from "@/components/form/BaseFromField";
 import { BaseInput } from "@/components/form/BaseInput";
 import { BasePasswordInput } from "@/components/form/BasePasswordInput";
-import { TIPS } from "@/constants/auth";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useResetPassword } from "@/hooks/mutations/auth/use-reset-password";
@@ -23,27 +19,7 @@ import {
   resetPasswordSchema,
   type ResetPasswordFormData,
 } from "@/validations/auth.validation";
-
-const KeepItStrongCard = () => {
-  return (
-    <div className="relative rounded-[16px] border border-white/8 bg-white/4 backdrop-blur-sm p-4 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-[11px] uppercase tracking-[0.08em] text-[#B7CFC7]">
-          Keep it strong
-        </span>
-        <ShieldCheck size={14} className="text-[#8FE3C4]" />
-      </div>
-      <div className="flex flex-col gap-2.5">
-        {TIPS.map((tip) => (
-          <div key={tip} className="flex items-center gap-2.5">
-            <CheckCircle2 size={15} className="text-[#8FE3C4]" />
-            <span className="text-[13px] text-white/85">{tip}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
+import { KeepItStrongCard } from "@/components/auth/reset-password/KeepItStrongCard";
 
 const ResetPassword = () => {
   const location = useLocation();

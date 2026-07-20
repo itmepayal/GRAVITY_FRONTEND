@@ -15,6 +15,8 @@ export type LoginResponse = {
     user: User;
     accessToken: string;
     refreshToken: string;
+    requiresTwoFA?: boolean;
+    email?: string;
   };
 };
 

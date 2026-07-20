@@ -7,14 +7,15 @@ import { useAuthStore } from "@/store/auth.store";
 export const useLogin = () => {
   const navigate = useNavigate();
   const setAuth = useAuthStore((s) => s.setAuth);
+
   return useMutation({
     mutationFn: login,
     onSuccess: (data) => {
+      if (data?.data?.requiresTwoFA) {
+        return;
+      }
       toast.success(data.message);
-      console.log("I am working");
-      console.log(data.data);
       const { user, accessToken, refreshToken } = data.data;
-      console.log({ user, accessToken, refreshToken });
       setAuth(user, accessToken, refreshToken);
       navigate("/");
     },

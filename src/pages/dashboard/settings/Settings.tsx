@@ -10,8 +10,7 @@ import {
 } from "lucide-react";
 import { Topbar } from "@/components/layout/Topbar";
 import { useDashboardContext } from "@/components/layout/DashboardLayout";
-import { useAuthStore } from "@/store/auth.store";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SettingsCard } from "@/components/dashboard/SettingCard";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,19 +24,47 @@ import {
   type PasswordFormData,
   type ProfileFormData,
 } from "@/validations/user.validation";
+import { useCurrentUser } from "@/hooks/mutations/settings/use-current-user";
+import { useChangeProfile } from "@/hooks/mutations/settings/use-change-profile";
+import { useChangePassword } from "@/hooks/mutations/settings/use-change-password";
+import { useEnableTwoFA } from "@/hooks/mutations/auth/use-enable-2fa";
+import { useDisableTwoFA } from "@/hooks/mutations/auth/use-disabled-2fa";
+import { useLogout } from "@/hooks/mutations/auth/use-logout";
 
 export default function Settings() {
   const { openMobileNav } = useDashboardContext();
-  const user = useAuthStore((s) => s.user);
-  const clearAuth = useAuthStore((s) => s.clearAuth);
-  const [is2FAEnabled, setIs2FAEnabled] = useState(false);
-  const [saved, setSaved] = useState(false);
+
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { data: currentUser, isLoading: isUserLoading } = useCurrentUser();
+  const user = currentUser;
+
+  const changeProfileMutation = useChangeProfile();
+  const changePasswordMutation = useChangePassword();
+  const logoutMutation = useLogout();
+  const enableTwoFAMutation = useEnableTwoFA();
+  const disableTwoFAMutation = useDisableTwoFA();
+
+  const is2FAEnabled = (user as any)?.is2FAEnabled ?? false;
+  const is2FAPending =
+    enableTwoFAMutation.isPending || disableTwoFAMutation.isPending;
+
+  const handleToggle2FA = () => {
+    if (is2FAPending) return;
+    if (is2FAEnabled) {
+      disableTwoFAMutation.mutate();
+    } else {
+      enableTwoFAMutation.mutate();
+    }
+  };
 
   const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      name: user?.name ?? "",
-      email: user?.email ?? "",
+      name: "",
+      email: "",
     },
   });
 
@@ -49,9 +76,53 @@ export default function Settings() {
     },
   });
 
-  const handleLogout = () => {
-    clearAuth();
-    window.location.href = "/login";
+  useEffect(() => {
+    if (user) {
+      profileForm.reset({
+        name: user?.name ?? "",
+        email: user?.email ?? "",
+      });
+      if ((user as any)?.avatar) {
+        setPhotoPreview((user as any).avatar);
+      }
+    }
+  }, [user]);
+
+  const handlePhotoButtonClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const isValidType = ["image/jpeg", "image/jpg", "image/png"].includes(
+      file.type,
+    );
+    if (!isValidType) {
+      toast.error("Please select a JPG or PNG image.");
+      e.target.value = "";
+      return;
+    }
+
+    const maxSizeBytes = 2 * 1024 * 1024;
+    if (file.size > maxSizeBytes) {
+      toast.error("Image must be under 2MB.");
+      e.target.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPhotoPreview(reader.result as string);
+    };
+    reader.onerror = () => {
+      toast.error("Could not read that image. Please try another file.");
+    };
+    reader.readAsDataURL(file);
+
+    setPhotoFile(file);
+    e.target.value = "";
   };
 
   const onProfileInvalid = (errors: typeof profileForm.formState.errors) => {
@@ -60,9 +131,10 @@ export default function Settings() {
   };
 
   const onProfileSubmit = (values: ProfileFormData) => {
-    console.log("Profile submit:", values);
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 1800);
+    changeProfileMutation.mutate({
+      name: values.name,
+      avatar: photoFile ?? undefined,
+    });
   };
 
   const onPasswordInvalid = (errors: typeof passwordForm.formState.errors) => {
@@ -71,15 +143,17 @@ export default function Settings() {
   };
 
   const onPasswordSubmit = (values: PasswordFormData) => {
-    console.log("Password submit:", values);
-    toast.success("Password updated");
-    passwordForm.reset();
+    changePasswordMutation.mutate(values, {
+      onSuccess: () => {
+        passwordForm.reset();
+      },
+    });
   };
 
   const initials =
     user?.name
       ?.split(" ")
-      .map((p) => p[0])
+      .map((p: string) => p[0])
       .slice(0, 2)
       .join("")
       .toUpperCase() ?? "?";
@@ -107,13 +181,18 @@ export default function Settings() {
                   footer={
                     <button
                       type="submit"
-                      className="bg-[#0F2D29] h-11 text-white text-[13px] font-medium px-5 py-2 rounded-lg hover:bg-[#0F2D29]/90 active:scale-[0.98] transition-all inline-flex items-center gap-1.5 min-w-32 justify-center"
+                      disabled={
+                        changeProfileMutation.isPending || isUserLoading
+                      }
+                      className="bg-[#0F2D29] h-11 text-white text-[13px] font-medium px-5 py-2 rounded-lg hover:bg-[#0F2D29]/90 active:scale-[0.98] transition-all inline-flex items-center gap-1.5 min-w-32 justify-center disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                      {saved ? (
+                      {changeProfileMutation.isSuccess ? (
                         <>
                           <Check size={14} />
                           Saved
                         </>
+                      ) : changeProfileMutation.isPending ? (
+                        "Saving..."
                       ) : (
                         "Save changes"
                       )}
@@ -123,19 +202,35 @@ export default function Settings() {
                   <div className="flex flex-col gap-6">
                     <div className="flex items-center gap-4">
                       <div className="relative shrink-0 group">
-                        <div
-                          className="w-16 h-16 rounded-full flex items-center justify-center text-[20px] font-semibold text-[#0F2D29] ring-4 ring-[#8FE3C4]/15 transition-shadow group-hover:ring-[#8FE3C4]/30"
-                          style={{ backgroundColor: "#8FE3C4" }}
-                        >
-                          {initials}
-                        </div>
+                        {photoPreview ? (
+                          <img
+                            src={photoPreview}
+                            alt="Profile photo preview"
+                            className="w-16 h-16 rounded-full object-cover ring-4 ring-[#8FE3C4]/15 transition-shadow group-hover:ring-[#8FE3C4]/30"
+                          />
+                        ) : (
+                          <div
+                            className="w-16 h-16 rounded-full flex items-center justify-center text-[20px] font-semibold text-[#0F2D29] ring-4 ring-[#8FE3C4]/15 transition-shadow group-hover:ring-[#8FE3C4]/30"
+                            style={{ backgroundColor: "#8FE3C4" }}
+                          >
+                            {initials}
+                          </div>
+                        )}
                         <button
                           type="button"
+                          onClick={handlePhotoButtonClick}
                           className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#0F2D29] text-white flex items-center justify-center border-2 border-white hover:bg-[#0F2D29]/90 active:scale-95 transition-all"
                           aria-label="Change photo"
                         >
                           <Camera size={12} />
                         </button>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/png,image/jpeg,image/jpg"
+                          onChange={handlePhotoChange}
+                          className="hidden"
+                        />
                       </div>
                       <div>
                         <p className="text-[#0F2D29] text-[13.5px] font-medium">
@@ -192,11 +287,12 @@ export default function Settings() {
                   </div>
                 </div>
                 <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center justify-center gap-1.5 text-[12.5px] font-medium text-[#B85E2E] bg-[#E98A57]/12 px-3.5 py-2.5 rounded-lg hover:bg-[#E98A57]/20 active:scale-[0.98] transition-all"
+                  onClick={() => logoutMutation.mutate()}
+                  disabled={logoutMutation.isPending}
+                  className="w-full flex items-center justify-center gap-1.5 text-[12.5px] font-medium text-[#B85E2E] bg-[#E98A57]/12 px-3.5 py-2.5 rounded-lg hover:bg-[#E98A57]/20 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <LogOut size={14} />
-                  Log out
+                  {logoutMutation.isPending ? "Logging out..." : "Log out"}
                 </button>
               </div>
             </SettingsCard>
@@ -213,7 +309,7 @@ export default function Settings() {
                     <div
                       className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
                         is2FAEnabled
-                          ? "bg-[#8FE3C4]/20 text-[#0F8A65]"
+                          ? "bg-[#8FE3C4]/20 text-[#0F2D29]"
                           : "bg-[#0F2D29]/6 text-[#8FA69E]"
                       }`}
                     >
@@ -231,7 +327,7 @@ export default function Settings() {
                         <span
                           className={`shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded ${
                             is2FAEnabled
-                              ? "bg-[#8FE3C4]/25 text-[#0F8A65]"
+                              ? "bg-[#8FE3C4]/25 text-[#0F2D29]"
                               : "bg-[#0F2D29]/6 text-[#8FA69E]"
                           }`}
                         >
@@ -244,7 +340,8 @@ export default function Settings() {
                     </div>
                   </div>
                   <button
-                    onClick={() => setIs2FAEnabled((v) => !v)}
+                    onClick={handleToggle2FA}
+                    disabled={is2FAPending || isUserLoading}
                     role="switch"
                     aria-checked={is2FAEnabled}
                     style={{
@@ -257,10 +354,11 @@ export default function Settings() {
                       borderRadius: "9999px",
                       flexShrink: 0,
                       border: "none",
-                      cursor: "pointer",
+                      cursor: is2FAPending ? "not-allowed" : "pointer",
                       padding: 0,
+                      opacity: is2FAPending ? 0.6 : 1,
                       backgroundColor: is2FAEnabled
-                        ? "#0F8A65"
+                        ? "#0F2D29"
                         : "rgba(15,45,41,0.15)",
                       transition: "background-color 0.2s ease",
                     }}
@@ -320,9 +418,12 @@ export default function Settings() {
                     </FormField>
                     <button
                       type="submit"
-                      className="w-full h-11 bg-[#0F2D29] text-white text-[13px] font-medium rounded-lg hover:bg-[#0F2D29]/90 active:scale-[0.98] transition-all"
+                      disabled={changePasswordMutation.isPending}
+                      className="w-full h-11 bg-[#0F2D29] text-white text-[13px] font-medium rounded-lg hover:bg-[#0F2D29]/90 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                      Update password
+                      {changePasswordMutation.isPending
+                        ? "Updating..."
+                        : "Update password"}
                     </button>
                   </div>
                 </SettingsCard>

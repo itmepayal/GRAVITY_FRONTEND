@@ -1,72 +1,31 @@
-"use client";
-
+import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Mail, Loader2, ArrowRight, Orbit, CheckCircle2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Mail, Loader2, ArrowRight } from "lucide-react";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { FormField } from "@/components/form/BaseFromField";
 import { BaseInput } from "@/components/form/BaseInput";
 import { BasePasswordInput } from "@/components/form/BasePasswordInput";
 import { GoogleIcon, SocialButton } from "@/components/button/SocialButton";
-import { WEEKLY_TASKS } from "@/constants/auth";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLogin } from "@/hooks/mutations/auth/use-login";
 import { loginSchema, type LoginFormData } from "@/validations/auth.validation";
 import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 import { useGoogleLogin } from "@/hooks/mutations/auth/use-google-login.ts";
-
-const OrbitCard = () => {
-  return (
-    <div className="relative rounded-[16px] border border-white/8 bg-white/4 backdrop-blur-sm p-4 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-[11px] uppercase tracking-[0.08em] text-[#B7CFC7]">
-          This week's orbit
-        </span>
-        <Orbit size={14} className="text-[#8FE3C4]" />
-      </div>
-      <div className="flex flex-col gap-2.5">
-        {WEEKLY_TASKS.map((task) => (
-          <div key={task.label} className="flex items-center gap-2.5">
-            <CheckCircle2
-              size={15}
-              className={task.done ? "text-[#8FE3C4]" : "text-white/20"}
-            />
-            <span
-              className={cn(
-                "text-[13px]",
-                task.done ? "text-white/50 line-through" : "text-white/85",
-              )}
-            >
-              {task.label}
-            </span>
-          </div>
-        ))}
-      </div>
-      <div className="mt-4 pt-4 border-t border-white/8 flex items-center gap-1.5">
-        <div className="flex -space-x-2">
-          {["#8FE3C4", "#E98A57", "#B7CFC7"].map((c) => (
-            <div
-              key={c}
-              className="w-6 h-6 rounded-full border-2 border-[#0F2D29]"
-              style={{ backgroundColor: c }}
-            />
-          ))}
-        </div>
-        <span className="text-[11.5px] text-[#B7CFC7] ml-1">
-          6 teammates active now
-        </span>
-      </div>
-    </div>
-  );
-};
+import { useVerifyTwoFA } from "@/hooks/mutations/auth/use-verify-2fa";
+import { OrbitCard } from "@/components/auth/login/OrbitCard";
+import { TwoFACard } from "@/components/auth/login/TwoFACard";
 
 const Login = () => {
   const { mutate, isPending } = useLogin();
   const { mutate: googleMutate, isPending: isGooglePending } = useGoogleLogin();
+  const { mutate: verifyTwoFAMutate } = useVerifyTwoFA();
+
+  const [requiresTwoFA, setRequiresTwoFA] = useState(false);
+  const [twoFAEmail, setTwoFAEmail] = useState("");
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -78,7 +37,36 @@ const Login = () => {
   });
 
   const handleSubmit = (values: LoginFormData) => {
-    mutate(values);
+    mutate(values, {
+      onSuccess: (response) => {
+        if (response?.data?.requiresTwoFA) {
+          setRequiresTwoFA(true);
+          setTwoFAEmail(response.data.email);
+          toast.success(response.message || "OTP sent to your email.");
+          return;
+        }
+      },
+    });
+  };
+
+  const handleVerifyOtp = (otp: string) => {
+    return new Promise<void>((resolve, reject) => {
+      verifyTwoFAMutate(
+        { email: twoFAEmail, otp },
+        {
+          onSuccess: () => {
+            resolve();
+          },
+          onError: (error: any) => {
+            reject(
+              new Error(
+                error?.response?.data?.message || "Invalid OTP. Try again.",
+              ),
+            );
+          },
+        },
+      );
+    });
   };
 
   const onInvalid = (errors: typeof form.formState.errors) => {
@@ -101,6 +89,16 @@ const Login = () => {
   };
 
   const isBusy = isPending || isGooglePending;
+
+  if (requiresTwoFA) {
+    return (
+      <TwoFACard
+        email={twoFAEmail}
+        onVerify={handleVerifyOtp}
+        onBack={() => setRequiresTwoFA(false)}
+      />
+    );
+  }
 
   return (
     <AuthLayout
