@@ -35,9 +35,6 @@ export type NavSection = {
   items: NavItem[];
 };
 
-// Grouped for the sidebar so it reads as sections instead of one long flat
-// list. `label: null` is used for the first section (Dashboard) which
-// doesn't need a heading.
 export const DASHBOARD_NAV: NavSection[] = [
   {
     label: null,
