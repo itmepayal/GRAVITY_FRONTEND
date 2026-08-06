@@ -14,6 +14,7 @@ import MyTasks from "@/pages/dashboard/tasks/MyTasks";
 import Members from "@/pages/dashboard/members/Members";
 import Archived from "@/pages/dashboard/archived/Archived";
 import Settings from "@/pages/dashboard/settings/Settings";
+import Workspaces from "@/pages/dashboard/workspaces/Workspaces";
 
 import { ProtectedRoute } from "@/routes/ProtectedRoute";
 import { PublicRoute } from "@/routes/PublicRoute";
@@ -34,6 +35,7 @@ function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<DashboardLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard/workspaces" element={<Workspaces />} />
           <Route path="/dashboard/tasks" element={<MyTasks />} />
           <Route path="/dashboard/members" element={<Members />} />
           <Route path="/dashboard/archived" element={<Archived />} />

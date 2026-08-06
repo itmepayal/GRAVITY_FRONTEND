@@ -20,6 +20,7 @@ export const useLogin = () => {
       navigate("/");
     },
     onError: (error: any) => {
+      console.log(error.response);
       toast.error(error.response?.data?.message ?? "Login failed");
     },
   });

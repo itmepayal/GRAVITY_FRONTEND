@@ -27,7 +27,6 @@ api.interceptors.response.use(
 
       if (!currentRefreshToken) {
         useAuthStore.getState().clearAuth();
-        window.location.href = "/login";
         return Promise.reject(error);
       }
 
@@ -42,6 +41,7 @@ api.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return api(originalRequest);
       } catch (err) {
+        console.log(err);
         useAuthStore.getState().clearAuth();
         window.location.href = "/login";
         return Promise.reject(err);
