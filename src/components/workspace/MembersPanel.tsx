@@ -32,9 +32,11 @@ export const MembersPanel = ({
   const [roleFilter, setRoleFilter] = useState<string>("all");
 
   const filtered = members.filter((m) => {
+    const name = m.user?.name ?? "";
+    const mEmail = m.user?.email ?? "";
     const matchesSearch =
-      m.name.toLowerCase().includes(search.toLowerCase()) ||
-      m.email.toLowerCase().includes(search.toLowerCase());
+      name.toLowerCase().includes(search.toLowerCase()) ||
+      mEmail.toLowerCase().includes(search.toLowerCase());
     const matchesRole = roleFilter === "all" || m.role === roleFilter;
     return matchesSearch && matchesRole;
   });
@@ -43,11 +45,14 @@ export const MembersPanel = ({
     e.preventDefault();
     if (!email.trim()) return;
     const newMember: Member = {
-      userId: nextId("u"),
-      name: email.split("@")[0] ?? "New Member",
-      email: email.trim(),
+      _id: nextId("m"),
+      user: {
+        id: nextId("u"),
+        name: email.split("@")[0] ?? "New Member",
+        email: email.trim(),
+        avatar: null,
+      },
       role,
-      status: "invited",
       joinedAt: new Date().toISOString().slice(0, 10),
     };
     onChange([...members, newMember]);
@@ -57,17 +62,17 @@ export const MembersPanel = ({
     setRole("member");
   };
 
-  const changeRole = (userId: string, newRole: Role, mEmail: string) => {
+  const changeRole = (memberId: string, newRole: Role, mEmail: string) => {
     onChange(
-      members.map((m) => (m.userId === userId ? { ...m, role: newRole } : m))
+      members.map((m) => (m._id === memberId ? { ...m, role: newRole } : m)),
     );
     addActivity(`changed role to ${newRole}`, mEmail, "member");
     addToast("info", `Updated role for ${mEmail}`);
   };
 
-  const removeMember = (userId: string, mEmail: string) => {
+  const removeMember = (memberId: string, mEmail: string) => {
     if (!confirm(`Remove ${mEmail} from this workspace?`)) return;
-    onChange(members.filter((m) => m.userId !== userId));
+    onChange(members.filter((m) => m._id !== memberId));
     addActivity("removed member", mEmail, "member");
     addToast("warning", `Removed ${mEmail}`);
   };
@@ -86,15 +91,18 @@ export const MembersPanel = ({
         {/* Role filter */}
         <div className="flex items-center gap-1.5 self-start sm:self-auto">
           <Filter size={13} className="text-[#8FA69E]" />
-          <span className="text-[12px] font-semibold text-[#5B6E68]">Filter:</span>
+          <span className="text-[12px] font-semibold text-[#5B6E68]">
+            Filter:
+          </span>
           {["all", "owner", "admin", "member"].map((rf) => (
             <button
               key={rf}
               onClick={() => setRoleFilter(rf)}
-              className={`rounded-lg px-2.5 py-1 text-[11.5px] font-semibold capitalize transition ${roleFilter === rf
-                ? "bg-[#0F2D29] text-white"
-                : "bg-[#0F2D29]/5 text-[#5B6E68] hover:bg-[#0F2D29]/10"
-                }`}
+              className={`rounded-lg px-2.5 py-1 text-[11.5px] font-semibold capitalize transition ${
+                roleFilter === rf
+                  ? "bg-[#0F2D29] text-white"
+                  : "bg-[#0F2D29]/5 text-[#5B6E68] hover:bg-[#0F2D29]/10"
+              }`}
             >
               {rf}
             </button>
@@ -102,11 +110,10 @@ export const MembersPanel = ({
         </div>
       </div>
 
-      {/* Invite form */}
       {canManage && (
         <form
           onSubmit={invite}
-          className="mb-6 rounded-xl border border-[#0F2D29]/10 bg-gradient-to-r from-[#0F2D29]/3 to-transparent p-4 shadow-2xs"
+          className="mb-6 rounded-xl border border-[#0F2D29]/10 bg-linear-to-r from-[#0F2D29]/3 to-transparent p-4 shadow-2xs"
         >
           <p className="mb-2.5 flex items-center gap-1.5 text-[13px] font-bold text-[#0F2D29]">
             <UserPlus size={15} className="text-[#0F8A65]" />
@@ -159,40 +166,46 @@ export const MembersPanel = ({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {filtered.map((m) => {
             const RoleIcon = ROLE_META[m.role].icon;
+            const displayName = m.user?.name || m.user?.email || "Unknown";
+            const displayEmail = m.user?.email || "";
             return (
               <article
-                key={m.userId}
+                key={m._id}
                 className="group flex flex-col justify-between rounded-xl border border-[#0F2D29]/10 bg-white p-4 shadow-2xs transition hover:border-[#0F2D29]/20 hover:shadow-xs"
               >
                 <div>
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
-                      <div
-                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[13px] font-extrabold text-[#0F2D29] ring-2 ring-[#8FE3C4]/40"
-                        style={{ backgroundColor: "#8FE3C4" }}
-                      >
-                        {initials(m.name || m.email)}
-                      </div>
+                      {m.user?.avatar ? (
+                        <img
+                          src={m.user.avatar}
+                          alt={displayName}
+                          className="h-11 w-11 shrink-0 rounded-full object-cover ring-2 ring-[#8FE3C4]/40"
+                        />
+                      ) : (
+                        <div
+                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[13px] font-extrabold text-[#0F2D29] ring-2 ring-[#8FE3C4]/40"
+                          style={{ backgroundColor: "#8FE3C4" }}
+                        >
+                          {initials(displayName)}
+                        </div>
+                      )}
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
                           <p className="truncate text-[14px] font-bold text-[#0F2D29]">
-                            {m.name}
+                            {displayName}
                           </p>
-                          {m.status === "invited" && (
-                            <span className="rounded-md bg-amber-50 px-1.5 py-0.5 text-[9.5px] font-semibold text-amber-700 border border-amber-200">
-                              Invited
-                            </span>
-                          )}
                         </div>
                         <p className="truncate text-[12px] text-[#8FA69E]">
-                          {m.email}
+                          {displayEmail || "No email on file"}
                         </p>
                       </div>
                     </div>
 
                     <span
-                      className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-[10.5px] font-semibold ${ROLE_META[m.role].badge
-                        }`}
+                      className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-[10.5px] font-semibold ${
+                        ROLE_META[m.role].badge
+                      }`}
                     >
                       <RoleIcon size={10} />
                       {m.role}
@@ -210,7 +223,11 @@ export const MembersPanel = ({
                       <select
                         value={m.role}
                         onChange={(e) =>
-                          changeRole(m.userId, e.target.value as Role, m.email)
+                          changeRole(
+                            m._id,
+                            e.target.value as Role,
+                            displayEmail,
+                          )
                         }
                         className="rounded-lg border border-[#0F2D29]/10 bg-white px-2 py-1 text-[11.5px] font-medium text-[#0F2D29] outline-none"
                       >
@@ -218,7 +235,7 @@ export const MembersPanel = ({
                         <option value="admin">Admin</option>
                       </select>
                       <button
-                        onClick={() => removeMember(m.userId, m.email)}
+                        onClick={() => removeMember(m._id, displayEmail)}
                         className="rounded-lg p-1.5 text-red-500 hover:bg-red-50"
                         title="Remove member"
                       >
