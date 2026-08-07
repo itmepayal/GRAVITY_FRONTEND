@@ -40,13 +40,16 @@ export const deleteWorkspace = async (workspaceId: string) => {
   return response.data;
 };
 
-export const addWorkspaceMember = async (
-  workspaceId: string,
+export const addWorkspaceMember = async ({
+  workspaceId,
+  data,
+}: {
+  workspaceId: string;
   data: {
     userId: string;
     role: string;
-  },
-) => {
+  };
+}) => {
   const response = await api.post(`/workspaces/${workspaceId}/members`, data);
   return response.data;
 };
@@ -65,13 +68,18 @@ export const updateWorkspaceMemberRole = async (
   return response.data;
 };
 
-export const removeWorkspaceMember = async (
-  workspaceId: string,
-  userId: string,
-) => {
+export const removeWorkspaceMember = async ({
+  workspaceId,
+  userId,
+}: {
+  workspaceId: string;
+  userId: string;
+}) => {
   const response = await api.delete(
     `/workspaces/${workspaceId}/members/${userId}`,
   );
+  console.log(response);
+
   return response.data;
 };
 

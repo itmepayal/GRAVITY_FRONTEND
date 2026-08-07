@@ -49,3 +49,14 @@ export const changeProfile = async (
 
   return response.data;
 };
+
+export const getAllUsers = async (): Promise<User[]> => {
+  const response = await api.get<{
+    success: boolean;
+    statusCode: number;
+    message: string;
+    data: User[];
+  }>("/users");
+  console.log(response);
+  return response.data.data;
+};

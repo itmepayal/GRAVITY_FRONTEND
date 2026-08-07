@@ -33,13 +33,19 @@ interface WorkspaceDetailProps {
   workspace: Workspace;
   isRefreshing?: boolean;
   isDeleting?: boolean;
+  isAddingMember?: boolean;
+  isRemovingMember?: boolean;
   onUpdated: (patch: Partial<Workspace>) => void;
   onDeleted: () => void;
+  onAddMember: (memberData: { userId: string; role: string }) => void;
+  onRemoveMember: (memberId: string, memberLabel: string) => void;
   addActivity: (
     action: string,
     target: string,
     iconType: ActivityItem["iconType"],
   ) => void;
+  users: { id: string; name: string; email: string; avatar: string | null }[];
+  isLoadingUsers?: boolean;
   addToast: (type: "success" | "info" | "warning", msg: string) => void;
 }
 
@@ -47,10 +53,16 @@ export const WorkspaceDetail = ({
   workspace,
   isRefreshing = false,
   isDeleting = false,
+  isAddingMember = false,
+  isRemovingMember = false,
   onUpdated,
   onDeleted,
+  onAddMember,
+  onRemoveMember,
   addActivity,
   addToast,
+  users,
+  isLoadingUsers,
 }: WorkspaceDetailProps) => {
   const [tab, setTab] = useState<Tab>("projects");
   const [editing, setEditing] = useState(false);
@@ -342,6 +354,12 @@ export const WorkspaceDetail = ({
             members={workspace.members}
             canManage={canManage}
             onChange={(members) => onUpdated({ members })}
+            onAddMember={onAddMember}
+            isAddingMember={isAddingMember}
+            onRemoveMember={onRemoveMember}
+            isRemovingMember={isRemovingMember}
+            users={users}
+            isLoadingUsers={isLoadingUsers}
             addActivity={addActivity}
             addToast={addToast}
           />

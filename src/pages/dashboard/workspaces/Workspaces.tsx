@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
   Building2,
@@ -26,6 +27,9 @@ import { useUpdateWorkspace } from "@/hooks/mutations/workspace/use-update-works
 import { useDeleteWorkspace } from "@/hooks/mutations/workspace/use-delete-workspace";
 import { useGetUserWorkspaces } from "@/hooks/queries/workspace/use-get-user-workspaces";
 import { useGetWorkspaceById } from "@/hooks/queries/workspace/use-get-workspace-by-id";
+import { useAddWorkspaceMember } from "@/hooks/mutations/workspace/use-add-workspace-member";
+import { useGetAllUsers } from "@/hooks/queries/users/use-get-all-users";
+import { useRemoveWorkspaceMember } from "@/hooks/mutations/workspace/use-remove-workspace-member";
 
 const normalizeMember = (raw: any): Member => {
   const user = raw?.user ?? {};
@@ -42,6 +46,13 @@ const normalizeMember = (raw: any): Member => {
   };
 };
 
+const normalizeUser = (raw: any) => ({
+  id: raw._id ?? raw.id,
+  name: raw.name ?? raw.email ?? "Unknown",
+  email: raw.email ?? "",
+  avatar: raw.avatar ?? null,
+});
+
 const normalizeWorkspace = (raw: any): Workspace => ({
   ...raw,
   _id: raw._id ?? raw.id,
@@ -54,6 +65,8 @@ const normalizeWorkspace = (raw: any): Workspace => ({
 
 const Workspaces = () => {
   const { openMobileNav } = useDashboardContext();
+  const queryClient = useQueryClient();
+
   const { mutate: createWorkspace, isPending: isCreatingWorkspace } =
     useCreateWorkspace();
   const { mutate: updateWorkspaceMutation, isPending: isUpdatingWorkspace } =
@@ -65,6 +78,20 @@ const Workspaces = () => {
     isLoading: isLoadingWorkspaces,
     isError: isWorkspacesError,
   } = useGetUserWorkspaces();
+  const { mutate: addWorkspaceMemberMutation, isPending: isAddingMember } =
+    useAddWorkspaceMember();
+  const { mutate: removeWorkspaceMemberMutation, isPending: isRemovingMember } =
+    useRemoveWorkspaceMember();
+
+  const { data: usersResponse, isLoading: isLoadingUsers } = useGetAllUsers();
+  const users = useMemo(() => {
+    const raw = Array.isArray(usersResponse)
+      ? usersResponse
+      : (usersResponse ?? []);
+    return raw.map(normalizeUser);
+  }, [usersResponse]);
+
+  console.log(usersResponse);
 
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -135,6 +162,7 @@ const Workspaces = () => {
     setActiveId(safeWs._id);
     setShowCreate(false);
     addToast("success", `Workspace "${safeWs.name}" created successfully!`);
+    queryClient.invalidateQueries({ queryKey: ["workspaces"] });
   };
 
   const handleCreateError = (error: unknown) => {
@@ -143,8 +171,6 @@ const Workspaces = () => {
     addToast("warning", message);
   };
 
-  // Now actually calls the delete API instead of only touching local state.
-  // Keeps a snapshot so we can roll back the list if the request fails.
   const handleDeleted = (id: string) => {
     const wsToDelete = workspaces.find((w) => w._id === id);
     const wsName = wsToDelete?.name || "Workspace";
@@ -157,10 +183,9 @@ const Workspaces = () => {
         setWorkspaces((prev) => prev.filter((w) => w._id !== id));
         setActiveId((cur) => (cur === id ? null : cur));
         addToast("info", `Deleted "${wsName}".`);
+        queryClient.invalidateQueries({ queryKey: ["workspaces"] });
       },
       onError: () => {
-        // Mutation's own onError already toasts the failure message;
-        // just make sure the list stays intact.
         setWorkspaces(previousWorkspaces);
       },
       onSettled: () => {
@@ -202,6 +227,8 @@ const Workspaces = () => {
               ),
             );
           }
+          queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+          queryClient.invalidateQueries({ queryKey: ["workspace", id] });
         },
         onError: () => {
           if (previous) {
@@ -234,6 +261,95 @@ const Workspaces = () => {
           ? { ...w, activityLog: [newAct, ...(w.activityLog || [])] }
           : w,
       ),
+    );
+  };
+
+  const handleAddMember = (
+    workspaceId: string,
+    memberData: { userId: string; role: string },
+  ) => {
+    addWorkspaceMemberMutation(
+      { workspaceId, data: memberData },
+      {
+        onSuccess: (response: any) => {
+          const newMember = response?.data ?? response;
+          if (newMember) {
+            setWorkspaces((prev) =>
+              prev.map((w) =>
+                w._id === workspaceId
+                  ? {
+                      ...w,
+                      members: [...w.members, normalizeMember(newMember)],
+                    }
+                  : w,
+              ),
+            );
+            addActivity(
+              workspaceId,
+              "added a teammate",
+              newMember?.user?.name ??
+                newMember?.user?.email ??
+                memberData.userId,
+              "member",
+            );
+            addToast("success", "Teammate added successfully!");
+          }
+          queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+          queryClient.invalidateQueries({
+            queryKey: ["workspace", workspaceId],
+          });
+        },
+        onError: (error: unknown) => {
+          const message =
+            error instanceof Error ? error.message : "Failed to add teammate.";
+          addToast("warning", message);
+        },
+      },
+    );
+  };
+
+  const handleRemoveMember = (
+    workspaceId: string,
+    memberId: string,
+    memberLabel: string,
+  ) => {
+    const previousWorkspaces = workspaces;
+
+    removeWorkspaceMemberMutation(
+      {
+        workspaceId,
+        userId: memberId,
+      },
+      {
+        onSuccess: () => {
+          setWorkspaces((prev) =>
+            prev.map((w) =>
+              w._id === workspaceId
+                ? {
+                    ...w,
+                    members: w.members.filter((m) => m._id !== memberId),
+                  }
+                : w,
+            ),
+          );
+
+          addActivity(workspaceId, "removed member", memberLabel, "member");
+
+          addToast("warning", `Removed ${memberLabel}`);
+
+          queryClient.invalidateQueries({
+            queryKey: ["workspaces"],
+          });
+
+          queryClient.invalidateQueries({
+            queryKey: ["workspace", workspaceId],
+          });
+        },
+
+        onError: () => {
+          setWorkspaces(previousWorkspaces);
+        },
+      },
     );
   };
 
@@ -396,6 +512,16 @@ const Workspaces = () => {
                   patchWorkspace(activeWorkspace._id, patch)
                 }
                 onDeleted={() => handleDeleted(activeWorkspace._id)}
+                onAddMember={(memberData) =>
+                  handleAddMember(activeWorkspace._id, memberData)
+                }
+                isAddingMember={isAddingMember}
+                onRemoveMember={(memberId, memberLabel) =>
+                  handleRemoveMember(activeWorkspace._id, memberId, memberLabel)
+                }
+                isRemovingMember={isRemovingMember}
+                users={users}
+                isLoadingUsers={isLoadingUsers}
                 addActivity={(action, target, iconType) =>
                   addActivity(activeWorkspace._id, action, target, iconType)
                 }
