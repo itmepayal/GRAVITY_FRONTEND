@@ -36,7 +36,7 @@ const normalizeMember = (raw: any): Member => {
   return {
     _id: raw._id ?? nextId("m"),
     user: {
-      id: user.id ?? raw._id ?? nextId("u"),
+      id: user._id ?? user.id ?? nextId("u"),
       name: user.name ?? raw.name ?? "Unknown",
       email: user.email ?? raw.email ?? "",
       avatar: user.avatar ?? raw.avatar ?? null,
@@ -90,8 +90,6 @@ const Workspaces = () => {
       : (usersResponse ?? []);
     return raw.map(normalizeUser);
   }, [usersResponse]);
-
-  console.log(usersResponse);
 
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -314,7 +312,8 @@ const Workspaces = () => {
     memberLabel: string,
   ) => {
     const previousWorkspaces = workspaces;
-
+    console.log("previousWorkspaces");
+    console.log(previousWorkspaces);
     removeWorkspaceMemberMutation(
       {
         workspaceId,
@@ -327,25 +326,21 @@ const Workspaces = () => {
               w._id === workspaceId
                 ? {
                     ...w,
-                    members: w.members.filter((m) => m._id !== memberId),
+                    members: w.members.filter((m) => m.user.id !== memberId),
                   }
                 : w,
             ),
           );
 
           addActivity(workspaceId, "removed member", memberLabel, "member");
-
           addToast("warning", `Removed ${memberLabel}`);
-
           queryClient.invalidateQueries({
             queryKey: ["workspaces"],
           });
-
           queryClient.invalidateQueries({
             queryKey: ["workspace", workspaceId],
           });
         },
-
         onError: () => {
           setWorkspaces(previousWorkspaces);
         },

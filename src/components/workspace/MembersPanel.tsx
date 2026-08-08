@@ -281,8 +281,6 @@ export const MembersPanel = ({
     if (!isRemovingMember) setRemovingMemberId(null);
   }, [isRemovingMember]);
 
-  console.log(members);
-
   return (
     <div>
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -372,7 +370,7 @@ export const MembersPanel = ({
             const displayName = m.user?.name || m.user?.email || "Unknown";
             const displayEmail = m.user?.email || "";
             const isRemovingThis =
-              isRemovingMember && removingMemberId === m._id;
+              isRemovingMember && removingMemberId === m.user.id;
             return (
               <article
                 key={m._id}
@@ -441,7 +439,7 @@ export const MembersPanel = ({
                         <option value="admin">Admin</option>
                       </select>
                       <button
-                        onClick={() => removeMember(m._id, displayEmail)}
+                        onClick={() => removeMember(m.user.id, displayEmail)}
                         disabled={isRemovingThis}
                         className="rounded-lg p-1.5 text-red-500 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                         title="Remove member"

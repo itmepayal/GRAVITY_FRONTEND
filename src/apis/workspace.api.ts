@@ -78,8 +78,6 @@ export const removeWorkspaceMember = async ({
   const response = await api.delete(
     `/workspaces/${workspaceId}/members/${userId}`,
   );
-  console.log(response);
-
   return response.data;
 };
 
