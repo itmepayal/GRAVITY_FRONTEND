@@ -1,79 +1,219 @@
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   FolderKanban,
   Plus,
   X,
   Trash2,
   ArrowUpRight,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import {
   type Project,
   type ProjectStatus,
   type ProjectView,
   PROJECT_STATUS_META,
-  nextId,
   inputClass,
 } from "./types";
 import { SharedHelpers } from "./SharedHelpers";
+import { ProjectDetailModal } from "./ProjectDetailModal";
+import { DeleteProjectModal } from "./DeleteProjectModal";
+import { useCreateProject } from "@/hooks/mutations/project/use-create-project";
+import { useDeleteProject } from "@/hooks/mutations/project/use-delete-project";
+import { useGetWorkspaceProjects } from "@/hooks/queries/project/use-get-workspace-projects";
 
 const { PanelToolbar, ViewToggle, PanelEmpty, NoResults } = SharedHelpers;
 
+const normalizeProject = (raw: any): Project => ({
+  _id: raw._id ?? raw.id,
+  name: raw.name ?? "Untitled",
+  description: raw.description ?? undefined,
+  status: raw.status ?? "planning",
+  taskCount: raw.taskCount ?? 0,
+  completedTaskCount: raw.completedTaskCount ?? 0,
+  updatedAt: raw.updatedAt ?? raw.createdAt ?? "Just now",
+});
+
 interface ProjectsPanelProps {
-  projects: Project[];
+  workspaceId: string;
   canManage: boolean;
   onChange: (projects: Project[]) => void;
-  onSelectProject: (p: Project) => void;
   addActivity: (action: string, target: string, iconType: "project") => void;
   addToast: (type: "success" | "info" | "warning", msg: string) => void;
 }
 
 export const ProjectsPanel = ({
-  projects,
+  workspaceId,
   canManage,
   onChange,
-  onSelectProject,
   addActivity,
   addToast,
 }: ProjectsPanelProps) => {
+  const queryClient = useQueryClient();
+
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<ProjectStatus>("in-progress");
   const [search, setSearch] = useState("");
   const [view, setView] = useState<ProjectView>("grid");
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [deletingProject, setDeletingProject] = useState<Project | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+
+  const {
+    data: projectsResponse,
+    isLoading: isLoadingProjects,
+    isError: isProjectsError,
+  } = useGetWorkspaceProjects(workspaceId);
+
+  const { mutate: createProjectMutation, isPending: isCreatingProject } =
+    useCreateProject();
+  const { mutate: deleteProjectMutation, isPending: isDeletingProject } =
+    useDeleteProject();
+
+  useEffect(() => {
+    const raw = Array.isArray(projectsResponse)
+      ? projectsResponse
+      : (projectsResponse?.data ?? []);
+    const normalized = raw.map(normalizeProject);
+    setProjects(normalized);
+    onChange(normalized);
+  }, [projectsResponse]);
 
   const filtered = projects.filter(
     (p) =>
       p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.description?.toLowerCase().includes(search.toLowerCase())
+      p.description?.toLowerCase().includes(search.toLowerCase()),
   );
 
   const create = (e: FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    const newProj: Project = {
-      _id: nextId("p"),
-      name: name.trim(),
-      description: description.trim() || undefined,
-      status,
-      taskCount: 0,
-      completedTaskCount: 0,
-      updatedAt: "Just now",
-    };
-    onChange([newProj, ...projects]);
-    addActivity("created project", name.trim(), "project");
-    addToast("success", `Project "${name.trim()}" created.`);
-    setName("");
-    setDescription("");
-    setShowForm(false);
+
+    const trimmedName = name.trim();
+    const trimmedDescription = description.trim() || undefined;
+
+    createProjectMutation(
+      {
+        workspaceId,
+        data: { name: trimmedName, description: trimmedDescription },
+      },
+      {
+        onSuccess: (response: any) => {
+          const created = response?.data ?? response;
+          const newProj: Project = {
+            _id: created?._id ?? created?.id,
+            name: created?.name ?? trimmedName,
+            description: created?.description ?? trimmedDescription,
+            status: created?.status ?? status,
+            taskCount: created?.taskCount ?? 0,
+            completedTaskCount: created?.completedTaskCount ?? 0,
+            updatedAt: created?.updatedAt ?? "Just now",
+          };
+          const next = [newProj, ...projects];
+          setProjects(next);
+          onChange(next);
+          addActivity("created project", trimmedName, "project");
+          setName("");
+          setDescription("");
+          setShowForm(false);
+          queryClient.invalidateQueries({
+            queryKey: ["projects", workspaceId],
+          });
+          queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+        },
+        onError: (error: unknown) => {
+          const message =
+            error instanceof Error
+              ? error.message
+              : "Failed to create project.";
+          addToast("warning", message);
+        },
+      },
+    );
   };
 
-  const remove = (projectId: string, pName: string) => {
-    if (!confirm(`Delete project "${pName}"?`)) return;
-    onChange(projects.filter((p) => p._id !== projectId));
-    addActivity("deleted project", pName, "project");
-    addToast("info", `Project "${pName}" removed.`);
+  // Opens the confirm-delete modal instead of deleting immediately.
+  const requestDelete = (project: Project) => {
+    setDeletingProject(project);
   };
+
+  // Called only after the modal confirms the typed name matches.
+  const confirmDelete = () => {
+    if (!deletingProject) return;
+    const { _id: projectId, name: pName } = deletingProject;
+
+    deleteProjectMutation(
+      { workspaceId, projectId },
+      {
+        onSuccess: () => {
+          const next = projects.filter((p) => p._id !== projectId);
+          setProjects(next);
+          onChange(next);
+          addActivity("deleted project", pName, "project");
+          addToast("info", `Project "${pName}" deleted.`);
+          setDeletingProject(null);
+          setSelectedProject((prev) =>
+            prev && prev._id === projectId ? null : prev,
+          );
+          queryClient.invalidateQueries({
+            queryKey: ["projects", workspaceId],
+          });
+          queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+        },
+        onError: (error: unknown) => {
+          const message =
+            error instanceof Error
+              ? error.message
+              : "Failed to delete project.";
+          addToast("warning", message);
+        },
+      },
+    );
+  };
+
+  // Keep the grid/list + selected-project state in sync once an edit saves
+  // successfully inside the detail modal.
+  const handleProjectUpdated = (projectId: string, patch: Partial<Project>) => {
+    setProjects((prev) => {
+      const next = prev.map((p) =>
+        p._id === projectId ? { ...p, ...patch } : p,
+      );
+      onChange(next);
+      return next;
+    });
+    setSelectedProject((prev) =>
+      prev && prev._id === projectId ? { ...prev, ...patch } : prev,
+    );
+    if (patch.name) {
+      addActivity("updated project", patch.name, "project");
+    }
+  };
+
+  if (isLoadingProjects) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-2 py-16">
+        <Loader2 size={20} className="animate-spin text-[#0F8A65]" />
+        <p className="text-[12px] text-[#5B6E68]">Loading projects...</p>
+      </div>
+    );
+  }
+
+  if (isProjectsError) {
+    return (
+      <div className="flex flex-col items-center gap-2 py-16 text-center">
+        <AlertCircle size={20} className="text-red-500" />
+        <p className="text-[12.5px] font-medium text-[#0F2D29]">
+          Couldn't load projects
+        </p>
+        <p className="text-[11px] text-[#8FA69E]">
+          Please refresh the page to try again.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -99,11 +239,10 @@ export const ProjectsPanel = ({
         }
       />
 
-      {/* New Project Form */}
       {canManage && showForm && (
         <form
           onSubmit={create}
-          className="mb-6 space-y-3.5 rounded-xl border border-[#8FE3C4]/40 bg-gradient-to-br from-[#8FE3C4]/10 to-transparent p-4 shadow-xs"
+          className="mb-6 space-y-3.5 rounded-xl border border-[#8FE3C4]/40 bg-linear-to-br from-[#8FE3C4]/10 to-transparent p-4 shadow-xs"
         >
           <div className="flex items-center justify-between">
             <p className="flex items-center gap-1.5 text-[13px] font-bold text-[#0F2D29]">
@@ -158,16 +297,15 @@ export const ProjectsPanel = ({
             </button>
             <button
               type="submit"
-              disabled={!name.trim()}
+              disabled={!name.trim() || isCreatingProject}
               className="rounded-xl bg-[#0F2D29] px-4 py-1.5 text-[12.5px] font-medium text-white shadow-xs disabled:opacity-40"
             >
-              Add Project
+              {isCreatingProject ? "Adding..." : "Add Project"}
             </button>
           </div>
         </form>
       )}
 
-      {/* Projects List/Grid */}
       {projects.length === 0 ? (
         <PanelEmpty
           icon={FolderKanban}
@@ -191,7 +329,10 @@ export const ProjectsPanel = ({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {filtered.map((p) => {
             const StatusIcon = PROJECT_STATUS_META[p.status].icon;
-            const pct = p.taskCount > 0 ? Math.round((p.completedTaskCount / p.taskCount) * 100) : 0;
+            const pct =
+              p.taskCount > 0
+                ? Math.round((p.completedTaskCount / p.taskCount) * 100)
+                : 0;
             return (
               <article
                 key={p._id}
@@ -205,14 +346,15 @@ export const ProjectsPanel = ({
                       </div>
                       <div>
                         <h3
-                          onClick={() => onSelectProject(p)}
+                          onClick={() => setSelectedProject(p)}
                           className="cursor-pointer text-[14.5px] font-bold text-[#0F2D29] hover:underline"
                         >
                           {p.name}
                         </h3>
                         <span
-                          className={`mt-0.5 inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold border ${PROJECT_STATUS_META[p.status].badge
-                            }`}
+                          className={`mt-0.5 inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold border ${
+                            PROJECT_STATUS_META[p.status].badge
+                          }`}
                         >
                           <StatusIcon size={10} />
                           {PROJECT_STATUS_META[p.status].label}
@@ -222,7 +364,7 @@ export const ProjectsPanel = ({
 
                     {canManage && (
                       <button
-                        onClick={() => remove(p._id, p.name)}
+                        onClick={() => requestDelete(p)}
                         className="rounded-lg p-1.5 text-[#8FA69E] opacity-0 transition hover:bg-red-50 hover:text-red-500 group-hover:opacity-100"
                         title="Delete project"
                       >
@@ -232,7 +374,8 @@ export const ProjectsPanel = ({
                   </div>
 
                   <p className="mt-3 line-clamp-2 text-[12.5px] leading-relaxed text-[#5B6E68]">
-                    {p.description || "No description specified for this project."}
+                    {p.description ||
+                      "No description specified for this project."}
                   </p>
                 </div>
 
@@ -255,7 +398,7 @@ export const ProjectsPanel = ({
                       Updated {p.updatedAt}
                     </span>
                     <button
-                      onClick={() => onSelectProject(p)}
+                      onClick={() => setSelectedProject(p)}
                       className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-[#0F8A65] hover:underline"
                     >
                       View details
@@ -283,7 +426,7 @@ export const ProjectsPanel = ({
                     </div>
                     <div className="min-w-0">
                       <p
-                        onClick={() => onSelectProject(p)}
+                        onClick={() => setSelectedProject(p)}
                         className="cursor-pointer truncate text-[13.5px] font-bold text-[#0F2D29] hover:underline"
                       >
                         {p.name}
@@ -296,8 +439,9 @@ export const ProjectsPanel = ({
 
                   <div className="flex items-center gap-4 shrink-0">
                     <span
-                      className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold border ${PROJECT_STATUS_META[p.status].badge
-                        }`}
+                      className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold border ${
+                        PROJECT_STATUS_META[p.status].badge
+                      }`}
                     >
                       <StatusIcon size={10} />
                       {PROJECT_STATUS_META[p.status].label}
@@ -309,7 +453,7 @@ export const ProjectsPanel = ({
 
                     {canManage && (
                       <button
-                        onClick={() => remove(p._id, p.name)}
+                        onClick={() => requestDelete(p)}
                         className="rounded-lg p-1.5 text-[#8FA69E] opacity-0 transition hover:text-red-500 group-hover:opacity-100"
                       >
                         <Trash2 size={14} />
@@ -321,6 +465,27 @@ export const ProjectsPanel = ({
             })}
           </ul>
         </div>
+      )}
+
+      {selectedProject && (
+        <ProjectDetailModal
+          workspaceId={workspaceId}
+          project={selectedProject}
+          canManage={canManage}
+          onClose={() => setSelectedProject(null)}
+          onUpdated={(patch) =>
+            handleProjectUpdated(selectedProject._id, patch)
+          }
+        />
+      )}
+
+      {deletingProject && (
+        <DeleteProjectModal
+          project={deletingProject}
+          isDeleting={isDeletingProject}
+          onClose={() => setDeletingProject(null)}
+          onConfirm={confirmDelete}
+        />
       )}
     </div>
   );

@@ -21,6 +21,7 @@ import {
   WorkspaceListItem,
   WorkspaceDetail,
   CreateWorkspaceModal,
+  type Role,
 } from "@/components/workspace";
 import { useCreateWorkspace } from "@/hooks/mutations/workspace/use-create-workspace";
 import { useUpdateWorkspace } from "@/hooks/mutations/workspace/use-update-workspace";
@@ -30,6 +31,7 @@ import { useGetWorkspaceById } from "@/hooks/queries/workspace/use-get-workspace
 import { useAddWorkspaceMember } from "@/hooks/mutations/workspace/use-add-workspace-member";
 import { useGetAllUsers } from "@/hooks/queries/users/use-get-all-users";
 import { useRemoveWorkspaceMember } from "@/hooks/mutations/workspace/use-remove-workspace-member";
+import { useUpdateWorkspaceMemberRole } from "@/hooks/mutations/workspace/update-workspace-member-role";
 
 const normalizeMember = (raw: any): Member => {
   const user = raw?.user ?? {};
@@ -82,7 +84,8 @@ const Workspaces = () => {
     useAddWorkspaceMember();
   const { mutate: removeWorkspaceMemberMutation, isPending: isRemovingMember } =
     useRemoveWorkspaceMember();
-
+  const { mutate: updateMemberRoleMutation, isPending: isUpdatingMemberRole } =
+    useUpdateWorkspaceMemberRole();
   const { data: usersResponse, isLoading: isLoadingUsers } = useGetAllUsers();
   const users = useMemo(() => {
     const raw = Array.isArray(usersResponse)
@@ -306,14 +309,66 @@ const Workspaces = () => {
     );
   };
 
+  const handleUpdateMemberRole = (
+    workspaceId: string,
+    memberId: string,
+    newRole: Role,
+    memberLabel: string,
+  ) => {
+    const previousWorkspaces = workspaces;
+
+    setWorkspaces((prev) =>
+      prev.map((w) =>
+        w._id === workspaceId
+          ? {
+              ...w,
+              members: w.members.map((m) =>
+                m.user.id === memberId ? { ...m, role: newRole } : m,
+              ),
+            }
+          : w,
+      ),
+    );
+
+    updateMemberRoleMutation(
+      {
+        workspaceId,
+        userId: memberId,
+        data: { role: newRole },
+      },
+      {
+        onSuccess: () => {
+          addActivity(
+            workspaceId,
+            `changed role to ${newRole}`,
+            memberLabel,
+            "member",
+          );
+
+          addToast("info", `Updated role for ${memberLabel}`);
+
+          queryClient.invalidateQueries({
+            queryKey: ["workspaces"],
+          });
+
+          queryClient.invalidateQueries({
+            queryKey: ["workspace", workspaceId],
+          });
+        },
+
+        onError: () => {
+          setWorkspaces(previousWorkspaces);
+        },
+      },
+    );
+  };
+
   const handleRemoveMember = (
     workspaceId: string,
     memberId: string,
     memberLabel: string,
   ) => {
     const previousWorkspaces = workspaces;
-    console.log("previousWorkspaces");
-    console.log(previousWorkspaces);
     removeWorkspaceMemberMutation(
       {
         workspaceId,
@@ -521,6 +576,15 @@ const Workspaces = () => {
                   addActivity(activeWorkspace._id, action, target, iconType)
                 }
                 addToast={addToast}
+                onUpdateMemberRole={(memberId, newRole, memberLabel) =>
+                  handleUpdateMemberRole(
+                    activeWorkspace._id,
+                    memberId,
+                    newRole,
+                    memberLabel,
+                  )
+                }
+                isUpdatingMemberRole={isUpdatingMemberRole}
               />
             )}
           </section>

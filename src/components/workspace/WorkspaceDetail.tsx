@@ -39,6 +39,12 @@ interface WorkspaceDetailProps {
   onDeleted: () => void;
   onAddMember: (memberData: { userId: string; role: string }) => void;
   onRemoveMember: (memberId: string, memberLabel: string) => void;
+  onUpdateMemberRole: (
+    memberId: string,
+    newRole: string,
+    memberLabel: string,
+  ) => void;
+  isUpdatingMemberRole?: boolean;
   addActivity: (
     action: string,
     target: string,
@@ -59,6 +65,8 @@ export const WorkspaceDetail = ({
   onDeleted,
   onAddMember,
   onRemoveMember,
+  onUpdateMemberRole,
+  isUpdatingMemberRole = false,
   addActivity,
   addToast,
   users,
@@ -340,10 +348,9 @@ export const WorkspaceDetail = ({
       <div className="p-6 sm:p-7">
         {tab === "projects" && (
           <ProjectsPanel
-            projects={workspace.projects}
+            workspaceId={workspace._id}
             canManage={canManage}
             onChange={(projects) => onUpdated({ projects })}
-            onSelectProject={setSelectedProject}
             addActivity={addActivity}
             addToast={addToast}
           />
@@ -358,6 +365,8 @@ export const WorkspaceDetail = ({
             isAddingMember={isAddingMember}
             onRemoveMember={onRemoveMember}
             isRemovingMember={isRemovingMember}
+            onUpdateMemberRole={onUpdateMemberRole}
+            isUpdatingMemberRole={isUpdatingMemberRole}
             users={users}
             isLoadingUsers={isLoadingUsers}
             addActivity={addActivity}
@@ -367,9 +376,8 @@ export const WorkspaceDetail = ({
 
         {tab === "roles" && (
           <RolesPanel
-            roles={workspace.roles}
+            workspaceId={workspace._id}
             canManage={canManage}
-            onChange={(roles) => onUpdated({ roles })}
             addActivity={addActivity}
             addToast={addToast}
           />
