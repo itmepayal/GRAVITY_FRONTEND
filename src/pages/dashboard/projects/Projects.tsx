@@ -30,6 +30,7 @@ import {
   Flag,
   Target,
   Plus,
+  Kanban,
 } from "lucide-react";
 import { Topbar } from "@/components/layout/Topbar";
 import { useDashboardContext } from "@/components/layout/DashboardLayout";
@@ -44,6 +45,8 @@ import { useGetWorkspaceRoles } from "@/hooks/queries/workspace/use-get-workspac
 import { useGetProjectSprints } from "@/hooks/queries/project/use-get-project-sprints";
 import { useGetWorkspaceGoals } from "@/hooks/queries/goal/get-workspace-goals";
 import { useCreateSprint } from "@/hooks/mutations/project/use-create-sprint";
+import { useCreateBoard } from "@/hooks/mutations/project/use-create-board";
+import { useGetProjectBoards } from "@/hooks/queries/project/use-get-project-boards";
 import { useQueryClient } from "@tanstack/react-query";
 
 type ProjectStatus =
@@ -651,6 +654,20 @@ const normalizeSprint = (raw: any): Sprint => ({
   status: raw.status,
 });
 
+interface Board {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt?: string;
+}
+
+const normalizeBoard = (raw: any): Board => ({
+  id: raw._id ?? raw.id,
+  name: raw.name ?? "Untitled Board",
+  description: raw.description ?? "",
+  createdAt: raw.createdAt,
+});
+
 const CreateSprintModal = ({
   projectId,
   projectName,
@@ -899,6 +916,178 @@ const CreateSprintModal = ({
   );
 };
 
+const CreateBoardModal = ({
+  projectId,
+  projectName,
+  onClose,
+}: {
+  projectId: string;
+  projectName: string;
+  onClose: () => void;
+}) => {
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const { mutate, isPending } = useCreateBoard();
+
+  useEffect(() => {
+    nameInputRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isPending) onClose();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [onClose, isPending]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError(null);
+
+    if (!name.trim()) {
+      setFormError("Board name is required.");
+      return;
+    }
+
+    mutate(
+      {
+        projectId,
+        data: {
+          name: name.trim(),
+          description: description.trim() || undefined,
+        },
+      },
+      {
+        onSuccess: () => onClose(),
+      },
+    );
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F2D29]/50 p-4 backdrop-blur-md transition-all animate-in fade-in duration-200"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="create-board-title"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget && !isPending) onClose();
+      }}
+    >
+      <div className="w-full max-w-md overflow-hidden rounded-3xl border border-[#0F2D29]/15 bg-white p-6 shadow-2xl transition-all sm:p-7">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#8FE3C4]/30 ring-1 ring-[#8FE3C4]/50 text-[#0F8A65]">
+              <Kanban size={20} />
+            </div>
+            <div>
+              <h2
+                id="create-board-title"
+                className="text-[16px] font-bold text-[#0F2D29]"
+              >
+                New Board
+              </h2>
+              <p className="text-[12px] text-[#5B6E68]">
+                Create a task board for{" "}
+                <span className="font-semibold text-[#0F2D29]">
+                  {projectName}
+                </span>
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            disabled={isPending}
+            aria-label="Close"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-[#8FA69E] transition hover:bg-[#0F2D29]/5 hover:text-[#0F2D29] disabled:opacity-50"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          <div>
+            <label
+              htmlFor="board-name"
+              className="mb-2 block text-[12px] font-bold text-[#0F2D29] uppercase tracking-wider"
+            >
+              Board Name
+            </label>
+            <input
+              ref={nameInputRef}
+              id="board-name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              disabled={isPending}
+              placeholder="e.g. Checkout Revamp Board"
+              className="w-full rounded-xl border border-[#0F2D29]/15 bg-[#0F2D29]/3 px-4 py-3 text-[13px] font-medium text-[#0F2D29] outline-none transition placeholder:text-[#8FA69E] focus:border-[#0F8A65] focus:bg-white focus:ring-2 focus:ring-[#8FE3C4]/30 disabled:opacity-50"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="board-description"
+              className="mb-2 block text-[12px] font-bold text-[#0F2D29] uppercase tracking-wider"
+            >
+              Description{" "}
+              <span className="normal-case font-medium text-[#8FA69E]">
+                (optional)
+              </span>
+            </label>
+            <textarea
+              id="board-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              disabled={isPending}
+              rows={3}
+              placeholder="What is this board for?"
+              className="w-full resize-none rounded-xl border border-[#0F2D29]/15 bg-[#0F2D29]/3 px-4 py-3 text-[13px] font-medium text-[#0F2D29] outline-none transition placeholder:text-[#8FA69E] focus:border-[#0F8A65] focus:bg-white focus:ring-2 focus:ring-[#8FE3C4]/30 disabled:opacity-50"
+            />
+          </div>
+
+          {formError && (
+            <div className="flex items-center gap-2 rounded-xl bg-red-50 px-3.5 py-2.5 text-[12px] font-semibold text-red-600">
+              <AlertCircle size={14} className="shrink-0" />
+              {formError}
+            </div>
+          )}
+
+          <div className="flex items-center justify-end gap-3 pt-1">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isPending}
+              className="rounded-xl px-4 py-2.5 text-[13px] font-semibold text-[#5B6E68] transition hover:bg-[#0F2D29]/5 hover:text-[#0F2D29] disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isPending}
+              className="flex items-center gap-2 rounded-xl bg-[#0F2D29] px-5 py-2.5 text-[13px] font-semibold text-white shadow-md transition hover:bg-[#0F2D29]/90 disabled:cursor-not-allowed disabled:opacity-50 active:scale-98"
+            >
+              {isPending ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" />
+                  Creating…
+                </>
+              ) : (
+                <>
+                  <Plus size={15} />
+                  Create Board
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 const Projects = () => {
   const { openMobileNav } = useDashboardContext();
   const queryClient = useQueryClient();
@@ -924,6 +1113,7 @@ const Projects = () => {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
   const [isCreateSprintOpen, setIsCreateSprintOpen] = useState(false);
+  const [isCreateBoardOpen, setIsCreateBoardOpen] = useState(false);
   const [pendingMemberId, setPendingMemberId] = useState<string | null>(null);
   const [memberToDelete, setMemberToDelete] = useState<{
     userId: string;
@@ -1005,6 +1195,19 @@ const Projects = () => {
     return raw.map(normalizeSprint);
   }, [sprintsResponse]);
 
+  const {
+    data: boardsResponse,
+    isLoading: isLoadingBoards,
+    isError: isBoardsError,
+    refetch: refetchBoards,
+  } = useGetProjectBoards(activeProjectId ?? "");
+  const boards: Board[] = useMemo(() => {
+    const raw = Array.isArray(boardsResponse)
+      ? boardsResponse
+      : (boardsResponse?.data ?? []);
+    return raw.map(normalizeBoard);
+  }, [boardsResponse]);
+
   const addToast = (type: Toast["type"], message: string) => {
     const id = nextId("tst");
     setToasts((prev) => [...prev, { id, type, message }]);
@@ -1032,6 +1235,7 @@ const Projects = () => {
     setIsAddMemberOpen(false);
     setMemberToDelete(null);
     setIsCreateSprintOpen(false);
+    setIsCreateBoardOpen(false);
   }, [activeProjectId]);
 
   // Filter logic
@@ -2086,17 +2290,97 @@ const Projects = () => {
 
                       {activeTab === "tasks" && (
                         <div className="space-y-6">
-                          <div className="rounded-2xl border border-[#0F2D29]/10 bg-white/90 p-6 shadow-xs space-y-2 text-center">
-                            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#8FE3C4]/30 text-[#0F8A65]">
-                              <ListChecks size={24} />
+                          <div className="rounded-2xl border border-[#0F2D29]/10 bg-white/90 p-6 shadow-xs space-y-4">
+                            <div className="flex items-center justify-between">
+                              <h3 className="text-[15px] font-bold text-[#0F2D29] flex items-center gap-2">
+                                <Kanban size={18} className="text-[#0F8A65]" />
+                                Boards ({boards.length})
+                              </h3>
+                              {canManage && (
+                                <button
+                                  onClick={() => setIsCreateBoardOpen(true)}
+                                  className="flex items-center gap-1.5 rounded-xl bg-[#0F2D29] px-3.5 py-1.5 text-[12px] font-bold text-white transition hover:bg-[#0F2D29]/90"
+                                >
+                                  <Plus size={14} />
+                                  New Board
+                                </button>
+                              )}
                             </div>
-                            <h3 className="text-[15px] font-bold text-[#0F2D29]">
-                              {activeProject.tasks.length} Active Tasks Assigned
-                            </h3>
-                            <p className="text-[12.5px] text-[#5B6E68] max-w-md mx-auto">
-                              Kanban board columns and task dependencies are
-                              available in the Tasks view.
-                            </p>
+
+                            {isLoadingBoards ? (
+                              <div className="space-y-2">
+                                {Array.from({ length: 2 }).map((_, i) => (
+                                  <ProjectRowSkeleton key={i} />
+                                ))}
+                              </div>
+                            ) : isBoardsError ? (
+                              <div className="flex flex-col items-center gap-2 py-8 text-center">
+                                <AlertCircle
+                                  size={22}
+                                  className="text-red-500"
+                                />
+                                <p className="text-[13px] font-bold text-[#0F2D29]">
+                                  Couldn't load boards
+                                </p>
+                                <button
+                                  onClick={() => refetchBoards()}
+                                  className="mt-1 rounded-xl bg-[#0F2D29] px-3.5 py-1.5 text-[12px] font-bold text-white transition hover:bg-[#0F2D29]/90"
+                                >
+                                  Try again
+                                </button>
+                              </div>
+                            ) : boards.length === 0 ? (
+                              <div className="py-6 text-center">
+                                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#8FE3C4]/30 text-[#0F8A65]">
+                                  <Kanban size={24} />
+                                </div>
+                                <h4 className="text-[15px] font-bold text-[#0F2D29]">
+                                  {activeProject.tasks.length} Active Tasks
+                                  Assigned
+                                </h4>
+                                <p className="mt-1 text-[12.5px] text-[#5B6E68] max-w-md mx-auto">
+                                  Spin up a board to organize this project's
+                                  tasks into kanban or scrum columns.
+                                </p>
+                                {canManage && (
+                                  <button
+                                    onClick={() => setIsCreateBoardOpen(true)}
+                                    className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-[#0F2D29] px-3.5 py-2 text-[12px] font-bold text-white transition hover:bg-[#0F2D29]/90"
+                                  >
+                                    <Plus size={14} />
+                                    Create a board
+                                  </button>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="divide-y divide-[#0F2D29]/6">
+                                {boards.map((b) => (
+                                  <div
+                                    key={b.id}
+                                    className="flex items-start gap-3 rounded-xl py-3.5 px-2 -mx-2 transition hover:bg-[#0F2D29]/3"
+                                  >
+                                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#8FE3C4]/25 text-[#0F8A65]">
+                                      <Kanban size={16} />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <p className="text-[13.5px] font-bold text-[#0F2D29]">
+                                        {b.name}
+                                      </p>
+                                      {b.description && (
+                                        <p className="mt-0.5 text-[12px] text-[#5B6E68] line-clamp-1">
+                                          {b.description}
+                                        </p>
+                                      )}
+                                      {b.createdAt && (
+                                        <p className="mt-1 text-[11px] font-semibold text-[#8FA69E]">
+                                          Created {relativeTime(b.createdAt)}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
 
                           <div className="rounded-2xl border border-[#0F2D29]/10 bg-white/90 p-6 shadow-xs space-y-4">
@@ -2396,6 +2680,14 @@ const Projects = () => {
                           goals={goals}
                           isLoadingGoals={isLoadingGoals}
                           onClose={() => setIsCreateSprintOpen(false)}
+                        />
+                      )}
+
+                      {isCreateBoardOpen && (
+                        <CreateBoardModal
+                          projectId={activeProject.id}
+                          projectName={activeProject.name}
+                          onClose={() => setIsCreateBoardOpen(false)}
                         />
                       )}
                     </div>
