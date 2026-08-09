@@ -1,24 +1,21 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { addProjectMember } from "@/apis/project.api";
+import { removeProjectMember } from "@/apis/project.api";
 import { toast } from "sonner";
 
-export const useAddProjectMember = () => {
+export const useRemoveProjectMember = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({
       projectId,
-      data,
+      userId,
     }: {
       projectId: string;
-      data: {
-        userId: string;
-        roleId: string;
-      };
-    }) => addProjectMember(projectId, data),
+      userId: string;
+    }) => removeProjectMember(projectId, userId),
 
     onSuccess: (_, variables) => {
-      toast.success("Project member added successfully");
+      toast.success("Project member removed successfully");
 
       queryClient.invalidateQueries({
         queryKey: ["project", variables.projectId],
@@ -27,7 +24,7 @@ export const useAddProjectMember = () => {
 
     onError: (error: any) => {
       toast.error(
-        error?.response?.data?.message || "Failed to add project member",
+        error?.response?.data?.message || "Failed to remove project member",
       );
     },
   });

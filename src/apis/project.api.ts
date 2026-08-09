@@ -4,9 +4,10 @@ export const addProjectMember = async (
   projectId: string,
   data: {
     userId: string;
-    role: string;
+    roleId: string;
   },
 ) => {
+  console.log(data.roleId);
   const response = await api.post(`/projects/${projectId}/members`, data);
   return response.data;
 };
@@ -15,7 +16,7 @@ export const updateProjectMemberRole = async (
   projectId: string,
   userId: string,
   data: {
-    role: string;
+    roleId: string;
   },
 ) => {
   const response = await api.patch(
