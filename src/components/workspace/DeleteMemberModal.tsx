@@ -1,24 +1,29 @@
 import { useState } from "react";
 import { AlertTriangle, Loader2, X, UserMinus } from "lucide-react";
+import type { Member } from "./types";
 
 interface DeleteMemberModalProps {
-  memberName: string;
-  memberEmail: string;
-  isRemoving: boolean;
+  member?: Member;
+  memberName?: string;
+  memberEmail?: string;
+  isRemoving?: boolean;
   onClose: () => void;
   onConfirm: () => void;
 }
 
 export const DeleteMemberModal = ({
+  member,
   memberName,
   memberEmail,
-  isRemoving,
+  isRemoving = false,
   onClose,
   onConfirm,
 }: DeleteMemberModalProps) => {
   const [confirmText, setConfirmText] = useState("");
+  const name = memberName ?? member?.user?.name ?? "Teammate";
+  const email = memberEmail ?? member?.user?.email ?? name;
   const isMatch =
-    confirmText.trim().toLowerCase() === memberEmail.toLowerCase();
+    !email || confirmText.trim().toLowerCase() === email.toLowerCase() || confirmText.trim().toLowerCase() === name.toLowerCase();
 
   const handleSubmit = () => {
     if (!isMatch || isRemoving) return;

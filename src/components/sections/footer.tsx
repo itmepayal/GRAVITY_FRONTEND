@@ -19,34 +19,38 @@ export const Footer = () => {
   }
 
   return (
-    <footer className="relative bg-[#0F2D29]/95 py-8 sm:py-10 md:py-12 lg:py-14 border-t border-white/5">
+    <footer className="relative bg-[#0F2D29] text-white py-12 sm:py-16 border-t border-white/10">
+      {/* Scroll to Top Floating Button */}
       <button
         onClick={handleTopClick}
         aria-label="Back to top"
-        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-[#0F2D29] border border-white/10 text-[#B7CFC7] hover:text-[#8FE3C4] hover:border-[#8FE3C4] shadow-lg transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#8FE3C4]"
+        className="fixed bottom-6 right-6 z-40 flex items-center justify-center w-11 h-11 bg-[#0F2D29] border border-[#8FE3C4]/30 text-[#8FE3C4] hover:bg-[#8FE3C4] hover:text-[#0F2D29] transition-all shadow-xl"
       >
-        <ArrowUp size={16} className="sm:hidden" />
-        <ArrowUp size={18} className="hidden sm:block" />
+        <ArrowUp size={18} strokeWidth={2.5} />
       </button>
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-8 lg:px-12 xl:px-20 2xl:px-40">
-        <div className="flex flex-col gap-8 sm:gap-9 md:flex-row md:items-start md:justify-between text-center md:text-left items-center md:items-start">
-          <div className="max-w-[380px] w-full md:w-auto flex flex-col items-center md:items-start">
+
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-8 text-center md:text-left">
+          
+          {/* Brand Info */}
+          <div className="max-w-[380px] flex flex-col items-center md:items-start space-y-3">
             <a
               href="#top"
               onClick={handleTopClick}
-              className="flex items-center gap-2.5 text-[15px] sm:text-[16px] font-bold text-white mb-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#8FE3C4] w-fit"
+              className="flex items-center gap-2.5 text-[18px] font-extrabold font-['Goldman',sans-serif] text-white"
             >
-              <GravityMark className="w-6 h-6 sm:w-[26px] sm:h-[26px] shrink-0" />
-              Gravity
+              <GravityMark className="w-7 h-7 shrink-0" />
+              <span>Gravity TMS</span>
             </a>
-            <p className="text-[13px] leading-relaxed text-[#B7CFC7] max-w-[320px]">
-              Dependency-aware planning for teams that can't afford a surprise
-              on launch day.
+            <p className="text-[13px] leading-relaxed text-[#B7CFC7]">
+              Enterprise Task Management System. Dependency-aware planning, agile sprint tracking, and zero-code workflow automations for engineering teams.
             </p>
           </div>
+
+          {/* Nav Links */}
           <nav
             aria-label="Footer"
-            className="flex flex-wrap justify-center md:justify-start gap-x-6 sm:gap-x-8 md:gap-x-10 gap-y-3 sm:gap-y-4 w-full md:w-auto"
+            className="flex flex-wrap justify-center md:justify-start gap-x-8 gap-y-3"
           >
             {NAV_LINKS.map(function ([id, label]) {
               return (
@@ -54,7 +58,7 @@ export const Footer = () => {
                   key={id}
                   href={`#${id}`}
                   onClick={go(id)}
-                  className="text-[13px] text-[#B7CFC7] hover:text-white transition-colors rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#8FE3C4]"
+                  className="text-[13px] font-bold text-[#B7CFC7] hover:text-white transition-colors"
                 >
                   {label}
                 </a>
@@ -62,18 +66,19 @@ export const Footer = () => {
             })}
           </nav>
         </div>
-        <div className="mt-8 sm:mt-10 pt-5 sm:pt-6 border-t border-white/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 text-center sm:text-left">
-          <p className="text-[11px] sm:text-[12px] text-[#5E6D68] order-2 sm:order-1">
-            © {new Date().getFullYear()} Gravity. All rights reserved.
+
+        {/* Footer Bottom Bar */}
+        <div className="mt-12 pt-6 border-t border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-center sm:text-left">
+          <p className="text-[12px] font-medium text-[#B7CFC7]">
+            © {new Date().getFullYear()} Gravity TMS. All rights reserved.
           </p>
           <a
             href="https://itme-payal.vercel.app/"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[11px] sm:text-[12px] text-[#5E6D68] transition-colors order-1 sm:order-2 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#8FE3C4] w-fit mx-auto sm:mx-0"
+            className="text-[12px] font-semibold text-[#B7CFC7] hover:text-[#8FE3C4] transition-colors"
           >
-            Design and Development by{" "}
-            <span className="hover:text-[#8FE3C4]">Payal Yadav</span>
+            Design & Engineering by <span className="underline decoration-[#8FE3C4]">Payal Yadav</span>
           </a>
         </div>
       </div>

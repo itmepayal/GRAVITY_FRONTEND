@@ -4,52 +4,54 @@ import { CAPACITY_PEOPLE, CAPACITY_WEEKS, loadColor } from "@/constants/capacity
 
 export const Capacity = () => {
   return (
-    <section id="enterprise" className="bg-[#F2EADA]">
-      <div className="max-w-[1400px] mx-auto py-6 sm:py-8 md:py-9 lg:py-10 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-20 2xl:px-40">
+    <section id="enterprise" className="bg-[#F8F7F3] border-b border-[#0F2D29]/10">
+      <div className="max-w-[1400px] mx-auto py-12 sm:py-16 lg:py-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16">
         <Badge
-          eyebrow="Capacity"
-          title="Workload, five weeks out"
-          description="Every assignment writes to a person's real capacity. Overcommitment shows up here before it shows up in a missed date."
+          eyebrow="Capacity & Workload Planning"
+          title="Team Workload Forecast across 5 Weeks"
+          description="Every task assignment writes directly to an engineer's real-time capacity. Overcommitments show up here before deadlines slip."
         />
         <Reveal delay={100}>
-          <div className="bg-white rounded-xl sm:rounded-2xl border border-[#0F2D29]/8 p-3 sm:p-5 lg:p-6">
+          <div className="bg-white border border-[#0F2D29]/12 p-4 sm:p-6 lg:p-8 shadow-2xs">
             <div
-              className="grid gap-1 sm:gap-2 mb-2 sm:mb-3 px-0.5 sm:px-1"
-              style={{ gridTemplateColumns: "clamp(64px,22vw,120px) repeat(5, 1fr)" }}
+              className="grid gap-2 mb-3 px-1 border-b border-[#0F2D29]/10 pb-3"
+              style={{ gridTemplateColumns: "clamp(120px,24vw,220px) repeat(5, 1fr)" }}
             >
-              <span />
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#5B6E68]">
+                Engineer / Role
+              </span>
               {CAPACITY_WEEKS.map((w) => (
                 <span
                   key={w}
-                  className="text-[8.5px] xs:text-[9.5px] sm:text-[10.5px] text-[#5E6D68] text-center truncate"
+                  className="text-[11px] font-extrabold uppercase tracking-wider text-[#0F2D29] text-center"
                 >
                   {w}
                 </span>
               ))}
             </div>
 
-            <div className="flex flex-col">
+            <div className="flex flex-col divide-y divide-[#0F2D29]/8">
               {CAPACITY_PEOPLE.map((p) => (
                 <div
                   key={p.name}
-                  className="grid gap-1 sm:gap-2 items-center py-1 sm:py-1.5"
-                  style={{ gridTemplateColumns: "clamp(64px,22vw,120px) repeat(5, 1fr)" }}
+                  className="grid gap-2 items-center py-2.5"
+                  style={{ gridTemplateColumns: "clamp(120px,24vw,220px) repeat(5, 1fr)" }}
                 >
-                  <div className="min-w-0 pr-1">
-                    <div className="text-[10px] xs:text-[11px] sm:text-[12.5px] font-medium text-[#0F2D29] truncate">
+                  <div className="min-w-0 pr-2">
+                    <div className="text-[13px] font-bold text-[#0F2D29] truncate">
                       {p.name}
                     </div>
-                    <div className="text-[8px] xs:text-[9px] sm:text-[10px] text-[#5E6D68] truncate">
+                    <div className="text-[11px] font-medium text-[#5B6E68] truncate">
                       {p.role}
                     </div>
                   </div>
                   {p.load.map((pct, i) => (
                     <div
                       key={i}
-                      className="h-6 xs:h-7 sm:h-8 rounded-md flex items-center justify-center text-[8.5px] xs:text-[9.5px] sm:text-[10.5px] font-semibold transition-transform motion-safe:hover:scale-[1.04]"
+                      className="h-8 flex items-center justify-center text-[11px] font-extrabold transition-transform border border-[#0F2D29]/10"
                       style={{
                         background: loadColor(pct),
-                        color: pct >= 75 ? "#FBF3E6" : "#0F2D29",
+                        color: pct >= 75 ? "#FFFFFF" : "#0F2D29",
                       }}
                     >
                       <span>{pct}%</span>
@@ -59,18 +61,22 @@ export const Capacity = () => {
               ))}
             </div>
 
-            <div className="flex flex-wrap items-center gap-x-3 sm:gap-x-4 gap-y-1.5 mt-4 sm:mt-5 px-0.5 sm:px-1 text-[8.5px] xs:text-[9.5px] sm:text-[10.5px] text-[#5E6D68]">
-              <div className="flex items-center gap-1.5 shrink-0">
-                <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: "#E98A57" }} />
-                At risk (95%+)
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-6 pt-4 border-t border-[#0F2D29]/10 text-[11.5px] font-bold text-[#5B6E68]">
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="w-3 h-3 border border-red-700 bg-red-600 shrink-0" />
+                Over-capacity (95%+)
               </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: "#3FA787" }} />
-                Full
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="w-3 h-3 border border-[#0F2D29] bg-[#0F2D29] shrink-0" />
+                Optimal Load (75% - 94%)
               </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: "#8FE3C4" }} />
-                Available
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="w-3 h-3 border border-[#0F2D29]/20 bg-[#8FE3C4] shrink-0" />
+                Available Capacity (40% - 74%)
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="w-3 h-3 border border-[#0F2D29]/15 bg-[#E5E7EB] shrink-0" />
+                Unassigned (&lt; 40%)
               </div>
             </div>
           </div>

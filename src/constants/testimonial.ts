@@ -3,27 +3,27 @@ import type { Testimonial } from "@/types";
 export const TESTIMONIALS: Testimonial[] = [
   {
     quote:
-      "We stopped finding out about a blocked dependency in standup. Waypoint flags it the moment the upstream task stalls.",
-    name: "Mina Cho",
-    role: "Director of Engineering, Atlas Co.",
+      "Gravity TMS eliminated our Friday status chaos. The moment an engineer hits a blocker, downstream assignees and project leads are instantly notified.",
+    name: "Aditi Sharma",
+    role: "VP of Engineering, Nimbus Cloud Services",
   },
   {
     quote:
-      "The critical path view replaced three spreadsheets and a very tense Friday status call.",
-    name: "Devon Park",
-    role: "Program Manager, Harbor",
+      "The combination of Kanban boards, subtask checklists, and capacity forecasting replaced 4 redundant SaaS tools for our 50+ dev team.",
+    name: "Rohan Mehta",
+    role: "DevOps & Infrastructure Lead, DevStudio Global",
     dark: true,
   },
   {
     quote:
-      "Automation rules quietly reforecast dates so the roadmap stays honest without anyone chasing updates.",
-    name: "Iris Solano",
-    role: "Head of Operations, Beacon",
+      "Automated GitHub triggers update task statuses in real-time. Our engineers spend zero time filling out manual spreadsheet updates.",
+    name: "Priya Nair",
+    role: "Backend Lead, Fintech Labs",
   },
   {
     quote:
-      "Onboarding took an afternoon. By the next sprint the whole team had stopped asking 'are we still on track' in Slack.",
-    name: "Priya Nair",
-    role: "Engineering Lead, Northwind",
+      "Onboarding took 10 minutes. The multi-view boards and sharp UI make task management an absolute joy for our product team.",
+    name: "Karan Verma",
+    role: "Head of Product & QA, Enterprise Systems",
   },
 ];

@@ -1,23 +1,21 @@
 import React, { useState, useEffect } from "react";
-import { Menu, X } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Menu, X, ArrowRight } from "lucide-react";
 import { NAV_LINKS } from "@/constants";
 import { useScrollProgress } from "@/hooks/use-scroll";
 import { useActiveSection } from "@/hooks/use-active";
 import { scrollToId } from "@/utills/scroll-to-id";
-import { Pill } from "@/components/common/pill";
 import { GravityMark } from "@/components/common/logo";
-import { useAuthStore } from "@/store/auth.store"; // ye add kiya
+import { useAuthStore } from "@/store/auth.store";
 
 export const Navbar = () => {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const progress = useScrollProgress();
   const activeId = useActiveSection(NAV_LINKS.map(([id]) => id));
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated); // ye add kiya
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
-  // login state ke hisaab se destination aur label decide karo
   const authHref = isAuthenticated ? "/dashboard" : "/login";
-  const authLabel = isAuthenticated ? "Dashboard" : "Sign In";
+  const authLabel = isAuthenticated ? "Go to Dashboard" : "Sign In";
 
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
@@ -28,10 +26,8 @@ export const Navbar = () => {
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
-
     window.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
-
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
@@ -53,13 +49,13 @@ export const Navbar = () => {
 
   return (
     <header
-      className={`sticky top-0 z-30 bg-[#0F2D29]/95 backdrop-blur-md border-b transition-colors duration-200 ${
+      className={`sticky top-0 z-40 bg-[#0F2D29]/95 backdrop-blur-md border-b transition-colors duration-200 ${
         scrolled
-          ? "border-white/10 shadow-[0_4px_24px_rgba(0,0,0,0.25)]"
-          : "border-white/5"
+          ? "border-[#8FE3C4]/20 shadow-[0_4px_24px_rgba(0,0,0,0.3)]"
+          : "border-white/10"
       }`}
     >
-      <nav className="flex items-center justify-between max-w-350 mx-auto px-3 sm:px-6 md:px-8 lg:px-12 xl:px-20 2xl:px-40 py-2.5 sm:py-3.5">
+      <nav className="flex items-center justify-between max-w-[1400px] mx-auto px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-3.5">
         <a
           href="#top"
           onClick={(e) => {
@@ -68,26 +64,26 @@ export const Navbar = () => {
             window.scrollTo({ top: 0, behavior: "smooth" });
             history.replaceState(null, "", "#top");
           }}
-          className="flex items-center gap-1.5 sm:gap-2.5 text-base sm:text-xl font-semibold text-white shrink-0 rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#8FE3C4]"
+          className="flex items-center gap-2.5 text-lg sm:text-xl font-extrabold font-['Goldman',sans-serif] text-white shrink-0 tracking-tight"
         >
-          <GravityMark className="w-5.5 h-5.5 sm:w-7.5 sm:h-7.5 shrink-0" />
-          <span className="truncate">Gravity</span>
+          <GravityMark className="w-7 h-7 shrink-0" />
+          <span className="truncate">Gravity <span className="text-[#8FE3C4] font-bold font-['Poppins',sans-serif] text-[12px] uppercase tracking-wider ml-1 border border-[#8FE3C4]/30 px-1.5 py-0.5">TMS</span></span>
         </a>
 
-        <div className="hidden md:flex gap-4 lg:gap-8 text-[13px] lg:text-[13.5px] font-medium text-white/70">
+        {/* Desktop Links */}
+        <div className="hidden md:flex gap-6 lg:gap-8 text-sm font-semibold font-['Poppins',sans-serif] text-[#B7CFC7]">
           {NAV_LINKS.map(([id, label]) => (
             <a
               key={id}
               href={`#${id}`}
               onClick={go(id)}
-              aria-current={activeId === id ? "true" : undefined}
-              className={`relative py-1.5 whitespace-nowrap transition-colors duration-150 group focus-visible:outline focus-visible:outline-offset-4 focus-visible:outline-[#8FE3C4] rounded-sm ${
+              className={`relative py-1 transition-colors group ${
                 activeId === id ? "text-white" : "hover:text-white"
               }`}
             >
               {label}
               <span
-                className={`absolute -bottom-0.5 left-0 h-px bg-[#8FE3C4] transition-all duration-200 ${
+                className={`absolute -bottom-0.5 left-0 h-0.5 bg-[#8FE3C4] transition-all duration-200 ${
                   activeId === id ? "w-full" : "w-0 group-hover:w-full"
                 }`}
               />
@@ -95,56 +91,53 @@ export const Navbar = () => {
           ))}
         </div>
 
+        {/* Action Button */}
         <div className="hidden md:flex items-center gap-3 shrink-0">
-          <Pill icon href={authHref}>
+          <Link
+            to={authHref}
+            className="flex items-center gap-2 bg-[#8FE3C4] text-[#0F2D29] px-5 py-2.5 text-[13px] font-extrabold tracking-wide hover:bg-white transition"
+          >
             {authLabel}
-          </Pill>
+            <ArrowRight size={14} strokeWidth={2.5} />
+          </Link>
         </div>
 
+        {/* Mobile Toggle */}
         <button
-          onClick={() => setOpen((o) => !o)}
-          aria-expanded={open}
-          aria-label={open ? "Close menu" : "Open menu"}
-          className="md:hidden w-11 h-11 flex items-center justify-center rounded-lg text-white/80 hover:text-white hover:bg-white/5 active:bg-white/10 transition-colors focus-visible:outline focus-visible:outline-[#8FE3C4] shrink-0 -mr-1"
+          onClick={() => setOpen(!open)}
+          className="md:hidden flex h-9 w-9 items-center justify-center border border-white/20 text-white hover:bg-white/10"
         >
           {open ? <X size={20} /> : <Menu size={20} />}
         </button>
       </nav>
 
-      <div className="h-0.5 bg-white/5">
-        <div
-          className="h-full bg-[#8FE3C4] transition-[width] duration-80 ease-linear"
-          style={{ width: `${progress * 100}%` }}
-        />
-      </div>
-
-      <div
-        className={`md:hidden overflow-hidden transition-[max-height,opacity] duration-300 ease-out border-b border-white/5 ${
-          open ? "max-h-[calc(100vh-56px)] opacity-100" : "max-h-0 opacity-0"
-        }`}
-      >
-        <div className="px-4 sm:px-6 py-3.5 sm:py-5 flex flex-col gap-0.5 sm:gap-1 bg-[#0F2D29] max-h-[calc(100vh-56px)] overflow-y-auto">
-          {NAV_LINKS.map(([id, label]) => (
-            <a
-              key={id}
-              href={`#${id}`}
-              onClick={go(id)}
-              className={`text-[15px] font-medium py-3.5 sm:py-3 border-b border-white/5 last:border-b-0 transition-colors focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-[#8FE3C4] rounded-sm ${
-                activeId === id
-                  ? "text-white"
-                  : "text-white/80 hover:text-white"
-              }`}
+      {/* Mobile Drawer */}
+      {open && (
+        <div className="md:hidden border-b border-white/10 bg-[#0F2D29] px-6 py-6 space-y-4">
+          <div className="flex flex-col space-y-3">
+            {NAV_LINKS.map(([id, label]) => (
+              <a
+                key={id}
+                href={`#${id}`}
+                onClick={go(id)}
+                className="text-[15px] font-bold text-[#B7CFC7] hover:text-white"
+              >
+                {label}
+              </a>
+            ))}
+          </div>
+          <div className="pt-2">
+            <Link
+              to={authHref}
+              onClick={() => setOpen(false)}
+              className="flex items-center justify-center gap-2 w-full bg-[#8FE3C4] text-[#0F2D29] py-3 text-[14px] font-extrabold"
             >
-              {label}
-            </a>
-          ))}
-          <div className="flex flex-col gap-2.5 mt-4">
-            <Pill icon href={authHref} className="w-full justify-center">
               {authLabel}
-            </Pill>
+              <ArrowRight size={16} strokeWidth={2.5} />
+            </Link>
           </div>
         </div>
-      </div>
+      )}
     </header>
   );
 };

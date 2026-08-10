@@ -10,33 +10,37 @@ export const GanttChart = () => {
     setActive((current) => (current === label ? null : label));
 
   return (
-    <section id="templates" className="bg-[#FBF3E6]">
-      <div className="max-w-[1400px] mx-auto py-6 sm:py-8 md:py-9 lg:py-10 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-20 2xl:px-40">
+    <section id="templates" className="bg-[#F8F7F3] border-b border-[#0F2D29]/10">
+      <div className="max-w-[1400px] mx-auto py-12 sm:py-16 lg:py-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16">
         <Badge
-          eyebrow="Scheduling"
-          title="Adaptive Schedule Control"
-          description="Drag a task and everything downstream of it moves with it. The critical path — the chain that actually controls your ship date — stays highlighted at all times."
+          eyebrow="Interactive Gantt Timeline"
+          title="Adaptive Schedule Control & Critical Path Highlight"
+          description="Drag any task milestone and every dependent task downstream recalculates automatically. Critical path dependencies stay highlighted in real-time."
         />
         <Reveal delay={100}>
-          <div className="bg-white rounded-xl sm:rounded-2xl border border-[#0F2D29]/8 p-3 sm:p-5 lg:p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-4 sm:mb-5 px-1">
-              <span className="text-[11px] sm:text-[12px] font-semibold text-[#0F2D29] tracking-wide">
-                LAUNCH-V2.3 · 6 WEEKS
+          <div className="bg-white border border-[#0F2D29]/12 p-4 sm:p-6 lg:p-8 shadow-2xs">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 pb-3 border-b border-[#0F2D29]/10">
+              <span className="text-[12px] font-extrabold text-[#0F2D29] tracking-wider uppercase bg-[#0F2D29]/5 px-3 py-1 border border-[#0F2D29]/10">
+                SPRINT-14 RELEASE ROADMAP · 6 WEEKS
               </span>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:gap-4 text-[10px] sm:text-[11px] text-[#5E6D68]">
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="w-2.5 h-1.5 rounded-full bg-[#3FA787] shrink-0" />
-                  Critical path
+              <div className="flex flex-wrap items-center gap-4 text-[11px] font-bold text-[#5B6E68]">
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="w-3 h-3 bg-[#0F2D29] shrink-0" />
+                  Critical Path Dependency
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="w-2.5 h-1.5 rounded-full bg-[#B7CFC7] shrink-0" />
-                  Buffered
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="w-3 h-3 bg-[#E98A57] shrink-0" />
+                  Sprint Milestone
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="w-3 h-3 bg-[#8FE3C4] shrink-0" />
+                  QA Audit
                 </div>
               </div>
             </div>
 
-            <div className="-mx-3 sm:mx-0 px-3 sm:px-0 overflow-x-auto overscroll-x-contain">
-              <div className="min-w-[400px] sm:min-w-[520px] lg:min-w-0">
+            <div className="overflow-x-auto">
+              <div className="min-w-[600px] space-y-2">
                 {GANTT_ROWS.map((row) => {
                   const isActive = active === row.label;
                   return (
@@ -46,26 +50,28 @@ export const GanttChart = () => {
                       onMouseEnter={() => setActive(row.label)}
                       onMouseLeave={() => setActive(null)}
                       onClick={() => toggleActive(row.label)}
-                      className="w-full flex items-center gap-2 sm:gap-3 py-1.5 sm:py-2 text-left rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3FA787]"
+                      className={`w-full flex items-center gap-3 py-2.5 px-2 text-left transition border ${
+                        isActive ? "bg-[#0F2D29]/5 border-[#0F2D29]" : "border-transparent hover:bg-[#0F2D29]/3"
+                      }`}
                     >
-                      <div className="w-[96px] sm:w-[150px] md:w-[180px] shrink-0">
-                        <div className="text-[11px] sm:text-[12.5px] font-medium text-[#0F2D29] truncate">
+                      <div className="w-[180px] sm:w-[220px] shrink-0">
+                        <div className="text-[12.5px] font-bold text-[#0F2D29] truncate">
                           {row.label}
                         </div>
-                        <div className="text-[9px] sm:text-[10px] text-[#5E6D68] truncate">
-                          {row.owner}
+                        <div className="text-[10.5px] font-medium text-[#5B6E68] truncate">
+                          Assignee: {row.owner}
                         </div>
                       </div>
-                      <div className="relative flex-1 h-5 sm:h-6 bg-[#F2EADA] rounded-md overflow-hidden">
+                      <div className="relative flex-1 h-7 bg-[#0F2D29]/5 overflow-hidden">
                         <div
-                          className={`absolute top-0.5 bottom-0.5 rounded-md transition-transform duration-200 ${
-                            row.critical ? "shadow-[0_0_0_1px_rgba(63,167,135,0.4)]" : ""
+                          className={`absolute top-1 bottom-1 transition-all duration-200 ${
+                            row.critical ? "ring-1 ring-[#0F2D29]" : ""
                           }`}
                           style={{
                             left: `${row.start}%`,
                             width: `${row.width}%`,
-                            background: row.critical ? row.color : `${row.color}55`,
-                            transform: isActive ? "scaleY(1.15)" : "scaleY(1)",
+                            background: row.color,
+                            transform: isActive ? "scaleY(1.1)" : "scaleY(1)",
                           }}
                         />
                       </div>

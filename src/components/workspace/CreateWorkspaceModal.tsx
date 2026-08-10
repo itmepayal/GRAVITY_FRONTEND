@@ -79,23 +79,23 @@ export const CreateWorkspaceModal = ({
       onClick={() => !isSubmitting && onClose()}
     >
       <div
-        className="w-full max-w-lg overflow-hidden rounded-2xl border border-[#0F2D29]/10 bg-white shadow-2xl transition-all"
+        className="w-full max-w-lg overflow-hidden border border-[#0F2D29] bg-white shadow-2xl transition-all"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="border-b border-[#0F2D29]/8 bg-linear-to-r from-[#8FE3C4]/15 via-transparent to-[#3FA9F5]/10 px-6 py-4">
+        <div className="bg-[#0F2D29] px-6 py-5 text-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div
-                className="flex h-11 w-11 items-center justify-center rounded-2xl text-[20px] font-bold shadow-sm ring-2 ring-white/90"
+                className="flex h-10 w-10 items-center justify-center text-[18px] font-bold shadow-sm"
                 style={{ backgroundColor: color }}
               >
                 {icon || (name.trim() ? initials(name.trim()) : "💼")}
               </div>
               <div>
-                <h2 className="text-[16px] font-bold text-[#0F2D29]">
+                <h2 className="text-[17px] font-bold font-['Goldman',sans-serif] text-white">
                   Create New Workspace
                 </h2>
-                <p className="text-[12px] text-[#5B6E68]">
+                <p className="text-[12px] text-[#B7CFC7]">
                   Set up workspace details & privacy settings.
                 </p>
               </div>
@@ -104,7 +104,7 @@ export const CreateWorkspaceModal = ({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-[#8FA69E] transition hover:bg-[#0F2D29]/5 hover:text-[#0F2D29] disabled:opacity-40"
+              className="flex h-8 w-8 items-center justify-center text-[#B7CFC7] transition hover:bg-white/10 hover:text-white disabled:opacity-40"
             >
               <X size={16} />
             </button>

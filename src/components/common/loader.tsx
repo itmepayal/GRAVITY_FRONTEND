@@ -55,7 +55,7 @@ export const Loader = ({ progress, label = "Loading your schedule" }: LoaderProp
       <div className="relative flex flex-col items-center gap-7 px-6 text-center">
         <GravityMarkLoader step={step} />
         <div className="flex flex-col items-center gap-2">
-          <span className="text-white text-[19px] sm:text-[21px] font-semibold font-['Poppins',sans-serif] tracking-[-0.01em] [text-shadow:0_0_24px_#8FE3C422]">
+          <span className="text-white text-[19px] sm:text-[21px] font-bold font-['Goldman',sans-serif] tracking-tight [text-shadow:0_0_24px_#8FE3C422]">
             Gravity
           </span>
           <span className="text-[12px] sm:text-[12.5px] flex items-center text-[#B7CFC7] font-['JetBrains_Mono','Poppins',monospace] font-medium tracking-[0.02em]">

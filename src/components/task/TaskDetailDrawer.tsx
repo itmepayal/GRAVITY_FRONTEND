@@ -136,7 +136,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                   Column: {task.column}
                 </span>
               </div>
-              <h2 className="mt-3 text-[20px] font-extrabold leading-snug tracking-[-0.01em] text-[#0F2D29]">
+              <h2 className="mt-3 text-[20px] font-bold font-['Goldman',sans-serif] leading-snug tracking-[-0.01em] text-[#0F2D29]">
                 {task.title}
               </h2>
             </div>

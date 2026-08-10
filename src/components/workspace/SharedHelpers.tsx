@@ -29,42 +29,53 @@ export const Field = ({
 
 export const PanelToolbar = ({
   search,
+  searchQuery,
   onSearchChange,
   placeholder,
+  searchPlaceholder,
   count,
   total,
   action,
+  children,
 }: {
-  search: string;
+  search?: string;
+  searchQuery?: string;
   onSearchChange: (v: string) => void;
-  placeholder: string;
-  count: number;
-  total: number;
+  placeholder?: string;
+  searchPlaceholder?: string;
+  count?: number;
+  total?: number;
   action?: ReactNode;
-}) => (
-  <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-    <div className="relative min-w-0 flex-1 sm:max-w-xs">
-      <Search
-        size={14}
-        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#8FA69E]"
-      />
-      <input
-        value={search}
-        onChange={(e) => onSearchChange(e.target.value)}
-        placeholder={placeholder}
-        className={`${inputClass} py-2 pl-9`}
-      />
+  children?: ReactNode;
+}) => {
+  const searchValue = search ?? searchQuery ?? "";
+  const placeholderText = placeholder ?? searchPlaceholder ?? "Filter items...";
+  return (
+    <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="relative min-w-0 flex-1 sm:max-w-xs">
+        <Search
+          size={14}
+          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#8FA69E]"
+        />
+        <input
+          value={searchValue}
+          onChange={(e) => onSearchChange(e.target.value)}
+          placeholder={placeholderText}
+          className={`${inputClass} py-2 pl-9`}
+        />
+      </div>
+      <div className="flex items-center justify-between gap-3 sm:justify-end">
+        {searchValue && typeof count === "number" && typeof total === "number" && (
+          <span className="text-[11.5px] text-[#8FA69E]">
+            Showing {count} of {total}
+          </span>
+        )}
+        {children}
+        {action}
+      </div>
     </div>
-    <div className="flex items-center justify-between gap-3 sm:justify-end">
-      {search && (
-        <span className="text-[11.5px] text-[#8FA69E]">
-          Showing {count} of {total}
-        </span>
-      )}
-      {action}
-    </div>
-  </div>
-);
+  );
+};
 
 export const ViewToggle = ({
   view,
@@ -76,20 +87,22 @@ export const ViewToggle = ({
   <div className="flex rounded-xl border border-[#0F2D29]/10 bg-white p-0.5 shadow-2xs">
     <button
       onClick={() => onChange("grid")}
-      className={`rounded-lg p-1.5 transition ${view === "grid"
+      className={`rounded-lg p-1.5 transition ${
+        view === "grid"
           ? "bg-[#0F2D29] text-white shadow-2xs"
           : "text-[#8FA69E] hover:text-[#0F2D29]"
-        }`}
+      }`}
       aria-label="Grid view"
     >
       <LayoutGrid size={14} />
     </button>
     <button
       onClick={() => onChange("list")}
-      className={`rounded-lg p-1.5 transition ${view === "list"
+      className={`rounded-lg p-1.5 transition ${
+        view === "list"
           ? "bg-[#0F2D29] text-white shadow-2xs"
           : "text-[#8FA69E] hover:text-[#0F2D29]"
-        }`}
+      }`}
       aria-label="List view"
     >
       <List size={14} />
@@ -97,33 +110,35 @@ export const ViewToggle = ({
   </div>
 );
 
-export const NoResults = ({ query }: { query: string }) => (
+export const NoResults = ({ query = "" }: { query?: string }) => (
   <div className="rounded-xl border border-dashed border-[#0F2D29]/12 px-6 py-10 text-center">
     <Search size={22} className="mx-auto mb-2 text-[#8FA69E]/50" />
     <p className="text-[13px] font-semibold text-[#5B6E68]">
-      No matches found for &ldquo;{query}&rdquo;
+      {query ? `No matches found for "${query}"` : "No matches found"}
     </p>
   </div>
 );
 
 export const PanelEmpty = ({
-  icon: Icon,
+  icon: Icon = FolderKanban,
   title,
   hint,
+  description,
   action,
 }: {
-  icon: typeof FolderKanban;
+  icon?: typeof FolderKanban;
   title: string;
-  hint: string;
+  hint?: string;
+  description?: string;
   action?: ReactNode;
 }) => (
-  <div className="rounded-xl border border-dashed border-[#0F2D29]/15 bg-[radial-gradient(circle_at_50%_0%,rgba(143,227,196,0.1),transparent_70%)] px-6 py-12 text-center">
-    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0F2D29]/5 ring-1 ring-[#0F2D29]/10">
-      <Icon size={22} className="text-[#0F8A65]" />
+  <div className="border border-dashed border-[#0F2D29]/20 bg-[#0F2D29]/3 px-6 py-12 text-center">
+    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center bg-[#0F2D29]/10 text-[#0F2D29]">
+      <Icon size={22} />
     </div>
-    <p className="text-[14.5px] font-bold text-[#0F2D29]">{title}</p>
-    <p className="mx-auto mt-1.5 max-w-sm text-[12.5px] leading-relaxed text-[#8FA69E]">
-      {hint}
+    <p className="text-[14.5px] font-bold font-['Goldman',sans-serif] text-[#0F2D29]">{title}</p>
+    <p className="mx-auto mt-1.5 max-w-sm text-[12.5px] font-medium leading-relaxed text-[#5B6E68]">
+      {description || hint}
     </p>
     {action}
   </div>

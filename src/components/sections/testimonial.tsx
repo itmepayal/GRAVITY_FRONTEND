@@ -64,9 +64,12 @@ export const Testimonials = () => {
   };
 
   return (
-    <section id="resources" className="bg-[#FBF3E6]">
-        <div className="max-w-[1400px] mx-auto py-6 sm:py-8 md:py-9 lg:py-10 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-20 2xl:px-40">
-        <Badge eyebrow="Our customers" title="Teams that stopped guessing at the ship date" />
+    <section id="resources" className="bg-[#F8F7F3] border-b border-[#0F2D29]/10">
+      <div className="max-w-[1400px] mx-auto py-12 sm:py-16 lg:py-20 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16">
+        <Badge
+          eyebrow="Trusted by Engineering Leaders"
+          title="Teams that stopped guessing ship dates with Gravity TMS"
+        />
         <Reveal delay={100}>
           <div
             className="relative"
@@ -74,7 +77,7 @@ export const Testimonials = () => {
             onMouseLeave={() => setPaused(false)}
           >
             <div
-              className="overflow-hidden rounded-xl sm:rounded-2xl touch-pan-y"
+              className="overflow-hidden touch-pan-y"
               onPointerDown={onPointerDown}
               onPointerMove={onPointerMove}
               onPointerUp={endDrag}
@@ -90,35 +93,39 @@ export const Testimonials = () => {
                   return (
                     <div
                       key={t.name}
-                      className="shrink-0 px-1.5 sm:px-2"
+                      className="shrink-0 px-2.5"
                       style={{ width: `${slideWidth}%` }}
                     >
                       <div
-                        className={`rounded-xl sm:rounded-2xl p-5 sm:p-6 flex flex-col h-full min-h-[220px] sm:min-h-[240px] transition-colors duration-300 ${
-                          isDark ? "bg-[#0F2D29]" : "bg-white border border-[#0F2D29]/8"
+                        className={`p-6 sm:p-8 flex flex-col justify-between h-full border transition-colors duration-300 ${
+                          isDark
+                            ? "bg-[#0F2D29] text-white border-[#0F2D29] shadow-xl"
+                            : "bg-white text-[#0F2D29] border-[#0F2D29]/15"
                         }`}
                       >
-                        <span
-                          className={`text-[28px] sm:text-[32px] leading-none mb-2 font-bold ${
-                            isDark ? "text-[#8FE3C4]/50" : "text-[#3FA787]/30"
-                          }`}
-                        >
-                          "
-                        </span>
                         <p
-                          className={`text-[13.5px] sm:text-[14px] leading-relaxed mb-6 flex-1 ${
-                            isDark ? "text-white" : "text-[#0F2D29]"
+                          className={`text-[14px] sm:text-[15px] leading-relaxed font-medium mb-6 ${
+                            isDark ? "text-[#B7CFC7]" : "text-[#5B6E68]"
                           }`}
                         >
-                          {t.quote}
+                          "{t.quote}"
                         </p>
+
                         <div>
-                          <div className={`text-[13px] font-semibold ${isDark ? "text-white" : "text-[#0F2D29]"}`}>
+                          <p
+                            className={`text-[15px] font-extrabold ${
+                              isDark ? "text-white" : "text-[#0F2D29]"
+                            }`}
+                          >
                             {t.name}
-                          </div>
-                          <div className={`text-[11px] ${isDark ? "text-[#B7CFC7]" : "text-[#5E6D68]"}`}>
+                          </p>
+                          <p
+                            className={`text-[12px] font-semibold mt-0.5 ${
+                              isDark ? "text-[#8FE3C4]" : "text-[#5B6E68]"
+                            }`}
+                          >
                             {t.role}
-                          </div>
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -127,25 +134,6 @@ export const Testimonials = () => {
               </div>
             </div>
           </div>
-          {maxIndex > 0 && (
-            <div className="flex items-center justify-center gap-2 mt-6">
-              {Array.from({ length: maxIndex + 1 }).map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => go(i)}
-                  aria-label={`Go to slide ${i + 1}`}
-                  aria-current={i === index}
-                  className="p-1.5 -m-1.5"
-                >
-                  <span
-                    className={`block transition-all duration-200 ${
-                      i === index ? "w-2 h-2 bg-[#0f2d29]" : "w-2 h-2 bg-[#0F2D29]/15"
-                    }`}
-                  />
-                </button>
-              ))}
-            </div>
-          )}
         </Reveal>
       </div>
     </section>

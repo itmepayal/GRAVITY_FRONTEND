@@ -24,17 +24,17 @@ export const Sidebar = () => {
       {/* Sidebar Header: Brand Logo & Title */}
       <div className="flex items-center justify-between px-5 h-16 shrink-0 border-b border-white/10 bg-[#081E1B]">
         <div className="flex items-center gap-3">
-          <GravityMark size={30} className="shrink-0" />
+          <GravityMark size={32} className="shrink-0" />
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">
-              <span className="text-white text-[16px] font-bold tracking-tight">
+              <span className="text-white text-[18px] font-bold font-['Goldman',sans-serif] tracking-wide leading-tight">
                 Gravity
               </span>
-              <span className="bg-[#8FE3C4]/15 text-[#8FE3C4] border border-[#8FE3C4]/30 px-1.5 py-0.2 text-[9.5px] font-extrabold uppercase tracking-widest">
+              <span className="bg-[#8FE3C4]/15 text-[#8FE3C4] border border-[#8FE3C4]/30 px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-widest">
                 TMS
               </span>
             </div>
-            <span className="text-[10px] font-medium text-[#8FA69E]">
+            <span className="text-[10.5px] font-medium text-[#8FA69E]">
               Task Management Suite
             </span>
           </div>
@@ -49,7 +49,7 @@ export const Sidebar = () => {
             className="flex flex-col gap-1"
           >
             {section.label && (
-              <p className="px-3 pt-1 pb-1 text-[10px] font-bold tracking-[0.1em] uppercase text-[#6F8A82]">
+              <p className="px-3 pt-1.5 pb-1 text-[11px] font-bold font-['Goldman',sans-serif] tracking-[0.1em] uppercase text-[#6F8A82]">
                 {section.label}
               </p>
             )}
@@ -60,7 +60,7 @@ export const Sidebar = () => {
                 end={path === "/dashboard"}
                 className={({ isActive }) =>
                   [
-                    "group relative flex items-center justify-between px-3 py-2 text-[13px] font-medium transition-all duration-150",
+                    "group relative flex items-center justify-between px-3.5 py-2.5 text-[14px] font-medium leading-snug transition-all duration-150",
                     "focus-visible:outline-none",
                     isActive
                       ? "bg-white/12 text-white font-bold border-l-2 border-l-[#8FE3C4]"
@@ -80,10 +80,10 @@ export const Sidebar = () => {
                             : "text-[#8FA69E] group-hover:text-white"
                         }`}
                       />
-                      <span className="truncate">{label}</span>
+                      <span className="truncate font-['Goldman',sans-serif]">{label}</span>
                     </div>
                     {badge && (
-                      <span className="shrink-0 bg-[#8FE3C4] text-[#0F2D29] font-bold text-[9.5px] uppercase tracking-wider px-1.5 py-0.5">
+                      <span className="shrink-0 bg-[#8FE3C4] text-[#0F2D29] font-bold font-['Goldman',sans-serif] text-[9.5px] uppercase tracking-wider px-1.5 py-0.5">
                         {badge}
                       </span>
                     )}
@@ -113,7 +113,7 @@ export const Sidebar = () => {
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <p className="text-white text-[13px] font-bold truncate leading-tight">
+            <p className="text-white text-[13px] font-bold font-['Goldman',sans-serif] truncate leading-tight">
               {user?.name ?? "Developer"}
             </p>
             <p className="text-[#8FA69E] text-[11px] truncate">

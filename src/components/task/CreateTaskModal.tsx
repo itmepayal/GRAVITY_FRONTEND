@@ -145,24 +145,24 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
       aria-modal="true"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="flex max-h-[92vh] w-full max-w-xl flex-col overflow-hidden border border-[#0F2D29]/15 bg-white shadow-2xl">
+      <div className="flex max-h-[92vh] w-full max-w-xl flex-col overflow-hidden border border-[#0F2D29] bg-white shadow-2xl">
         {/* Modal Header */}
-        <div className="flex items-start justify-between border-b border-[#0F2D29]/10 px-6 py-5 sm:px-7">
+        <div className="flex items-start justify-between bg-[#0F2D29] p-6 text-white sm:p-7">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center bg-[#0F2D29] text-white">
-              <Plus size={22} strokeWidth={2.5} />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center border border-[#8FE3C4]/30 bg-[#8FE3C4]/20 text-[#8FE3C4]">
+              <Plus size={20} strokeWidth={2.5} />
             </div>
             <div>
-              <h2 className="text-[18px] font-bold text-[#0F2D29]">Create New Task</h2>
-              <p className="text-[12px] font-medium text-[#5B6E68]">
-                Add task to {activeBoard?.name || "board"}
+              <h2 className="text-[18px] font-bold font-['Goldman',sans-serif] text-white">Create New Task</h2>
+              <p className="text-[12px] font-medium text-[#B7CFC7]">
+                Add task to <span className="font-semibold text-white">{activeBoard?.name || "board"}</span>
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
             aria-label="Close"
-            className="flex h-8 w-8 items-center justify-center text-[#8FA69E] hover:bg-[#0F2D29]/5 hover:text-[#0F2D29]"
+            className="text-[#B7CFC7] hover:text-white transition"
           >
             <X size={18} />
           </button>

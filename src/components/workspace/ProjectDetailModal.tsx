@@ -13,11 +13,11 @@ import { useGetProjectById } from "@/hooks/queries/project/use-get-project-by-id
 import { useUpdateProject } from "@/hooks/mutations/project/use-update-project";
 
 interface ProjectDetailModalProps {
-  workspaceId: string;
+  workspaceId?: string;
   project: Project;
-  canManage: boolean;
+  canManage?: boolean;
   onClose: () => void;
-  onUpdated: (patch: Partial<Project>) => void;
+  onUpdated?: (patch: Partial<Project>) => void;
 }
 
 const formatRelativeTime = (iso?: string) => {
@@ -33,9 +33,9 @@ const formatRelativeTime = (iso?: string) => {
 };
 
 export const ProjectDetailModal = ({
-  workspaceId,
+  workspaceId = "",
   project,
-  canManage,
+  canManage = false,
   onClose,
   onUpdated,
 }: ProjectDetailModalProps) => {

@@ -39,17 +39,9 @@ interface WorkspaceDetailProps {
   onDeleted: () => void;
   onAddMember: (memberData: { userId: string; role: string }) => void;
   onRemoveMember: (memberId: string, memberLabel: string) => void;
-  onUpdateMemberRole: (
-    memberId: string,
-    newRole: string,
-    memberLabel: string,
-  ) => void;
+  onUpdateMemberRole: (memberId: string, newRole: string, memberLabel: string) => void;
   isUpdatingMemberRole?: boolean;
-  addActivity: (
-    action: string,
-    target: string,
-    iconType: ActivityItem["iconType"],
-  ) => void;
+  addActivity: (action: string, target: string, iconType: ActivityItem["iconType"]) => void;
   users: { id: string; name: string; email: string; avatar: string | null }[];
   isLoadingUsers?: boolean;
   addToast: (type: "success" | "info" | "warning", msg: string) => void;
@@ -124,50 +116,49 @@ export const WorkspaceDetail = ({
     icon: typeof FolderKanban;
     count?: number;
   }[] = [
-    {
-      id: "projects",
-      label: "Projects",
-      icon: FolderKanban,
-      count: workspace.projects.length,
-    },
-    {
-      id: "members",
-      label: "Members",
-      icon: Users,
-      count: workspace.members.length,
-    },
-    {
-      id: "roles",
-      label: "Roles & Permissions",
-      icon: Shield,
-      count: workspace.roles.length,
-    },
-    {
-      id: "activity",
-      label: "Activity Log",
-      icon: Activity,
-      count: workspace.activityLog?.length || 0,
-    },
-  ];
+      {
+        id: "projects",
+        label: "Projects",
+        icon: FolderKanban,
+        count: workspace.projects.length,
+      },
+      {
+        id: "members",
+        label: "Members",
+        icon: Users,
+        count: workspace.members.length,
+      },
+      {
+        id: "roles",
+        label: "Roles & Permissions",
+        icon: Shield,
+        count: workspace.roles.length,
+      },
+      {
+        id: "activity",
+        label: "Activity Log",
+        icon: Activity,
+        count: workspace.activityLog?.length || 0,
+      },
+    ];
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-[#0F2D29]/10 bg-white shadow-[0_4px_24px_rgba(15,45,41,0.07)] transition-shadow">
-      <div className="relative overflow-hidden border-b border-[#0F2D29]/8 bg-white">
+    <div className="overflow-hidden border border-[#0F2D29]/12 bg-white shadow-2xs transition-shadow">
+      <div className="relative overflow-hidden border-b border-[#0F2D29]/10 bg-white">
         <div
           className="absolute inset-0 opacity-[0.08]"
           style={{
             background: `linear-gradient(135deg, ${workspace.color || "#6366F1"} 0%, #0F2D29 100%)`,
           }}
         />
-        <div className="absolute -top-16 -right-16 h-56 w-56 rounded-full bg-[#8FE3C4]/15 blur-3xl" />
-        <div className="absolute -bottom-20 left-10 h-40 w-40 rounded-full bg-[#3FA9F5]/10 blur-3xl" />
+        <div className="absolute -top-16 -right-16 h-56 w-56 bg-[#8FE3C4]/15 blur-3xl" />
+        <div className="absolute -bottom-20 left-10 h-40 w-40 bg-[#3FA9F5]/10 blur-3xl" />
 
         {(isRefreshing || isDeleting) && (
           <div className="absolute inset-x-0 top-0 h-0.5 overflow-hidden bg-[#0F2D29]/5">
             <div
-              className={`h-full w-1/3 animate-[loading-bar_1.1s_ease-in-out_infinite] ${
-                isDeleting ? "bg-red-500" : "bg-[#0F8A65]"
-              }`}
+              className={`h-full w-1/3 animate-[loading-bar_1.1s_ease-in-out_infinite] ${isDeleting ? "bg-red-500" : "bg-[#0F8A65]"
+                }`}
             />
           </div>
         )}
@@ -176,7 +167,7 @@ export const WorkspaceDetail = ({
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex min-w-0 flex-1 items-start gap-4">
               <div
-                className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl text-[24px] font-extrabold text-[#0F2D29] shadow-md ring-4 ring-white/90 transition-transform duration-200 hover:scale-105"
+                className="flex h-16 w-16 shrink-0 items-center justify-center text-[24px] font-extrabold text-[#0F2D29] shadow-sm border border-[#0F2D29]/20"
                 style={{ backgroundColor: workspace.color || "#6366F1" }}
               >
                 {workspace.icon || initials(workspace.name)}
@@ -184,7 +175,7 @@ export const WorkspaceDetail = ({
 
               <div className="min-w-0 flex-1">
                 <h2
-                  className="max-w-full truncate text-[22px] font-bold tracking-tight text-[#0F2D29] sm:text-[24px]"
+                  className="max-w-full truncate text-[22px] font-bold tracking-tight text-[#0F2D29] font-['Goldman',sans-serif] sm:text-[24px]"
                   title={workspace.name}
                 >
                   {workspace.name}
@@ -212,19 +203,17 @@ export const WorkspaceDetail = ({
                   )}
 
                   <span
-                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ring-black/5 ${
-                      ROLE_META[workspace.role].badge
-                    }`}
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ring-black/5 ${ROLE_META[workspace.role].badge
+                      }`}
                   >
                     <RoleIcon size={11} />
                     {ROLE_META[workspace.role].label}
                   </span>
                   <span
-                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${
-                      workspace.isPrivate
-                        ? "border-amber-200 bg-amber-50 text-amber-700"
-                        : "border-emerald-200 bg-emerald-50 text-emerald-700"
-                    }`}
+                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${workspace.isPrivate
+                      ? "border-amber-200 bg-amber-50 text-amber-700"
+                      : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                      }`}
                   >
                     {workspace.isPrivate ? (
                       <Lock size={11} />
@@ -314,28 +303,26 @@ export const WorkspaceDetail = ({
         </div>
       </div>
 
-      <div className="border-b border-[#0F2D29]/8 bg-[#0F2D29]/2 px-6">
+      <div className="border-b border-[#0F2D29]/10 bg-[#0F2D29]/4 px-6">
         <div className="flex gap-1 overflow-x-auto py-2.5">
           {tabs.map(({ id, label, icon: Icon, count }) => (
             <button
               key={id}
               onClick={() => setTab(id)}
               aria-current={tab === id ? "page" : undefined}
-              className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-[13px] font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F2D29]/30 ${
-                tab === id
-                  ? "bg-[#0F2D29] text-white shadow-md"
-                  : "text-[#5B6E68] hover:bg-[#0F2D29]/6 hover:text-[#0F2D29]"
-              }`}
+              className={`inline-flex shrink-0 items-center gap-2 px-4 py-2 text-[12.5px] font-bold font-['Goldman',sans-serif] transition-all duration-150 ${tab === id
+                ? "bg-[#0F2D29] text-white shadow-2xs"
+                : "text-[#5B6E68] hover:bg-[#0F2D29]/10 hover:text-[#0F2D29]"
+                }`}
             >
               <Icon size={15} />
               <span>{label}</span>
               {typeof count === "number" && (
                 <span
-                  className={`min-w-4.5 rounded-full px-1.5 py-0.5 text-center text-[10.5px] font-bold tabular-nums ${
-                    tab === id
-                      ? "bg-white/20 text-white"
-                      : "bg-[#0F2D29]/8 text-[#5B6E68]"
-                  }`}
+                  className={`min-w-4.5 px-1.5 py-0.5 text-center text-[10.5px] font-bold tabular-nums ${tab === id
+                    ? "bg-white/20 text-white"
+                    : "bg-[#0F2D29]/10 text-[#0F2D29]"
+                    }`}
                 >
                   {count}
                 </span>
@@ -398,6 +385,8 @@ export const WorkspaceDetail = ({
 
       {selectedProject && (
         <ProjectDetailModal
+          workspaceId={workspace._id}
+          canManage={canManage}
           project={selectedProject}
           onClose={() => setSelectedProject(null)}
         />
