@@ -57,6 +57,5 @@ export const getAllUsers = async (): Promise<User[]> => {
     message: string;
     data: User[];
   }>("/users");
-  console.log(response);
   return response.data.data;
 };

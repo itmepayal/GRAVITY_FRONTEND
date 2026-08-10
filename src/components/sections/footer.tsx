@@ -1,6 +1,6 @@
 import { ArrowUp } from "lucide-react";
 import { scrollToId } from "@/utills/scroll-to-id";
-import GravityMark from "@/components/common/logo";
+import { GravityMark } from "@/components/common/logo";
 import { NAV_LINKS } from "@/constants";
 
 export const Footer = () => {

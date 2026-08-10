@@ -1,50 +1,75 @@
 import type { GravityMarkProps } from "@/types";
 
-export const GravityMark = ({ size = 22, className = "" }: GravityMarkProps) => (
+export const GravityMark = ({ size = 28, className = "" }: GravityMarkProps) => (
   <svg
     width={size}
     height={size}
-    viewBox="0 0 32 32"
+    viewBox="0 0 40 40"
     fill="none"
+    xmlns="http://www.w3.org/2000/svg"
     aria-hidden="true"
     className={`shrink-0 ${className}`}
   >
-    <rect width="32" height="32" rx="8" fill="#0F2D29" />
-    <path
-      d="M7 22.5 L13.5 14.5 L19 18 L25 8.5"
+    {/* Dark Emerald Container Background */}
+    <rect width="40" height="40" fill="#0F2D29" />
+    <rect
+      x="0.5"
+      y="0.5"
+      width="39"
+      height="39"
       stroke="#8FE3C4"
-      strokeWidth="2.25"
+      strokeOpacity="0.25"
+      strokeWidth="1"
+    />
+
+    {/* Orbital Gravity Ring Accent */}
+    <circle
+      cx="20"
+      cy="20"
+      r="13"
+      stroke="#8FE3C4"
+      strokeOpacity="0.2"
+      strokeWidth="1.5"
+      strokeDasharray="4 3"
+    />
+
+    {/* Dynamic 'G' Ascending Anti-Gravity Curve */}
+    <path
+      d="M11 25.5C11 18.5 15.5 12 22.5 12C26 12 28.5 13.5 30 15.5"
+      stroke="url(#gravity-grad-1)"
+      strokeWidth="2.75"
+      strokeLinecap="round"
+    />
+    <path
+      d="M30 15.5L30 22C30 25.5 27 28 23.5 28C19 28 17 25 17 22H27"
+      stroke="#8FE3C4"
+      strokeWidth="2.75"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
-    <circle
-      cx="7"
-      cy="22.5"
-      r="1.9"
-      fill="#0F2D29"
-      stroke="#8FE3C4"
-      strokeWidth="1.6"
-    />
-    <circle
-      cx="13.5"
-      cy="14.5"
-      r="1.9"
-      fill="#0F2D29"
-      stroke="#8FE3C4"
-      strokeWidth="1.6"
-    />
-    <circle
-      cx="19"
-      cy="18"
-      r="1.9"
-      fill="#0F2D29"
-      stroke="#8FE3C4"
-      strokeWidth="1.6"
-    />
-    <circle cx="25" cy="8.5" r="2.6" fill="#8FE3C4" />
+
+    {/* Ascending Nodes */}
+    <circle cx="11" cy="25.5" r="2" fill="#8FE3C4" />
+    <circle cx="22.5" cy="12" r="2" fill="#8FE3C4" />
+    <circle cx="30" cy="15.5" r="2.5" fill="#FFFFFF" stroke="#8FE3C4" strokeWidth="1.5" />
+    <circle cx="27" cy="22" r="2" fill="#8FE3C4" />
+
+    {/* Gradient Definitions */}
+    <defs>
+      <linearGradient
+        id="gravity-grad-1"
+        x1="11"
+        y1="25.5"
+        x2="30"
+        y2="15.5"
+        gradientUnits="userSpaceOnUse"
+      >
+        <stop stopColor="#8FE3C4" stopOpacity="0.4" />
+        <stop offset="1" stopColor="#8FE3C4" />
+      </linearGradient>
+    </defs>
   </svg>
 );
-
 
 export const GravityMarkLoader = ({ step }: { step: number }) => {
   const nodes = [
@@ -56,15 +81,14 @@ export const GravityMarkLoader = ({ step }: { step: number }) => {
   const progress = Math.min(step, 4) / 4;
   return (
     <div className="relative w-[76px] h-[76px] flex items-center justify-center">
-      <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle,_#8FE3C433_0%,_transparent_68%)] animate-[mark-breathe_2.6s_ease-in-out_infinite]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle,_#8FE3C433_0%,_transparent_68%)] animate-[mark-breathe_2.6s_ease-in-out_infinite]" />
       <svg width="52" height="52" viewBox="0 0 28 28" fill="none" aria-hidden="true" className="relative">
-        <rect width="28" height="28" rx="7" className="fill-[#8FE3C4]" opacity={0.1} />
+        <rect width="28" height="28" className="fill-[#8FE3C4]" opacity={0.1} />
         <rect
           width="27"
           height="27"
           x="0.5"
           y="0.5"
-          rx="6.5"
           className="stroke-[#8FE3C4]"
           strokeOpacity={0.18}
           fill="none"
@@ -98,13 +122,12 @@ export const GravityMarkLoader = ({ step }: { step: number }) => {
             r={i === 3 ? 2.4 : 1.9}
             className={`transition-[fill,r] duration-300 ease-out ${
               step > i ? "fill-[#8FE3C4]" : "fill-[#B7CFC7]/25"
-            } ${step > i && i === 3 ? "drop-shadow-[0_0_3px_#8FE3C4]" : ""}`}
+            }`}
           />
         ))}
       </svg>
     </div>
   );
-}
+};
 
 export default GravityMark;
-
