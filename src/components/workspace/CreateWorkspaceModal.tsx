@@ -51,11 +51,12 @@ export const CreateWorkspaceModal = ({
       projects: [],
       members: [
         {
-          userId: "u-1",
-          name: "Payal Yadav",
-          email: "itme.payalyadav@gmail.com",
+          user: {
+            id: "u-1",
+            name: "Payal Yadav",
+            email: "itme.payalyadav@gmail.com",
+          },
           role: "owner",
-          status: "active",
           joinedAt: new Date().toISOString().slice(0, 10),
         },
       ],

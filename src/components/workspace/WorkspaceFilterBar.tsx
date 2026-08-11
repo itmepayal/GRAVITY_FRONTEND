@@ -1,5 +1,13 @@
 import React from "react";
-import { Search, Plus, LayoutGrid, Table, LayoutDashboard, Target, X } from "lucide-react";
+import {
+  Search,
+  Plus,
+  LayoutGrid,
+  Table,
+  LayoutDashboard,
+  Target,
+  X,
+} from "lucide-react";
 
 export interface WorkspaceFilterBarProps {
   searchQuery: string;
@@ -19,7 +27,6 @@ export const WorkspaceFilterBar: React.FC<WorkspaceFilterBarProps> = ({
   onSectionChange,
   viewMode,
   onViewModeChange,
-  totalWorkspaces,
   onOpenCreateModal,
 }) => {
   return (
@@ -27,7 +34,7 @@ export const WorkspaceFilterBar: React.FC<WorkspaceFilterBarProps> = ({
       {/* Search Input & Section Toggle */}
       <div className="flex flex-1 flex-wrap items-center gap-3">
         {/* Search */}
-        <div className="relative min-w-[240px] flex-1 sm:max-w-xs">
+        <div className="relative min-w-60 flex-1 sm:max-w-xs">
           <Search
             size={15}
             className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#8FA69E]"

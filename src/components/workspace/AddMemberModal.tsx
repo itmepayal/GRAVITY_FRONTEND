@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect, type FormEvent } from "react";
-import { UserPlus, ChevronDown, Search, Check, Loader2, X } from "lucide-react";
+import { useState, useRef, useEffect, type FormEvent } from "react";
+import { UserPlus, ChevronDown, Search, Loader2, X } from "lucide-react";
 import { type Role, ROLE_META, initials, inputClass } from "./types";
 
 export interface UserOption {
@@ -67,7 +67,7 @@ export const UserSelect = ({
   const filtered = users.filter(
     (u) =>
       u.name.toLowerCase().includes(query.toLowerCase()) ||
-      u.email.toLowerCase().includes(query.toLowerCase())
+      u.email.toLowerCase().includes(query.toLowerCase()),
   );
 
   useEffect(() => {
@@ -89,9 +89,20 @@ export const UserSelect = ({
         className={`${inputClass} flex w-full items-center justify-between gap-2 text-left font-semibold`}
       >
         <span className="flex min-w-0 items-center gap-2">
-          {selected && <Avatar name={selected.name} src={selected.avatar} size={5} textSize="9px" />}
-          <span className={`truncate text-[13px] ${selected ? "font-semibold text-[#0F2D29]" : "text-[#8FA69E]"}`}>
-            {selected ? `${selected.name} (${selected.email})` : "Select a user…"}
+          {selected && (
+            <Avatar
+              name={selected.name}
+              src={selected.avatar}
+              size={5}
+              textSize="9px"
+            />
+          )}
+          <span
+            className={`truncate text-[13px] ${selected ? "font-semibold text-[#0F2D29]" : "text-[#8FA69E]"}`}
+          >
+            {selected
+              ? `${selected.name} (${selected.email})`
+              : "Select a user…"}
           </span>
         </span>
         <ChevronDown size={14} className="text-[#8FA69E]" />
@@ -121,8 +132,12 @@ export const UserSelect = ({
               >
                 <Avatar name={u.name} src={u.avatar} size={6} textSize="9px" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[12.5px] font-bold text-[#0F2D29] truncate">{u.name}</p>
-                  <p className="text-[11px] font-medium text-[#5B6E68] truncate">{u.email}</p>
+                  <p className="text-[12.5px] font-bold text-[#0F2D29] truncate">
+                    {u.name}
+                  </p>
+                  <p className="text-[11px] font-medium text-[#5B6E68] truncate">
+                    {u.email}
+                  </p>
                 </div>
               </button>
             ))}
@@ -165,30 +180,63 @@ export const AddMemberModal = ({
         <div className="bg-[#0F2D29] p-6 text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
             <UserPlus size={20} />
-            <h2 className="text-[17px] font-bold font-['Goldman',sans-serif]">Add Teammate</h2>
+            <h2 className="text-[17px] font-bold font-['Goldman',sans-serif]">
+              Add Teammate
+            </h2>
           </div>
-          <button onClick={onClose} className="text-[#B7CFC7] hover:text-white"><X size={18} /></button>
+          <button onClick={onClose} className="text-[#B7CFC7] hover:text-white">
+            <X size={18} />
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-[12px] font-bold text-[#0F2D29] font-['Goldman',sans-serif] uppercase mb-1">Select User</label>
-            <UserSelect users={availableUsers} value={selectedUserId} onChange={setSelectedUserId} loading={isLoadingUsers} />
+            <label className="block text-[12px] font-bold text-[#0F2D29] font-['Goldman',sans-serif] uppercase mb-1">
+              Select User
+            </label>
+            <UserSelect
+              users={availableUsers}
+              value={selectedUserId}
+              onChange={setSelectedUserId}
+              loading={isLoadingUsers}
+            />
           </div>
 
           <div>
-            <label className="block text-[12px] font-bold text-[#0F2D29] font-['Goldman',sans-serif] uppercase mb-1">Assigned Role</label>
-            <select value={role} onChange={(e) => setRole(e.target.value as Role)} className={inputClass}>
+            <label className="block text-[12px] font-bold text-[#0F2D29] font-['Goldman',sans-serif] uppercase mb-1">
+              Assigned Role
+            </label>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value as Role)}
+              className={inputClass}
+            >
               {(["admin", "member", "viewer"] as Role[]).map((r) => (
-                <option key={r} value={r}>{ROLE_META[r].label}</option>
+                <option key={r} value={r}>
+                  {ROLE_META[r].label}
+                </option>
               ))}
             </select>
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-[#0F2D29]/10">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-[13px] font-bold text-[#5B6E68]">Cancel</button>
-            <button type="submit" disabled={!selectedUserId || isAdding} className="bg-[#0F2D29] text-white px-5 py-2 text-[13px] font-bold font-['Goldman',sans-serif]">
-              {isAdding ? <Loader2 size={16} className="animate-spin" /> : "Add Teammate"}
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-[13px] font-bold text-[#5B6E68]"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={!selectedUserId || isAdding}
+              className="bg-[#0F2D29] text-white px-5 py-2 text-[13px] font-bold font-['Goldman',sans-serif]"
+            >
+              {isAdding ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                "Add Teammate"
+              )}
             </button>
           </div>
         </form>

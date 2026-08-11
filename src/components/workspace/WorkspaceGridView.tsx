@@ -1,5 +1,12 @@
 import React from "react";
-import { Building2, Layers, Users, Lock, Globe, ArrowRight, Trash2, Pencil } from "lucide-react";
+import {
+  Building2,
+  Layers,
+  Users,
+  Lock,
+  Globe,
+  ArrowRight,
+} from "lucide-react";
 import type { Workspace } from "./types";
 import { initials } from "./types";
 
@@ -24,7 +31,8 @@ export const WorkspaceGridView: React.FC<WorkspaceGridViewProps> = ({
           No Workspaces Found
         </h3>
         <p className="mt-1 text-[13px] text-[#5B6E68] max-w-sm">
-          No workspaces match your active search query or filters. Create your first workspace to start managing projects.
+          No workspaces match your active search query or filters. Create your
+          first workspace to start managing projects.
         </p>
         <button
           onClick={onOpenCreate}

@@ -40,24 +40,36 @@ export const DashboardLayout = () => {
               </button>
             </div>
             <nav className="flex-1 flex flex-col gap-1 px-3">
-              {DASHBOARD_NAV.map(({ label, path, icon: Icon }) => (
-                <NavLink
-                  key={path}
-                  to={path}
-                  end={path === "/dashboard"}
-                  onClick={() => setMobileOpen(false)}
-                  className={({ isActive }) =>
-                    [
-                      "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-medium transition-colors",
-                      isActive
-                        ? "bg-white/8 text-white"
-                        : "text-[#B7CFC7] hover:text-white hover:bg-white/5",
-                    ].join(" ")
-                  }
+              {DASHBOARD_NAV.map((section) => (
+                <div
+                  key={section.label ?? "root"}
+                  className="flex flex-col gap-1"
                 >
-                  <Icon size={17} />
-                  {label}
-                </NavLink>
+                  {section.label && (
+                    <span className="px-3 pt-4 pb-1 text-[11px] font-semibold uppercase tracking-wide text-[#6E8C82]">
+                      {section.label}
+                    </span>
+                  )}
+                  {section.items.map(({ label, path, icon: Icon }) => (
+                    <NavLink
+                      key={path}
+                      to={path}
+                      end={path === "/dashboard"}
+                      onClick={() => setMobileOpen(false)}
+                      className={({ isActive }) =>
+                        [
+                          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-medium transition-colors",
+                          isActive
+                            ? "bg-white/8 text-white"
+                            : "text-[#B7CFC7] hover:text-white hover:bg-white/5",
+                        ].join(" ")
+                      }
+                    >
+                      <Icon size={17} />
+                      {label}
+                    </NavLink>
+                  ))}
+                </div>
               ))}
             </nav>
           </div>

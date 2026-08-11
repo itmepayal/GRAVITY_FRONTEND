@@ -118,7 +118,7 @@ export const ProjectDetailModal = ({
       },
       {
         onSuccess: () => {
-          onUpdated({ name: trimmedName, description: trimmedDescription });
+          onUpdated?.({ name: trimmedName, description: trimmedDescription });
           setIsEditing(false);
         },
       },

@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Target, Plus, Pencil, Trash2, Loader2, } from "lucide-react";
+import { Target, Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { useGetWorkspaceGoals } from "@/hooks/queries/goal/get-workspace-goals";
 import {
   type GoalOption,
@@ -32,7 +32,8 @@ export const WorkspaceGoalsPanel = ({
   const [editingGoal, setEditingGoal] = useState<GoalOption | null>(null);
   const [deletingGoal, setDeletingGoal] = useState<GoalOption | null>(null);
 
-  const { data: goalsResponse, isLoading: isLoadingGoals } = useGetWorkspaceGoals(workspaceId);
+  const { data: goalsResponse, isLoading: isLoadingGoals } =
+    useGetWorkspaceGoals(workspaceId);
 
   const goals: GoalOption[] = useMemo(() => {
     const res: any = goalsResponse;
@@ -61,12 +62,16 @@ export const WorkspaceGoalsPanel = ({
       {isLoadingGoals ? (
         <div className="flex items-center justify-center gap-2 py-12">
           <Loader2 size={20} className="animate-spin text-[#0F2D29]" />
-          <span className="text-[13px] font-semibold text-[#5B6E68]">Loading goals...</span>
+          <span className="text-[13px] font-semibold text-[#5B6E68]">
+            Loading goals...
+          </span>
         </div>
       ) : goals.length === 0 ? (
         <div className="flex flex-col items-center justify-center border border-dashed border-[#0F2D29]/20 bg-[#0F2D29]/3 py-12 px-6 text-center">
           <Target size={32} className="text-[#0F2D29]/40 mb-3" />
-          <p className="text-[15px] font-bold font-['Goldman',sans-serif] text-[#0F2D29]">No Goals Defined Yet</p>
+          <p className="text-[15px] font-bold font-['Goldman',sans-serif] text-[#0F2D29]">
+            No Goals Defined Yet
+          </p>
           <p className="mt-1 text-[12.5px] text-[#5B6E68] max-w-sm">
             Set quarterly objectives and delivery targets for {workspaceName}.
           </p>
@@ -92,7 +97,11 @@ export const WorkspaceGoalsPanel = ({
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <span
                       className="border px-2.5 py-0.5 text-[10.5px] font-bold uppercase tracking-wider"
-                      style={{ color: meta.color, backgroundColor: meta.bg, borderColor: `${meta.color}40` }}
+                      style={{
+                        color: meta.color,
+                        backgroundColor: meta.bg,
+                        borderColor: `${meta.color}40`,
+                      }}
                     >
                       {meta.label}
                     </span>
@@ -115,8 +124,14 @@ export const WorkspaceGoalsPanel = ({
                       </div>
                     )}
                   </div>
-                  <h4 className="text-[15px] font-bold font-['Goldman',sans-serif] text-[#0F2D29]">{g.title}</h4>
-                  {g.description && <p className="mt-1 text-[12.5px] text-[#5B6E68] line-clamp-2">{g.description}</p>}
+                  <h4 className="text-[15px] font-bold font-['Goldman',sans-serif] text-[#0F2D29]">
+                    {g.title}
+                  </h4>
+                  {g.description && (
+                    <p className="mt-1 text-[12.5px] text-[#5B6E68] line-clamp-2">
+                      {g.description}
+                    </p>
+                  )}
                 </div>
                 {g.targetDate && (
                   <div className="mt-4 pt-3 border-t border-[#0F2D29]/10 text-[11.5px] font-semibold text-[#5B6E68]">

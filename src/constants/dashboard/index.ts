@@ -2,7 +2,6 @@ import {
   LayoutDashboard,
   ListTodo,
   Users,
-  Archive,
   Settings,
   type LucideIcon,
   Bell,
@@ -60,7 +59,12 @@ export const DASHBOARD_NAV: NavSection[] = [
   {
     label: "Task Management",
     items: [
-      { label: "My Tasks", path: "/dashboard/tasks", icon: ListTodo, badge: "Active" },
+      {
+        label: "My Tasks",
+        path: "/dashboard/tasks",
+        icon: ListTodo,
+        badge: "Active",
+      },
       { label: "Backlog", path: "/dashboard/backlog", icon: Layers },
       { label: "Calendar", path: "/dashboard/calendar", icon: CalendarDays },
       {
@@ -138,4 +142,10 @@ export const STATUS_STYLES: Record<
   },
 };
 
-export { MOCK_TASKS, MOCK_MEMBERS, MOCK_ARCHIVED, type Task, type Member } from "@/types/dashboard";
+export {
+  MOCK_TASKS,
+  MOCK_MEMBERS,
+  MOCK_ARCHIVED,
+  type Task,
+  type Member,
+} from "@/types/dashboard";

@@ -27,11 +27,15 @@ export const RolesPanel = ({
   addToast,
 }: RolesPanelProps) => {
   const [showCreate, setShowCreate] = useState(false);
-  const { data: rolesResponse, isLoading: isLoadingRoles } = useGetWorkspaceRoles(workspaceId);
-  const { mutate: createRoleMutation, isPending: isCreatingRole } = useCreateWorkspaceRole();
+  const { data: rolesResponse, isLoading: isLoadingRoles } =
+    useGetWorkspaceRoles(workspaceId);
+  const { mutate: createRoleMutation, isPending: isCreatingRole } =
+    useCreateWorkspaceRole();
 
   const roles: CustomRole[] = useMemo(() => {
-    const raw = Array.isArray(rolesResponse) ? rolesResponse : (rolesResponse?.data ?? []);
+    const raw = Array.isArray(rolesResponse)
+      ? rolesResponse
+      : (rolesResponse?.data ?? []);
     return raw.map((r: any) => ({
       _id: r._id ?? r.id,
       name: r.name ?? "Role",
@@ -41,9 +45,20 @@ export const RolesPanel = ({
     }));
   }, [rolesResponse]);
 
-  const handleCreateSubmit = (name: string, description: string, permissions: string[]) => {
+  const handleCreateSubmit = (
+    name: string,
+    description: string,
+    permissions: string[],
+  ) => {
     createRoleMutation(
-      { workspaceId, data: { name, description, permissions } },
+      {
+        workspaceId,
+        data: { name, description, permissions } as {
+          name: string;
+          description?: string;
+          permissions: string[];
+        },
+      },
       {
         onSuccess: () => {
           addActivity("created custom role", name, "role");
@@ -53,7 +68,7 @@ export const RolesPanel = ({
         onError: (err: any) => {
           addToast("warning", err?.message || "Failed to create role.");
         },
-      }
+      },
     );
   };
 
@@ -85,7 +100,9 @@ export const RolesPanel = ({
       {isLoadingRoles ? (
         <div className="flex items-center justify-center gap-2 py-12">
           <Loader2 size={20} className="animate-spin text-[#0F2D29]" />
-          <span className="text-[13px] font-semibold text-[#5B6E68]">Loading custom roles...</span>
+          <span className="text-[13px] font-semibold text-[#5B6E68]">
+            Loading custom roles...
+          </span>
         </div>
       ) : roles.length === 0 ? (
         <PanelEmpty
@@ -103,7 +120,9 @@ export const RolesPanel = ({
                 <div className="flex items-center justify-between gap-2 mb-3">
                   <div className="flex items-center gap-2">
                     <ShieldCheck size={18} className="text-[#0F2D29]" />
-                    <h4 className="text-[16px] font-bold font-['Goldman',sans-serif] text-[#0F2D29]">{r.name}</h4>
+                    <h4 className="text-[16px] font-bold font-['Goldman',sans-serif] text-[#0F2D29]">
+                      {r.name}
+                    </h4>
                   </div>
                   {r.isSystem && (
                     <span className="inline-flex items-center gap-1 border border-[#0F2D29]/20 bg-[#0F2D29]/5 px-2 py-0.5 text-[10px] font-bold uppercase text-[#0F2D29]">

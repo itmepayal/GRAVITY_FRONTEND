@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { LogOut, Loader2, Sparkles } from "lucide-react";
+import { LogOut, Loader2 } from "lucide-react";
 import { DASHBOARD_NAV } from "@/constants/dashboard";
 import { GravityMark } from "@/components/common/logo";
 import { useCurrentUser } from "@/hooks/mutations/settings/use-current-user";
@@ -49,7 +49,7 @@ export const Sidebar = () => {
             className="flex flex-col gap-1"
           >
             {section.label && (
-              <p className="px-3 pt-1.5 pb-1 text-[11px] font-bold font-['Goldman',sans-serif] tracking-[0.1em] uppercase text-[#6F8A82]">
+              <p className="px-3 pt-1.5 pb-1 text-[11px] font-bold font-['Goldman',sans-serif] tracking-widest uppercase text-[#6F8A82]">
                 {section.label}
               </p>
             )}
@@ -80,7 +80,9 @@ export const Sidebar = () => {
                             : "text-[#8FA69E] group-hover:text-white"
                         }`}
                       />
-                      <span className="truncate font-['Goldman',sans-serif]">{label}</span>
+                      <span className="truncate font-['Goldman',sans-serif]">
+                        {label}
+                      </span>
                     </div>
                     {badge && (
                       <span className="shrink-0 bg-[#8FE3C4] text-[#0F2D29] font-bold font-['Goldman',sans-serif] text-[9.5px] uppercase tracking-wider px-1.5 py-0.5">

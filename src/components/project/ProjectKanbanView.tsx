@@ -1,6 +1,6 @@
 import React from "react";
 import { Plus, Layers, ArrowRight } from "lucide-react";
-import { type Project, type ProjectStatus, STATUS_META, initials } from "./types";
+import { type Project, type ProjectStatus, STATUS_META } from "./types";
 
 export interface ProjectKanbanViewProps {
   projects: Project[];
@@ -8,7 +8,12 @@ export interface ProjectKanbanViewProps {
   onOpenCreate: () => void;
 }
 
-const KANBAN_COLUMNS: ProjectStatus[] = ["planning", "active", "on_hold", "completed"];
+const KANBAN_COLUMNS: ProjectStatus[] = [
+  "planning",
+  "active",
+  "on_hold",
+  "completed",
+];
 
 export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
   projects,
@@ -32,7 +37,11 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
               <div className="flex items-center gap-2">
                 <span
                   className="flex h-7 w-7 items-center justify-center border"
-                  style={{ color: meta.color, backgroundColor: meta.bg, borderColor: meta.border }}
+                  style={{
+                    color: meta.color,
+                    backgroundColor: meta.bg,
+                    borderColor: meta.border,
+                  }}
                 >
                   <StatusIcon size={14} />
                 </span>

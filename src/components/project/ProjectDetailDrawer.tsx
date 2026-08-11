@@ -1,17 +1,12 @@
 import React, { useState } from "react";
 import { createPortal } from "react-dom";
+import { X, Pencil, Trash2, Layers } from "lucide-react";
 import {
-  X,
-  Pencil,
-  Trash2,
-  Users,
-  Layers,
-  Calendar,
-  UserPlus,
-  Rocket,
-  Zap,
-} from "lucide-react";
-import { type Project, type ProjectStatus, STATUS_META, initials } from "./types";
+  type Project,
+  type ProjectStatus,
+  STATUS_META,
+  initials,
+} from "./types";
 
 export interface ProjectDetailDrawerProps {
   project: Project;
@@ -28,16 +23,14 @@ export const ProjectDetailDrawer: React.FC<ProjectDetailDrawerProps> = ({
   onDelete,
   onUpdateStatus,
 }) => {
-  const [activeTab, setActiveTab] = useState<"overview" | "members">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "members">(
+    "overview",
+  );
   const meta = STATUS_META[project.status] || STATUS_META.planning;
-  const StatusIcon = meta.icon;
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex justify-end bg-[#0F2D29]/50 backdrop-blur-md transition-all">
-      <div
-        className="fixed inset-0"
-        onClick={onClose}
-      />
+      <div className="fixed inset-0" onClick={onClose} />
 
       <aside className="relative flex h-full w-full max-w-lg flex-col border-l border-[#0F2D29] bg-white shadow-2xl z-10">
         {/* Top Header Banner */}
@@ -71,7 +64,9 @@ export const ProjectDetailDrawer: React.FC<ProjectDetailDrawerProps> = ({
           <div className="flex items-center gap-2">
             <select
               value={project.status}
-              onChange={(e) => onUpdateStatus(project.id, e.target.value as ProjectStatus)}
+              onChange={(e) =>
+                onUpdateStatus(project.id, e.target.value as ProjectStatus)
+              }
               className="border border-[#0F2D29]/20 bg-white px-3 py-1.5 text-[12px] font-bold font-['Goldman',sans-serif] text-[#0F2D29] outline-none cursor-pointer uppercase"
             >
               {(Object.keys(STATUS_META) as ProjectStatus[]).map((st) => (
@@ -134,14 +129,17 @@ export const ProjectDetailDrawer: React.FC<ProjectDetailDrawerProps> = ({
                   Description
                 </h4>
                 <p className="text-[13px] font-medium leading-relaxed text-[#5B6E68] bg-[#0F2D29]/3 border border-[#0F2D29]/10 p-4">
-                  {project.description || "No description provided for this project."}
+                  {project.description ||
+                    "No description provided for this project."}
                 </p>
               </div>
 
               {/* Progress Slider */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-[12px] font-bold font-['Goldman',sans-serif]">
-                  <span className="text-[#0F2D29] uppercase">Delivery Completion</span>
+                  <span className="text-[#0F2D29] uppercase">
+                    Delivery Completion
+                  </span>
                   <span className="text-[#0F2D29]">{project.progress}%</span>
                 </div>
                 <div className="h-3 w-full overflow-hidden bg-[#0F2D29]/10 border border-[#0F2D29]/15">
@@ -186,7 +184,10 @@ export const ProjectDetailDrawer: React.FC<ProjectDetailDrawerProps> = ({
 
               <div className="divide-y divide-[#0F2D29]/10 border border-[#0F2D29]/15 bg-white">
                 {project.members.map((m, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3.5">
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between p-3.5"
+                  >
                     <div className="flex items-center gap-3">
                       <div className="h-8 w-8 rounded-full bg-[#8FE3C4] text-[#0F2D29] flex items-center justify-center font-bold text-[10px] font-['Goldman',sans-serif]">
                         {initials(m.user.name || "U")}
@@ -195,7 +196,9 @@ export const ProjectDetailDrawer: React.FC<ProjectDetailDrawerProps> = ({
                         <p className="text-[13px] font-bold font-['Goldman',sans-serif] text-[#0F2D29]">
                           {m.user.name}
                         </p>
-                        <p className="text-[11px] text-[#5B6E68]">{m.user.email}</p>
+                        <p className="text-[11px] text-[#5B6E68]">
+                          {m.user.email}
+                        </p>
                       </div>
                     </div>
                     <span className="border border-[#0F2D29]/15 bg-[#0F2D29]/5 px-2.5 py-0.5 text-[10.5px] font-bold uppercase text-[#0F2D29] font-['Goldman',sans-serif]">
@@ -209,6 +212,6 @@ export const ProjectDetailDrawer: React.FC<ProjectDetailDrawerProps> = ({
         </div>
       </aside>
     </div>,
-    document.body
+    document.body,
   );
 };

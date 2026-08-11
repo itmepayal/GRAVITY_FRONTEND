@@ -23,7 +23,6 @@ export interface Project {
 }
 
 export interface Member {
-  _id: string;
   user: {
     id: string;
     name: string;

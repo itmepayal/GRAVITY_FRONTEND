@@ -22,23 +22,43 @@ export const GOAL_STATUS_META: Record<
   GoalStatus,
   { label: string; color: string; bg: string }
 > = {
-  planning: { label: "Planning", color: "#5B6E68", bg: "rgba(91, 110, 104, 0.1)" },
+  planning: {
+    label: "Planning",
+    color: "#5B6E68",
+    bg: "rgba(91, 110, 104, 0.1)",
+  },
   active: { label: "Active", color: "#0F8A65", bg: "rgba(15, 138, 101, 0.1)" },
   on_hold: { label: "On Hold", color: "#D97706", bg: "rgba(217, 119, 6, 0.1)" },
-  completed: { label: "Completed", color: "#2563EB", bg: "rgba(37, 99, 235, 0.1)" },
-  cancelled: { label: "Cancelled", color: "#DC2626", bg: "rgba(220, 38, 38, 0.1)" },
-  archived: { label: "Archived", color: "#6B7280", bg: "rgba(107, 114, 128, 0.1)" },
+  completed: {
+    label: "Completed",
+    color: "#2563EB",
+    bg: "rgba(37, 99, 235, 0.1)",
+  },
+  cancelled: {
+    label: "Cancelled",
+    color: "#DC2626",
+    bg: "rgba(220, 38, 38, 0.1)",
+  },
+  archived: {
+    label: "Archived",
+    color: "#6B7280",
+    bg: "rgba(107, 114, 128, 0.1)",
+  },
 };
 
-export const GOAL_STATUS_OPTIONS = (Object.keys(GOAL_STATUS_META) as GoalStatus[]).map(
-  (value) => ({ value, label: GOAL_STATUS_META[value].label })
-);
+export const GOAL_STATUS_OPTIONS = (
+  Object.keys(GOAL_STATUS_META) as GoalStatus[]
+).map((value) => ({ value, label: GOAL_STATUS_META[value].label }));
 
 export const formatGoalDate = (value?: string) => {
   if (!value) return null;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 };
 
 export const toDateInputValue = (value?: string) => {
@@ -98,7 +118,7 @@ export const CreateGoalModal = ({
         onError: () => {
           setFormError("Couldn't create goal.");
         },
-      }
+      },
     );
   };
 
@@ -116,19 +136,39 @@ export const CreateGoalModal = ({
               <Target size={20} />
             </div>
             <div>
-              <h2 className="text-[17px] font-bold font-['Goldman',sans-serif] text-white">New Goal</h2>
-              <p className="text-[12px] text-[#B7CFC7]">Set a goal for <span className="font-semibold text-white">{workspaceName}</span></p>
+              <h2 className="text-[17px] font-bold font-['Goldman',sans-serif] text-white">
+                New Goal
+              </h2>
+              <p className="text-[12px] text-[#B7CFC7]">
+                Set a goal for{" "}
+                <span className="font-semibold text-white">
+                  {workspaceName}
+                </span>
+              </p>
             </div>
           </div>
-          <button onClick={onClose} disabled={isPending} className="text-[#B7CFC7] hover:text-white">
+          <button
+            onClick={onClose}
+            disabled={isPending}
+            className="text-[#B7CFC7] hover:text-white"
+          >
             <X size={18} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4 px-6 pb-6 sm:px-7 sm:pb-7">
-          {formError && <div className="p-3 bg-red-50 text-red-600 text-[12px] font-semibold">{formError}</div>}
+        <form
+          onSubmit={handleSubmit}
+          className="mt-6 space-y-4 overflow-y-auto px-6 pb-6 sm:px-7 sm:pb-7"
+        >
+          {formError && (
+            <div className="p-3 bg-red-50 text-red-600 text-[12px] font-semibold">
+              {formError}
+            </div>
+          )}
           <div>
-            <label className="mb-2 block text-[12px] font-bold text-[#0F2D29] font-['Goldman',sans-serif] uppercase">Goal Title *</label>
+            <label className="mb-2 block text-[12px] font-bold text-[#0F2D29] font-['Goldman',sans-serif] uppercase">
+              Goal Title *
+            </label>
             <input
               ref={titleInputRef}
               type="text"
@@ -139,7 +179,9 @@ export const CreateGoalModal = ({
             />
           </div>
           <div>
-            <label className="mb-2 block text-[12px] font-bold text-[#0F2D29] font-['Goldman',sans-serif] uppercase">Description</label>
+            <label className="mb-2 block text-[12px] font-bold text-[#0F2D29] font-['Goldman',sans-serif] uppercase">
+              Description
+            </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -148,16 +190,59 @@ export const CreateGoalModal = ({
               className="w-full border border-[#0F2D29]/15 bg-white px-4 py-2.5 text-[13px] font-semibold text-[#0F2D29] outline-none"
             />
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-2 block text-[12px] font-bold text-[#0F2D29] font-['Goldman',sans-serif] uppercase">
+                Status
+              </label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as GoalStatus)}
+                className="w-full border border-[#0F2D29]/15 bg-white px-3 py-2.5 text-[13px] font-semibold text-[#0F2D29] outline-none"
+              >
+                {GOAL_STATUS_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-2 block text-[12px] font-bold text-[#0F2D29] font-['Goldman',sans-serif] uppercase">
+                Target Date
+              </label>
+              <input
+                type="date"
+                value={targetDate}
+                onChange={(e) => setTargetDate(e.target.value)}
+                className="w-full border border-[#0F2D29]/15 bg-white px-3 py-2.5 text-[13px] font-semibold text-[#0F2D29] outline-none"
+              />
+            </div>
+          </div>
           <div className="flex justify-end gap-3 pt-4 border-t border-[#0F2D29]/10">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-[13px] font-bold text-[#5B6E68]">Cancel</button>
-            <button type="submit" disabled={isPending} className="bg-[#0F2D29] text-white px-5 py-2 text-[13px] font-bold font-['Goldman',sans-serif]">
-              {isPending ? <Loader2 size={16} className="animate-spin" /> : "Save Goal"}
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-[13px] font-bold text-[#5B6E68]"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isPending}
+              className="bg-[#0F2D29] text-white px-5 py-2 text-[13px] font-bold font-['Goldman',sans-serif]"
+            >
+              {isPending ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                "Save Goal"
+              )}
             </button>
           </div>
         </form>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 };
 
@@ -175,7 +260,9 @@ export const EditGoalModal = ({
   const [title, setTitle] = useState(goal.title);
   const [description, setDescription] = useState(goal.description ?? "");
   const [status, setStatus] = useState<GoalStatus>(goal.status ?? "planning");
-  const [targetDate, setTargetDate] = useState(toDateInputValue(goal.targetDate));
+  const [targetDate, setTargetDate] = useState(
+    toDateInputValue(goal.targetDate),
+  );
   const { mutate, isPending } = useUpdateGoal();
   const queryClient = useQueryClient();
 
@@ -197,32 +284,112 @@ export const EditGoalModal = ({
           queryClient.invalidateQueries({ queryKey: ["workspace-goals"] });
           onClose();
         },
-      }
+      },
     );
   };
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F2D29]/50 p-4 backdrop-blur-md">
-      <div className="w-full max-w-md border border-[#0F2D29] bg-white shadow-2xl">
+      <div className="flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden border border-[#0F2D29] bg-white shadow-2xl">
         <div className="bg-[#0F2D29] p-6 text-white">
           <div className="flex items-center justify-between">
-            <h2 className="text-[17px] font-bold font-['Goldman',sans-serif]">Edit Goal</h2>
-            <button onClick={onClose} className="text-[#B7CFC7] hover:text-white"><X size={18} /></button>
+            <div>
+              <h2 className="text-[17px] font-bold font-['Goldman',sans-serif]">
+                Edit Goal
+              </h2>
+              {workspaceName && (
+                <p className="text-[12px] text-[#B7CFC7]">
+                  in{" "}
+                  <span className="font-semibold text-white">
+                    {workspaceName}
+                  </span>
+                </p>
+              )}
+            </div>
+            <button
+              onClick={onClose}
+              className="text-[#B7CFC7] hover:text-white"
+            >
+              <X size={18} />
+            </button>
           </div>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto p-6">
           <div>
-            <label className="block text-[12px] font-bold text-[#0F2D29] uppercase">Goal Title</label>
-            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full border border-[#0F2D29]/15 p-2.5 text-[13px] font-semibold" />
+            <label className="mb-2 block text-[12px] font-bold text-[#0F2D29] uppercase">
+              Goal Title
+            </label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full border border-[#0F2D29]/15 p-2.5 text-[13px] font-semibold"
+            />
+          </div>
+          <div>
+            <label className="mb-2 block text-[12px] font-bold text-[#0F2D29] uppercase">
+              Description
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+              className="w-full border border-[#0F2D29]/15 p-2.5 text-[13px] font-semibold"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-2 block text-[12px] font-bold text-[#0F2D29] uppercase">
+                Status
+              </label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as GoalStatus)}
+                className="w-full border border-[#0F2D29]/15 bg-white p-2.5 text-[13px] font-semibold"
+              >
+                {GOAL_STATUS_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-2 block text-[12px] font-bold text-[#0F2D29] uppercase">
+                Target Date
+              </label>
+              <input
+                type="date"
+                value={targetDate}
+                onChange={(e) => setTargetDate(e.target.value)}
+                className="w-full border border-[#0F2D29]/15 p-2.5 text-[13px] font-semibold"
+              />
+            </div>
           </div>
           <div className="flex justify-end gap-3 pt-4 border-t border-[#0F2D29]/10">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-[13px] font-bold text-[#5B6E68]">Cancel</button>
-            <button type="submit" disabled={isPending} className="bg-[#0F2D29] text-white px-5 py-2 text-[13px] font-bold font-['Goldman',sans-serif]">Update Goal</button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-[13px] font-bold text-[#5B6E68]"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isPending}
+              className="bg-[#0F2D29] text-white px-5 py-2 text-[13px] font-bold font-['Goldman',sans-serif]"
+            >
+              {isPending ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                "Update Goal"
+              )}
+            </button>
           </div>
         </form>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 };
 
@@ -236,7 +403,8 @@ export const DeleteGoalModal = ({
   const [confirmText, setConfirmText] = useState("");
   const { mutate, isPending } = useDeleteGoal();
   const queryClient = useQueryClient();
-  const isMatch = confirmText.trim().toLowerCase() === goal.title.trim().toLowerCase();
+  const isMatch =
+    confirmText.trim().toLowerCase() === goal.title.trim().toLowerCase();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -252,17 +420,39 @@ export const DeleteGoalModal = ({
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F2D29]/50 p-4 backdrop-blur-md">
       <div className="w-full max-w-sm border border-[#0F2D29] bg-white p-6 shadow-2xl">
-        <h3 className="text-[17px] font-bold font-['Goldman',sans-serif] text-[#0F2D29]">Delete Goal</h3>
-        <p className="mt-2 text-[13px] text-[#5B6E68]">Type <span className="font-bold text-red-600">{goal.title}</span> to confirm.</p>
+        <h3 className="text-[17px] font-bold font-['Goldman',sans-serif] text-[#0F2D29]">
+          Delete Goal
+        </h3>
+        <p className="mt-2 text-[13px] text-[#5B6E68]">
+          Type <span className="font-bold text-red-600">{goal.title}</span> to
+          confirm.
+        </p>
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-          <input type="text" value={confirmText} onChange={(e) => setConfirmText(e.target.value)} className="w-full border border-[#0F2D29]/15 p-2.5 text-[13px] font-semibold" />
+          <input
+            type="text"
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            className="w-full border border-[#0F2D29]/15 p-2.5 text-[13px] font-semibold"
+          />
           <div className="flex justify-end gap-3 pt-4">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-[13px] font-bold text-[#5B6E68]">Cancel</button>
-            <button type="submit" disabled={!isMatch || isPending} className="bg-red-600 text-white px-5 py-2 text-[13px] font-bold font-['Goldman',sans-serif]">Delete</button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-[13px] font-bold text-[#5B6E68]"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={!isMatch || isPending}
+              className="bg-red-600 text-white px-5 py-2 text-[13px] font-bold font-['Goldman',sans-serif]"
+            >
+              Delete
+            </button>
           </div>
         </form>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 };

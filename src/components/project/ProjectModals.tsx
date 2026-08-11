@@ -1,6 +1,6 @@
-import React, { useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
-import { FolderKanban, Plus, Pencil, Trash2, X, Loader2 } from "lucide-react";
+import { FolderKanban, Pencil, X, Loader2 } from "lucide-react";
 import { type Project, type ProjectStatus, STATUS_META } from "./types";
 
 export const CreateProjectDialogModal = ({
@@ -24,7 +24,9 @@ export const CreateProjectDialogModal = ({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [workspaceId, setWorkspaceId] = useState(
-    selectedWorkspaceId !== "all" ? selectedWorkspaceId : workspaces[0]?.id ?? ""
+    selectedWorkspaceId !== "all"
+      ? selectedWorkspaceId
+      : (workspaces[0]?.id ?? ""),
   );
   const [status, setStatus] = useState<ProjectStatus>("planning");
 
@@ -49,7 +51,11 @@ export const CreateProjectDialogModal = ({
               Create Project
             </h2>
           </div>
-          <button onClick={onClose} disabled={isSubmitting} className="text-[#B7CFC7] hover:text-white">
+          <button
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="text-[#B7CFC7] hover:text-white"
+          >
             <X size={18} />
           </button>
         </div>
@@ -117,17 +123,30 @@ export const CreateProjectDialogModal = ({
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-[#0F2D29]/10">
-            <button type="button" onClick={onClose} disabled={isSubmitting} className="px-4 py-2 text-[13px] font-bold text-[#5B6E68]">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="px-4 py-2 text-[13px] font-bold text-[#5B6E68]"
+            >
               Cancel
             </button>
-            <button type="submit" disabled={!name.trim() || isSubmitting} className="bg-[#0F2D29] text-white px-5 py-2 text-[13px] font-bold font-['Goldman',sans-serif]">
-              {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : "Save Project"}
+            <button
+              type="submit"
+              disabled={!name.trim() || isSubmitting}
+              className="bg-[#0F2D29] text-white px-5 py-2 text-[13px] font-bold font-['Goldman',sans-serif]"
+            >
+              {isSubmitting ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                "Save Project"
+              )}
             </button>
           </div>
         </form>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 };
 
@@ -139,7 +158,11 @@ export const EditProjectDialogModal = ({
 }: {
   project: Project;
   onClose: () => void;
-  onSubmit: (data: { name: string; description: string; status: ProjectStatus }) => void;
+  onSubmit: (data: {
+    name: string;
+    description: string;
+    status: ProjectStatus;
+  }) => void;
   isSubmitting: boolean;
 }) => {
   const [name, setName] = useState(project.name);
@@ -166,7 +189,11 @@ export const EditProjectDialogModal = ({
               Edit Project
             </h2>
           </div>
-          <button onClick={onClose} disabled={isSubmitting} className="text-[#B7CFC7] hover:text-white">
+          <button
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="text-[#B7CFC7] hover:text-white"
+          >
             <X size={18} />
           </button>
         </div>
@@ -215,16 +242,29 @@ export const EditProjectDialogModal = ({
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-[#0F2D29]/10">
-            <button type="button" onClick={onClose} disabled={isSubmitting} className="px-4 py-2 text-[13px] font-bold text-[#5B6E68]">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="px-4 py-2 text-[13px] font-bold text-[#5B6E68]"
+            >
               Cancel
             </button>
-            <button type="submit" disabled={!name.trim() || isSubmitting} className="bg-[#0F2D29] text-white px-5 py-2 text-[13px] font-bold font-['Goldman',sans-serif]">
-              {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : "Update Project"}
+            <button
+              type="submit"
+              disabled={!name.trim() || isSubmitting}
+              className="bg-[#0F2D29] text-white px-5 py-2 text-[13px] font-bold font-['Goldman',sans-serif]"
+            >
+              {isSubmitting ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                "Update Project"
+              )}
             </button>
           </div>
         </form>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 };

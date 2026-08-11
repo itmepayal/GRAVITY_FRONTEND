@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { FolderKanban, Plus, Trash2, ArrowUpRight, Loader2, AlertCircle } from "lucide-react";
+import { Plus, Trash2, ArrowUpRight, Loader2 } from "lucide-react";
 import {
   type Project,
   type ProjectStatus,
@@ -57,11 +57,15 @@ export const ProjectsPanel = ({
     isError: isProjectsError,
   } = useGetWorkspaceProjects(workspaceId);
 
-  const { mutate: createProjectMutation, isPending: isCreatingProject } = useCreateProject();
-  const { mutate: deleteProjectMutation, isPending: isDeletingProject } = useDeleteProject();
+  const { mutate: createProjectMutation, isPending: isCreatingProject } =
+    useCreateProject();
+  const { mutate: deleteProjectMutation, isPending: isDeletingProject } =
+    useDeleteProject();
 
   useEffect(() => {
-    const raw = Array.isArray(projectsResponse) ? projectsResponse : (projectsResponse?.data ?? []);
+    const raw = Array.isArray(projectsResponse)
+      ? projectsResponse
+      : (projectsResponse?.data ?? []);
     const normalized = raw.map(normalizeProject);
     setProjects(normalized);
     onChange(normalized);
@@ -70,14 +74,24 @@ export const ProjectsPanel = ({
   const filtered = projects.filter(
     (p) =>
       p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.description?.toLowerCase().includes(search.toLowerCase())
+      p.description?.toLowerCase().includes(search.toLowerCase()),
   );
 
-  const handleCreateSubmit = (name: string, description: string, status: ProjectStatus) => {
+  const handleCreateSubmit = (
+    name: string,
+    description: string,
+    status: ProjectStatus,
+  ) => {
+    // Built as a variable (not an inline object literal) so TS's excess-property
+    // check doesn't reject `status` if the mutation's declared payload type
+    // only lists `name`/`description`. If your `useCreateProject` hook's type
+    // actually supports `status`, feel free to inline this again.
+    const payload = { name, description, status };
+
     createProjectMutation(
       {
         workspaceId,
-        data: { name, description, status },
+        data: payload,
       },
       {
         onSuccess: (response: any) => {
@@ -89,30 +103,40 @@ export const ProjectsPanel = ({
             addToast("success", `Created "${name}" project!`);
           }
           setShowForm(false);
-          queryClient.invalidateQueries({ queryKey: ["workspace-projects", workspaceId] });
+          queryClient.invalidateQueries({
+            queryKey: ["workspace-projects", workspaceId],
+          });
         },
         onError: (error: unknown) => {
-          const message = error instanceof Error ? error.message : "Failed to create project.";
+          const message =
+            error instanceof Error
+              ? error.message
+              : "Failed to create project.";
           addToast("warning", message);
         },
-      }
+      },
     );
   };
 
   const removeProject = (proj: Project) => {
     const previous = projects;
     setProjects((prev) => prev.filter((p) => p._id !== proj._id));
-    deleteProjectMutation(proj._id, {
-      onSuccess: () => {
-        addActivity("deleted project", proj.name, "project");
-        addToast("info", `Deleted "${proj.name}".`);
-        setDeletingProject(null);
-        queryClient.invalidateQueries({ queryKey: ["workspace-projects", workspaceId] });
+    deleteProjectMutation(
+      { workspaceId, projectId: proj._id },
+      {
+        onSuccess: () => {
+          addActivity("deleted project", proj.name, "project");
+          addToast("info", `Deleted "${proj.name}".`);
+          setDeletingProject(null);
+          queryClient.invalidateQueries({
+            queryKey: ["workspace-projects", workspaceId],
+          });
+        },
+        onError: () => {
+          setProjects(previous);
+        },
       },
-      onError: () => {
-        setProjects(previous);
-      },
-    });
+    );
   };
 
   return (
@@ -140,7 +164,18 @@ export const ProjectsPanel = ({
       {isLoadingProjects ? (
         <div className="flex items-center justify-center gap-2 py-12">
           <Loader2 size={20} className="animate-spin text-[#0F2D29]" />
-          <span className="text-[13px] font-semibold text-[#5B6E68]">Loading projects...</span>
+          <span className="text-[13px] font-semibold text-[#5B6E68]">
+            Loading projects...
+          </span>
+        </div>
+      ) : isProjectsError ? (
+        <div className="flex flex-col items-center justify-center gap-1.5 border border-red-100 bg-red-50/60 py-10 text-center">
+          <p className="text-[13px] font-semibold text-[#0F2D29]">
+            Couldn't load projects
+          </p>
+          <p className="text-[12px] text-[#8FA69E]">
+            Please refresh the page or try again shortly.
+          </p>
         </div>
       ) : projects.length === 0 ? (
         <PanelEmpty
@@ -172,7 +207,9 @@ export const ProjectsPanel = ({
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-3">
-                    <span className="border px-2 py-0.5 text-[10.5px] font-bold uppercase" style={{ color: meta.color, backgroundColor: meta.bg, borderColor: `${meta.color}40` }}>
+                    <span
+                      className={`inline-flex items-center gap-1 border px-2 py-0.5 text-[10.5px] font-bold uppercase ${meta.badge}`}
+                    >
                       {meta.label}
                     </span>
                     {canManage && (
@@ -188,12 +225,18 @@ export const ProjectsPanel = ({
                       </button>
                     )}
                   </div>
-                  <h4 className="text-[16px] font-bold font-['Goldman',sans-serif] text-[#0F2D29] truncate">{p.name}</h4>
-                  <p className="mt-1 text-[12.5px] text-[#5B6E68] line-clamp-2">{p.description || "No description."}</p>
+                  <h4 className="text-[16px] font-bold font-['Goldman',sans-serif] text-[#0F2D29] truncate">
+                    {p.name}
+                  </h4>
+                  <p className="mt-1 text-[12.5px] text-[#5B6E68] line-clamp-2">
+                    {p.description || "No description."}
+                  </p>
                 </div>
                 <div className="mt-4 pt-3 border-t border-[#0F2D29]/10 flex items-center justify-between text-[12px] font-semibold text-[#5B6E68]">
                   <span>{p.taskCount} tasks</span>
-                  <span className="flex items-center gap-1 text-[#0F2D29] font-bold font-['Goldman',sans-serif]">View <ArrowUpRight size={14} /></span>
+                  <span className="flex items-center gap-1 text-[#0F2D29] font-bold font-['Goldman',sans-serif]">
+                    View <ArrowUpRight size={14} />
+                  </span>
                 </div>
               </div>
             );
@@ -204,21 +247,52 @@ export const ProjectsPanel = ({
           <table className="w-full text-left text-[13px]">
             <thead className="bg-[#0F2D29]/5 border-b border-[#0F2D29]/10 text-[11px] font-bold uppercase text-[#5B6E68]">
               <tr>
-                <th className="py-3 px-4 font-['Goldman',sans-serif]">Project Name</th>
-                <th className="py-3 px-4 font-['Goldman',sans-serif]">Status</th>
+                <th className="py-3 px-4 font-['Goldman',sans-serif]">
+                  Project Name
+                </th>
+                <th className="py-3 px-4 font-['Goldman',sans-serif]">
+                  Status
+                </th>
                 <th className="py-3 px-4 font-['Goldman',sans-serif]">Tasks</th>
-                {canManage && <th className="py-3 px-4 text-right font-['Goldman',sans-serif]">Action</th>}
+                {canManage && (
+                  <th className="py-3 px-4 text-right font-['Goldman',sans-serif]">
+                    Action
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-[#0F2D29]/8">
               {filtered.map((p) => (
-                <tr key={p._id} onClick={() => setSelectedProject(p)} className="hover:bg-[#0F2D29]/4 cursor-pointer">
-                  <td className="py-3 px-4 font-bold text-[#0F2D29] font-['Goldman',sans-serif]">{p.name}</td>
-                  <td className="py-3 px-4"><span className="border px-2 py-0.5 text-[10.5px] font-bold uppercase" style={{ color: PROJECT_STATUS_META[p.status].color, backgroundColor: PROJECT_STATUS_META[p.status].bg }}>{PROJECT_STATUS_META[p.status].label}</span></td>
-                  <td className="py-3 px-4 font-semibold">{p.taskCount} tasks</td>
+                <tr
+                  key={p._id}
+                  onClick={() => setSelectedProject(p)}
+                  className="hover:bg-[#0F2D29]/4 cursor-pointer"
+                >
+                  <td className="py-3 px-4 font-bold text-[#0F2D29] font-['Goldman',sans-serif]">
+                    {p.name}
+                  </td>
+                  <td className="py-3 px-4">
+                    <span
+                      className={`border px-2 py-0.5 text-[10.5px] font-bold uppercase ${PROJECT_STATUS_META[p.status].badge}`}
+                    >
+                      {PROJECT_STATUS_META[p.status].label}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4 font-semibold">
+                    {p.taskCount} tasks
+                  </td>
                   {canManage && (
                     <td className="py-3 px-4 text-right">
-                      <button type="button" onClick={(e) => { e.stopPropagation(); setDeletingProject(p); }} className="p-1 text-[#5B6E68] hover:text-red-600"><Trash2 size={15} /></button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeletingProject(p);
+                        }}
+                        className="p-1 text-[#5B6E68] hover:text-red-600"
+                      >
+                        <Trash2 size={15} />
+                      </button>
                     </td>
                   )}
                 </tr>
@@ -228,9 +302,37 @@ export const ProjectsPanel = ({
         </div>
       )}
 
-      {showForm && <AddProjectModal onClose={() => setShowForm(false)} onSubmit={handleCreateSubmit} isSubmitting={isCreatingProject} />}
-      {selectedProject && <ProjectDetailModal project={selectedProject} onClose={() => setSelectedProject(null)} />}
-      {deletingProject && <DeleteProjectModal project={deletingProject} isDeleting={isDeletingProject} onClose={() => setDeletingProject(null)} onConfirm={() => removeProject(deletingProject)} />}
+      {showForm && (
+        <AddProjectModal
+          onClose={() => setShowForm(false)}
+          onSubmit={handleCreateSubmit}
+          isSubmitting={isCreatingProject}
+        />
+      )}
+      {selectedProject && (
+        <ProjectDetailModal
+          workspaceId={workspaceId}
+          project={selectedProject}
+          canManage={canManage}
+          onClose={() => setSelectedProject(null)}
+          onUpdated={(patch) => {
+            setProjects((prev) =>
+              prev.map((p) =>
+                p._id === selectedProject._id ? { ...p, ...patch } : p,
+              ),
+            );
+            setSelectedProject((prev) => (prev ? { ...prev, ...patch } : prev));
+          }}
+        />
+      )}
+      {deletingProject && (
+        <DeleteProjectModal
+          project={deletingProject}
+          isDeleting={isDeletingProject}
+          onClose={() => setDeletingProject(null)}
+          onConfirm={() => removeProject(deletingProject)}
+        />
+      )}
     </div>
   );
 };

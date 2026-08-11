@@ -1,4 +1,16 @@
-import { CheckCircle2, ClipboardList, PlayCircle, Eye, FlaskConical, Ban, ArrowDown, Minus, ArrowUp, Flame, type LucideIcon } from "lucide-react";
+import {
+  CheckCircle2,
+  ClipboardList,
+  PlayCircle,
+  Eye,
+  FlaskConical,
+  Ban,
+  ArrowDown,
+  Minus,
+  ArrowUp,
+  Flame,
+  type LucideIcon,
+} from "lucide-react";
 
 export type TaskStatus =
   | "todo"
@@ -229,7 +241,11 @@ export const formatDate = (value?: string) => {
   if (!value) return null;
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  return d.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 };
 
 export const getDaysRemaining = (dueDate?: string) => {
@@ -268,3 +284,47 @@ export const columnToStatus: Record<string, TaskStatus> = {
   Done: "completed",
   Completed: "completed",
 };
+
+export interface CreateTaskData {
+  title: string;
+  description?: string;
+  boardId: string;
+  projectId: string;
+  workspaceId: string;
+  column: string;
+  assigneeId?: string;
+  status?: TaskStatus;
+  priority?: TaskPriority;
+  tags?: string[];
+  dueDate?: string;
+  estimatedHours?: number;
+  sprintId?: string;
+}
+
+export type UpdateTaskData = Partial<CreateTaskData>;
+
+export interface SubTaskData {
+  title: string;
+  completed?: boolean;
+}
+
+export interface CommentData {
+  message: string;
+}
+
+export interface TaskResponse {
+  success: boolean;
+  message?: string;
+  task: ITask;
+}
+
+export interface TasksResponse {
+  success: boolean;
+  message?: string;
+  tasks: ITask[];
+}
+
+export interface MessageResponse {
+  success: boolean;
+  message: string;
+}

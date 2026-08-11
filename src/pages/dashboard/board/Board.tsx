@@ -30,16 +30,23 @@ const boardMeta = {
   type: "kanban" as "kanban" | "scrum",
 };
 
-const PRIORITY_META = {
+type Priority = "low" | "medium" | "high" | "urgent";
+
+const PRIORITY_META: Record<
+  Priority,
+  { label: string; color: string; bg: string }
+> = {
   low: { label: "Low", color: INK, bg: "#EDEBE3" },
   medium: { label: "Medium", color: "#C2680B", bg: "#FDF1E4" },
   high: { label: "High", color: "#B3261E", bg: "#FBEAE9" },
   urgent: { label: "Urgent", color: "#B3261E", bg: "#FBEAE9" },
 };
 
-const PRIORITY_ORDER = ["low", "medium", "high", "urgent"] as const;
+const PRIORITY_ORDER: Priority[] = ["low", "medium", "high", "urgent"];
 
-const TAG_COLORS = {
+type TagName = "Design" | "Frontend" | "Backend" | "Bug" | "Docs";
+
+const TAG_COLORS: Record<TagName, { color: string; bg: string }> = {
   Design: { color: "#3B5BDB", bg: "#EAF0FE" },
   Frontend: { color: TEAL, bg: "#E7F5EF" },
   Backend: { color: "#0B6E4F", bg: "#E4F5EC" },
@@ -49,7 +56,18 @@ const TAG_COLORS = {
 
 const DEFAULT_COLUMNS = ["Backlog", "Todo", "In Progress", "Review", "Done"];
 
-const initialTasks = {
+interface Task {
+  id: string;
+  title: string;
+  priority: Priority;
+  tags: TagName[];
+  assignee: string;
+  comments: number;
+  attachments: number;
+  due: string | null;
+}
+
+const initialTasks: Record<string, Task[]> = {
   Backlog: [
     {
       id: "t1",
@@ -162,7 +180,7 @@ const initialTasks = {
   ],
 };
 
-function TaskCard({ task }) {
+function TaskCard({ task }: { task: Task }) {
   const priority = PRIORITY_META[task.priority];
   return (
     <div
@@ -244,7 +262,13 @@ function TaskCard({ task }) {
   );
 }
 
-function Column({ name, tasks, onAddTask }) {
+interface ColumnProps {
+  name: string;
+  tasks: Task[];
+  onAddTask: (columnName: string) => void;
+}
+
+function Column({ name, tasks, onAddTask }: ColumnProps) {
   return (
     <div className="flex max-h-full w-72 shrink-0 flex-col">
       <div className="flex items-center justify-between px-0.5 pb-3">
@@ -299,10 +323,10 @@ export const Board = () => {
   const { openMobileNav } = useDashboardContext();
 
   const [columns, setColumns] = useState<string[]>(DEFAULT_COLUMNS);
-  const [tasks, setTasks] = useState(initialTasks);
+  const [tasks, setTasks] = useState<Record<string, Task[]>>(initialTasks);
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [priorityFilter, setPriorityFilter] = useState<string | null>(null);
+  const [priorityFilter, setPriorityFilter] = useState<Priority | null>(null);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
 
   const [showAddColumn, setShowAddColumn] = useState(false);
@@ -392,10 +416,7 @@ export const Board = () => {
 
   const filteredTasks = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    const result: Record<
-      string,
-      (typeof initialTasks)[keyof typeof initialTasks]
-    > = {};
+    const result: Record<string, Task[]> = {};
     for (const col of columns) {
       const list = tasks[col] || [];
       result[col] = list.filter((task) => {

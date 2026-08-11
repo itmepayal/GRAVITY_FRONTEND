@@ -1,5 +1,5 @@
 import React from "react";
-import { FolderKanban, ArrowRight, Plus, Layers, Users, CheckCircle2 } from "lucide-react";
+import { FolderKanban, Plus, Layers, Users } from "lucide-react";
 import { type Project, STATUS_META, initials } from "./types";
 
 export interface ProjectGridViewProps {
@@ -81,7 +81,8 @@ export const ProjectGridView: React.FC<ProjectGridViewProps> = ({
                 {proj.name}
               </h3>
               <p className="mt-2 text-[13px] font-medium text-[#5B6E68] line-clamp-2 leading-relaxed">
-                {proj.description || "No description provided for this project."}
+                {proj.description ||
+                  "No description provided for this project."}
               </p>
 
               {/* Progress Bar */}
@@ -123,7 +124,11 @@ export const ProjectGridView: React.FC<ProjectGridViewProps> = ({
                     className="h-6 w-6 rounded-full border border-white bg-[#8FE3C4] text-[#0F2D29] flex items-center justify-center text-[9px] font-bold font-['Goldman',sans-serif] overflow-hidden shrink-0"
                   >
                     {m.user.avatar ? (
-                      <img src={m.user.avatar} alt="" className="h-full w-full object-cover" />
+                      <img
+                        src={m.user.avatar}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
                     ) : (
                       initials(m.user.name || "U")
                     )}
