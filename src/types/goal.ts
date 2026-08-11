@@ -25,7 +25,7 @@ export interface Goal {
 }
 
 export interface CreateGoalData {
-  name: string;
+  title: string;
   description?: string;
   status?: GoalStatus;
   startDate?: string;
@@ -33,7 +33,7 @@ export interface CreateGoalData {
 }
 
 export interface UpdateGoalData {
-  name?: string;
+  title?: string;
   description?: string;
   status?: GoalStatus;
   startDate?: string;

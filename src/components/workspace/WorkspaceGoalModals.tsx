@@ -103,7 +103,7 @@ export const CreateGoalModal = ({
       {
         workspaceId,
         data: {
-          name: trimmedTitle,
+          title: trimmedTitle,
           description: description.trim() || undefined,
           status,
           endDate: targetDate || undefined,
@@ -272,7 +272,7 @@ export const EditGoalModal = ({
       {
         goalId: goal.id,
         data: {
-          name: title.trim(),
+          title: title.trim(),
           description: description.trim() || undefined,
           status,
           endDate: targetDate || undefined,

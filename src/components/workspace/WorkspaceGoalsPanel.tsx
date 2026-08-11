@@ -3,6 +3,7 @@ import { Target, Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { useGetWorkspaceGoals } from "@/hooks/queries/goal/get-workspace-goals";
 import {
   type GoalOption,
+  type GoalStatus,
   GOAL_STATUS_META,
   formatGoalDate,
   CreateGoalModal,
@@ -10,14 +11,33 @@ import {
   DeleteGoalModal,
 } from "./WorkspaceGoalModals";
 
-export const normalizeGoalOption = (raw: any): GoalOption => ({
-  id: raw._id ?? raw.id,
-  title: raw.name ?? raw.title ?? "Untitled Goal",
-  description: raw.description ?? "",
-  status: raw.status ?? "planning",
-  progress: raw.progress,
-  targetDate: raw.endDate ?? raw.targetDate,
-});
+const VALID_STATUSES = Object.keys(GOAL_STATUS_META) as GoalStatus[];
+
+const DEFAULT_STATUS: GoalStatus = "planning";
+
+const FALLBACK_META = {
+  label: "Unknown",
+  color: "#6B7280",
+  bg: "rgba(107, 114, 128, 0.1)",
+};
+
+export const normalizeGoalOption = (raw: any): GoalOption => {
+  const rawStatus =
+    typeof raw.status === "string" ? raw.status.trim().toLowerCase() : "";
+
+  const status: GoalStatus = VALID_STATUSES.includes(rawStatus as GoalStatus)
+    ? (rawStatus as GoalStatus)
+    : DEFAULT_STATUS;
+
+  return {
+    id: raw._id ?? raw.id,
+    title: raw.name ?? raw.title ?? "Untitled Goal",
+    description: raw.description ?? "",
+    status,
+    progress: raw.progress,
+    targetDate: raw.endDate ?? raw.targetDate,
+  };
+};
 
 export const WorkspaceGoalsPanel = ({
   workspaceId,
@@ -87,7 +107,13 @@ export const WorkspaceGoalsPanel = ({
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {goals.map((g) => {
-            const meta = GOAL_STATUS_META[g.status ?? "planning"];
+            // Safety net: even though normalizeGoalOption already
+            // guarantees a valid status, this extra fallback ensures
+            // the UI never crashes even if that guarantee is ever
+            // broken (e.g. GoalOption built manually elsewhere).
+            const meta =
+              GOAL_STATUS_META[g.status ?? DEFAULT_STATUS] ?? FALLBACK_META;
+
             return (
               <div
                 key={g.id}

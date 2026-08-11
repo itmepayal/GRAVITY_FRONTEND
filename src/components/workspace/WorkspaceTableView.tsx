@@ -1,5 +1,12 @@
 import React from "react";
-import { Building2, Layers, Users, Lock, Globe, ArrowRight } from "lucide-react";
+import {
+  Building2,
+  Layers,
+  Users,
+  Lock,
+  Globe,
+  ArrowRight,
+} from "lucide-react";
 import type { Workspace } from "./types";
 import { initials, formatDate } from "./types";
 
@@ -41,12 +48,22 @@ export const WorkspaceTableView: React.FC<WorkspaceTableViewProps> = ({
       <table className="w-full text-left text-[13px]">
         <thead className="bg-[#0F2D29]/5 border-b border-[#0F2D29]/10 text-[11px] font-bold uppercase tracking-wider text-[#5B6E68]">
           <tr>
-            <th className="py-3.5 px-4 font-['Goldman',sans-serif]">Workspace Name</th>
-            <th className="py-3.5 px-4 font-['Goldman',sans-serif]">Access & Role</th>
-            <th className="py-3.5 px-4 font-['Goldman',sans-serif]">Projects</th>
+            <th className="py-3.5 px-4 font-['Goldman',sans-serif]">
+              Workspace Name
+            </th>
+            <th className="py-3.5 px-4 font-['Goldman',sans-serif]">
+              Access & Role
+            </th>
+            <th className="py-3.5 px-4 font-['Goldman',sans-serif]">
+              Projects
+            </th>
             <th className="py-3.5 px-4 font-['Goldman',sans-serif]">Members</th>
-            <th className="py-3.5 px-4 font-['Goldman',sans-serif]">Created Date</th>
-            <th className="py-3.5 px-4 text-right font-['Goldman',sans-serif]">Action</th>
+            <th className="py-3.5 px-4 font-['Goldman',sans-serif]">
+              Created Date
+            </th>
+            <th className="py-3.5 px-4 text-right font-['Goldman',sans-serif]">
+              Action
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-[#0F2D29]/8">
@@ -57,7 +74,9 @@ export const WorkspaceTableView: React.FC<WorkspaceTableViewProps> = ({
                 key={ws._id}
                 onClick={() => onSelectWorkspace(ws._id)}
                 className={`transition-colors cursor-pointer ${
-                  isActive ? "bg-[#0F2D29]/8 font-semibold" : "hover:bg-[#0F2D29]/4"
+                  isActive
+                    ? "bg-[#0F2D29]/8 font-semibold"
+                    : "hover:bg-[#0F2D29]/4"
                 }`}
               >
                 <td className="py-3.5 px-4">
