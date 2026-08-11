@@ -133,7 +133,7 @@ export default function Settings() {
   const onProfileSubmit = (values: ProfileFormData) => {
     changeProfileMutation.mutate({
       name: values.name,
-      avatar: photoFile ?? undefined,
+      avatar: photoFile ?? null,
     });
   };
 

@@ -1,4 +1,3 @@
-import React from "react";
 import { Layers, Plus, Search, X, Loader2, AlertCircle } from "lucide-react";
 import type { Workspace } from "./types";
 import { WorkspaceListItem } from "./WorkspaceListItem";

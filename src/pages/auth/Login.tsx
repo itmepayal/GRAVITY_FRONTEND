@@ -41,7 +41,7 @@ const Login = () => {
       onSuccess: (response) => {
         if (response?.data?.requiresTwoFA) {
           setRequiresTwoFA(true);
-          setTwoFAEmail(response.data.email);
+          setTwoFAEmail(response.data.email ?? "");
           toast.success(response.message || "OTP sent to your email.");
           return;
         }

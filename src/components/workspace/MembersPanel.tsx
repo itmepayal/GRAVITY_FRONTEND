@@ -1,11 +1,6 @@
 import { useState, useMemo } from "react";
 import { Filter, UserPlus, Trash2 } from "lucide-react";
-import {
-  type Member,
-  type Role,
-  ROLE_META,
-  formatDate,
-} from "./types";
+import { type Member, type Role, ROLE_META, formatDate } from "./types";
 import { PanelToolbar, PanelEmpty, NoResults } from "./SharedHelpers";
 import { DeleteMemberModal } from "./DeleteMemberModal";
 import { AddMemberModal, Avatar, type UserOption } from "./AddMemberModal";
@@ -21,7 +16,7 @@ interface MembersPanelProps {
   onUpdateMemberRole: (
     memberId: string,
     newRole: string,
-    memberLabel: string
+    memberLabel: string,
   ) => void;
   isUpdatingMemberRole?: boolean;
   users: UserOption[];
@@ -49,7 +44,7 @@ export const MembersPanel = ({
 
   const existingUserIds = useMemo(
     () => new Set(members.map((m) => m.user.id)),
-    [members]
+    [members],
   );
 
   const filtered = useMemo(() => {
@@ -120,20 +115,35 @@ export const MembersPanel = ({
           <table className="w-full text-left text-[13px]">
             <thead className="border-b border-[#0F2D29]/10 bg-[#0F2D29]/5 text-[11px] font-bold uppercase tracking-wider text-[#5B6E68]">
               <tr>
-                <th className="py-3 px-4 font-['Goldman',sans-serif]">Member</th>
+                <th className="py-3 px-4 font-['Goldman',sans-serif]">
+                  Member
+                </th>
                 <th className="py-3 px-4 font-['Goldman',sans-serif]">Role</th>
-                <th className="py-3 px-4 font-['Goldman',sans-serif]">Joined</th>
-                {canManage && <th className="py-3 px-4 text-right font-['Goldman',sans-serif]">Actions</th>}
+                <th className="py-3 px-4 font-['Goldman',sans-serif]">
+                  Joined
+                </th>
+                {canManage && (
+                  <th className="py-3 px-4 text-right font-['Goldman',sans-serif]">
+                    Actions
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-[#0F2D29]/8">
               {filtered.map((m) => {
                 const isOwner = m.role === "owner";
                 return (
-                  <tr key={m._id} className="hover:bg-[#0F2D29]/4 transition-colors">
+                  <tr
+                    key={m.user.id}
+                    className="hover:bg-[#0F2D29]/4 transition-colors"
+                  >
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
-                        <Avatar name={m.user.name} src={m.user.avatar} size={9} />
+                        <Avatar
+                          name={m.user.name}
+                          src={m.user.avatar}
+                          size={9}
+                        />
                         <div className="min-w-0">
                           <p className="font-bold text-[#0F2D29] font-['Goldman',sans-serif] truncate">
                             {m.user.name}
@@ -149,7 +159,9 @@ export const MembersPanel = ({
                         <select
                           value={m.role}
                           disabled={isUpdatingMemberRole}
-                          onChange={(e) => handleRoleChange(m, e.target.value as Role)}
+                          onChange={(e) =>
+                            handleRoleChange(m, e.target.value as Role)
+                          }
                           className="border border-[#0F2D29]/15 bg-white px-2 py-1 text-[11.5px] font-bold text-[#0F2D29] outline-none"
                         >
                           <option value="admin">Admin</option>

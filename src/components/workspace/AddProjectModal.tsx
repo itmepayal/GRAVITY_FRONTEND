@@ -1,4 +1,4 @@
-import React, { useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Plus, X, Loader2 } from "lucide-react";
 import { type ProjectStatus, PROJECT_STATUS_META, inputClass } from "./types";
 
@@ -27,9 +27,15 @@ export const AddProjectModal = ({
         <div className="bg-[#0F2D29] p-6 text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Plus size={20} />
-            <h2 className="text-[17px] font-bold font-['Goldman',sans-serif]">Create Project</h2>
+            <h2 className="text-[17px] font-bold font-['Goldman',sans-serif]">
+              Create Project
+            </h2>
           </div>
-          <button onClick={onClose} disabled={isSubmitting} className="text-[#B7CFC7] hover:text-white">
+          <button
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="text-[#B7CFC7] hover:text-white"
+          >
             <X size={18} />
           </button>
         </div>
@@ -71,18 +77,35 @@ export const AddProjectModal = ({
               onChange={(e) => setStatus(e.target.value as ProjectStatus)}
               className={inputClass}
             >
-              {(Object.keys(PROJECT_STATUS_META) as ProjectStatus[]).map((st) => (
-                <option key={st} value={st}>{PROJECT_STATUS_META[st].label}</option>
-              ))}
+              {(Object.keys(PROJECT_STATUS_META) as ProjectStatus[]).map(
+                (st) => (
+                  <option key={st} value={st}>
+                    {PROJECT_STATUS_META[st].label}
+                  </option>
+                ),
+              )}
             </select>
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-[#0F2D29]/10">
-            <button type="button" onClick={onClose} disabled={isSubmitting} className="px-4 py-2 text-[13px] font-bold text-[#5B6E68]">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="px-4 py-2 text-[13px] font-bold text-[#5B6E68]"
+            >
               Cancel
             </button>
-            <button type="submit" disabled={!name.trim() || isSubmitting} className="bg-[#0F2D29] text-white px-5 py-2 text-[13px] font-bold font-['Goldman',sans-serif]">
-              {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : "Create Project"}
+            <button
+              type="submit"
+              disabled={!name.trim() || isSubmitting}
+              className="bg-[#0F2D29] text-white px-5 py-2 text-[13px] font-bold font-['Goldman',sans-serif]"
+            >
+              {isSubmitting ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                "Create Project"
+              )}
             </button>
           </div>
         </form>

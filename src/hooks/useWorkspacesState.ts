@@ -18,7 +18,12 @@ import { useRemoveWorkspaceMember } from "@/hooks/mutations/workspace/use-remove
 import { useUpdateWorkspaceMemberRole } from "@/hooks/mutations/workspace/update-workspace-member-role";
 import { useGetWorkspaceGoals } from "@/hooks/queries/goal/get-workspace-goals";
 
-export const normalizeMember = (raw: any): Member => ({
+// NOTE: `_id` is kept here as an extra field via intersection typing since the
+// `Member` type imported from "@/components/workspace" does not declare it.
+// If you don't actually need `_id` on members anywhere (member identity is
+// tracked via `user.id` throughout this file), you can drop the `_id` line
+// and change the return type back to plain `Member`.
+export const normalizeMember = (raw: any): Member & { _id: string } => ({
   _id: raw._id ?? nextId("m"),
   user: {
     id: raw?.user?._id ?? raw?.user?.id ?? nextId("u"),
@@ -111,7 +116,7 @@ export function useWorkspacesState() {
     setWorkspaces(normalized);
 
     setActiveId((cur) => {
-      if (cur && normalized.some((w) => w._id === cur)) return cur;
+      if (cur && normalized.some((w: Workspace) => w._id === cur)) return cur;
       return normalized[0]?._id ?? null;
     });
   }, [workspacesResponse]);
@@ -122,7 +127,9 @@ export function useWorkspacesState() {
     const normalized = normalizeWorkspace(raw);
 
     setWorkspaces((prev) =>
-      prev.map((w) => (w._id === normalized._id ? { ...w, ...normalized } : w)),
+      prev.map((w: Workspace) =>
+        w._id === normalized._id ? { ...w, ...normalized } : w,
+      ),
     );
   }, [activeWorkspaceResponse]);
 

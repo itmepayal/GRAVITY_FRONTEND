@@ -87,7 +87,7 @@ export const WorkspaceGoalsPanel = ({
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {goals.map((g) => {
-            const meta = GOAL_STATUS_META[g.status ?? "not_started"];
+            const meta = GOAL_STATUS_META[g.status ?? "planning"];
             return (
               <div
                 key={g.id}

@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Shield, X, Loader2, Check } from "lucide-react";
 import { inputClass } from "./types";
 
-export const PERMISSION_GROUPS: {
+const PERMISSION_GROUPS: {
   group: string;
   items: { key: string; label: string }[];
 }[] = [
