@@ -50,9 +50,12 @@ export const normalizeWorkspace = (raw: any): Workspace => ({
 export function useWorkspacesState() {
   const queryClient = useQueryClient();
 
-  const { mutate: createWorkspace, isPending: isCreatingWorkspace } = useCreateWorkspace();
-  const { mutate: updateWorkspaceMutation, isPending: isUpdatingWorkspace } = useUpdateWorkspace();
-  const { mutate: deleteWorkspaceMutation, isPending: isDeletingWorkspace } = useDeleteWorkspace();
+  const { mutate: createWorkspace, isPending: isCreatingWorkspace } =
+    useCreateWorkspace();
+  const { mutate: updateWorkspaceMutation, isPending: isUpdatingWorkspace } =
+    useUpdateWorkspace();
+  const { mutate: deleteWorkspaceMutation, isPending: isDeletingWorkspace } =
+    useDeleteWorkspace();
 
   const {
     data: workspacesResponse,
@@ -60,13 +63,18 @@ export function useWorkspacesState() {
     isError: isWorkspacesError,
   } = useGetUserWorkspaces();
 
-  const { mutate: addWorkspaceMemberMutation, isPending: isAddingMember } = useAddWorkspaceMember();
-  const { mutate: removeWorkspaceMemberMutation, isPending: isRemovingMember } = useRemoveWorkspaceMember();
-  const { mutate: updateMemberRoleMutation, isPending: isUpdatingMemberRole } = useUpdateWorkspaceMemberRole();
+  const { mutate: addWorkspaceMemberMutation, isPending: isAddingMember } =
+    useAddWorkspaceMember();
+  const { mutate: removeWorkspaceMemberMutation, isPending: isRemovingMember } =
+    useRemoveWorkspaceMember();
+  const { mutate: updateMemberRoleMutation, isPending: isUpdatingMemberRole } =
+    useUpdateWorkspaceMemberRole();
 
   const { data: usersResponse, isLoading: isLoadingUsers } = useGetAllUsers();
   const users = useMemo(() => {
-    const raw = Array.isArray(usersResponse) ? usersResponse : (usersResponse ?? []);
+    const raw = Array.isArray(usersResponse)
+      ? usersResponse
+      : (usersResponse ?? []);
     return raw.map(normalizeUser);
   }, [usersResponse]);
 
@@ -76,7 +84,9 @@ export function useWorkspacesState() {
   const [query, setQuery] = useState("");
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [activeSection, setActiveSection] = useState<"workspace" | "goals">("workspace");
+  const [activeSection, setActiveSection] = useState<"workspace" | "goals">(
+    "workspace",
+  );
   const [viewMode, setViewMode] = useState<"grid" | "table" | "detail">("grid");
 
   const {
@@ -94,7 +104,9 @@ export function useWorkspacesState() {
   }, [activeGoalsData]);
 
   useEffect(() => {
-    const raw = Array.isArray(workspacesResponse) ? workspacesResponse : (workspacesResponse?.data ?? []);
+    const raw = Array.isArray(workspacesResponse)
+      ? workspacesResponse
+      : (workspacesResponse?.data ?? []);
     const normalized = raw.map(normalizeWorkspace);
     setWorkspaces(normalized);
 
@@ -110,7 +122,7 @@ export function useWorkspacesState() {
     const normalized = normalizeWorkspace(raw);
 
     setWorkspaces((prev) =>
-      prev.map((w) => (w._id === normalized._id ? { ...w, ...normalized } : w))
+      prev.map((w) => (w._id === normalized._id ? { ...w, ...normalized } : w)),
     );
   }, [activeWorkspaceResponse]);
 
@@ -131,13 +143,13 @@ export function useWorkspacesState() {
       projects: workspaces.reduce((n, w) => n + (w.projects?.length ?? 0), 0),
       members: workspaces.reduce((n, w) => n + (w.members?.length ?? 0), 0),
     }),
-    [workspaces]
+    [workspaces],
   );
 
   const filtered = workspaces.filter(
     (w) =>
       w.name.toLowerCase().includes(query.toLowerCase()) ||
-      w.description?.toLowerCase().includes(query.toLowerCase())
+      w.description?.toLowerCase().includes(query.toLowerCase()),
   );
 
   const handleCreated = (ws: Workspace) => {
@@ -150,7 +162,8 @@ export function useWorkspacesState() {
   };
 
   const handleCreateError = (error: unknown) => {
-    const message = error instanceof Error ? error.message : "Failed to create workspace.";
+    const message =
+      error instanceof Error ? error.message : "Failed to create workspace.";
     addToast("warning", message);
   };
 
@@ -179,7 +192,7 @@ export function useWorkspacesState() {
   const patchWorkspace = (id: string, patch: Partial<Workspace>) => {
     const previous = workspaces.find((w) => w._id === id);
     setWorkspaces((prev) =>
-      prev.map((w) => (w._id === id ? { ...w, ...patch } : w))
+      prev.map((w) => (w._id === id ? { ...w, ...patch } : w)),
     );
 
     const { name, description, color, icon, isPrivate } = patch;
@@ -198,7 +211,9 @@ export function useWorkspacesState() {
           const updated = response?.data ?? response;
           if (updated) {
             setWorkspaces((prev) =>
-              prev.map((w) => (w._id === id ? normalizeWorkspace({ ...w, ...updated }) : w))
+              prev.map((w) =>
+                w._id === id ? normalizeWorkspace({ ...w, ...updated }) : w,
+              ),
             );
           }
           queryClient.invalidateQueries({ queryKey: ["workspaces"] });
@@ -206,10 +221,12 @@ export function useWorkspacesState() {
         },
         onError: () => {
           if (previous) {
-            setWorkspaces((prev) => prev.map((w) => (w._id === id ? previous : w)));
+            setWorkspaces((prev) =>
+              prev.map((w) => (w._id === id ? previous : w)),
+            );
           }
         },
-      }
+      },
     );
   };
 
@@ -217,7 +234,7 @@ export function useWorkspacesState() {
     wsId: string,
     action: string,
     target: string,
-    iconType: "project" | "member" | "role" | "workspace"
+    iconType: "project" | "member" | "role" | "workspace",
   ) => {
     const newAct = {
       id: nextId("act"),
@@ -235,14 +252,14 @@ export function useWorkspacesState() {
               ...w,
               activityLog: [newAct, ...(w.activityLog ?? [])],
             }
-          : w
-      )
+          : w,
+      ),
     );
   };
 
   const handleAddMember = (
     workspaceId: string,
-    memberData: { userId: string; role: string }
+    memberData: { userId: string; role: string },
   ) => {
     addWorkspaceMemberMutation(
       { workspaceId, data: memberData },
@@ -257,25 +274,30 @@ export function useWorkspacesState() {
                       ...w,
                       members: [...w.members, normalizeMember(newMember)],
                     }
-                  : w
-              )
+                  : w,
+              ),
             );
             addActivity(
               workspaceId,
               "added a teammate",
-              newMember?.user?.name ?? newMember?.user?.email ?? memberData.userId,
-              "member"
+              newMember?.user?.name ??
+                newMember?.user?.email ??
+                memberData.userId,
+              "member",
             );
             addToast("success", "Teammate added successfully!");
           }
           queryClient.invalidateQueries({ queryKey: ["workspaces"] });
-          queryClient.invalidateQueries({ queryKey: ["workspace", workspaceId] });
+          queryClient.invalidateQueries({
+            queryKey: ["workspace", workspaceId],
+          });
         },
         onError: (error: unknown) => {
-          const message = error instanceof Error ? error.message : "Failed to add teammate.";
+          const message =
+            error instanceof Error ? error.message : "Failed to add teammate.";
           addToast("warning", message);
         },
-      }
+      },
     );
   };
 
@@ -283,7 +305,7 @@ export function useWorkspacesState() {
     workspaceId: string,
     memberId: string,
     newRole: Role,
-    memberLabel: string
+    memberLabel: string,
   ) => {
     const previousWorkspaces = workspaces;
     setWorkspaces((prev) =>
@@ -292,11 +314,11 @@ export function useWorkspacesState() {
           ? {
               ...w,
               members: w.members.map((m) =>
-                m.user.id === memberId ? { ...m, role: newRole } : m
+                m.user.id === memberId ? { ...m, role: newRole } : m,
               ),
             }
-          : w
-      )
+          : w,
+      ),
     );
 
     updateMemberRoleMutation(
@@ -307,22 +329,29 @@ export function useWorkspacesState() {
       },
       {
         onSuccess: () => {
-          addActivity(workspaceId, `changed role to ${newRole}`, memberLabel, "member");
+          addActivity(
+            workspaceId,
+            `changed role to ${newRole}`,
+            memberLabel,
+            "member",
+          );
           addToast("info", `Updated role for ${memberLabel}`);
           queryClient.invalidateQueries({ queryKey: ["workspaces"] });
-          queryClient.invalidateQueries({ queryKey: ["workspace", workspaceId] });
+          queryClient.invalidateQueries({
+            queryKey: ["workspace", workspaceId],
+          });
         },
         onError: () => {
           setWorkspaces(previousWorkspaces);
         },
-      }
+      },
     );
   };
 
   const handleRemoveMember = (
     workspaceId: string,
     memberId: string,
-    memberLabel: string
+    memberLabel: string,
   ) => {
     const previousWorkspaces = workspaces;
     removeWorkspaceMemberMutation(
@@ -339,18 +368,20 @@ export function useWorkspacesState() {
                     ...w,
                     members: w.members.filter((m) => m.user.id !== memberId),
                   }
-                : w
-            )
+                : w,
+            ),
           );
           addActivity(workspaceId, "removed member", memberLabel, "member");
           addToast("warning", `Removed ${memberLabel}`);
           queryClient.invalidateQueries({ queryKey: ["workspaces"] });
-          queryClient.invalidateQueries({ queryKey: ["workspace", workspaceId] });
+          queryClient.invalidateQueries({
+            queryKey: ["workspace", workspaceId],
+          });
         },
         onError: () => {
           setWorkspaces(previousWorkspaces);
         },
-      }
+      },
     );
   };
 

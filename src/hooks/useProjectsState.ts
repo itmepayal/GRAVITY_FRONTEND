@@ -17,7 +17,9 @@ export function useProjectsState() {
   const queryClient = useQueryClient();
 
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>("all");
-  const [selectedStatus, setSelectedStatus] = useState<"all" | ProjectStatus>("all");
+  const [selectedStatus, setSelectedStatus] = useState<"all" | ProjectStatus>(
+    "all",
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<ProjectViewMode>("grid");
 
@@ -27,9 +29,12 @@ export function useProjectsState() {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   // Fetch workspaces
-  const { data: workspacesResponse, isLoading: isLoadingWorkspaces } = useGetUserWorkspaces();
+  const { data: workspacesResponse, isLoading: isLoadingWorkspaces } =
+    useGetUserWorkspaces();
   const workspaces = useMemo(() => {
-    const raw = Array.isArray(workspacesResponse) ? workspacesResponse : (workspacesResponse?.data ?? []);
+    const raw = Array.isArray(workspacesResponse)
+      ? workspacesResponse
+      : (workspacesResponse?.data ?? []);
     return raw.map((w: any) => ({
       id: w._id ?? w.id,
       name: w.name ?? "Untitled Workspace",
@@ -44,11 +49,17 @@ export function useProjectsState() {
   }, [workspaces]);
 
   // Fetch Projects for selected workspace (or primary workspace)
-  const targetWorkspaceId = selectedWorkspaceId !== "all" ? selectedWorkspaceId : (workspaces[0]?.id ?? "");
-  const { data: projectsResponse, isLoading: isLoadingProjects } = useGetWorkspaceProjects(targetWorkspaceId);
+  const targetWorkspaceId =
+    selectedWorkspaceId !== "all"
+      ? selectedWorkspaceId
+      : (workspaces[0]?.id ?? "");
+  const { data: projectsResponse, isLoading: isLoadingProjects } =
+    useGetWorkspaceProjects(targetWorkspaceId);
 
   const projects: Project[] = useMemo(() => {
-    const raw = Array.isArray(projectsResponse) ? projectsResponse : (projectsResponse?.data ?? []);
+    const raw = Array.isArray(projectsResponse)
+      ? projectsResponse
+      : (projectsResponse?.data ?? []);
     return raw.map(normalizeProjectData);
   }, [projectsResponse]);
 
@@ -57,8 +68,11 @@ export function useProjectsState() {
     return projects.filter((p) => {
       const matchSearch =
         p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.description?.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchStatus = selectedStatus === "all" || p.status === selectedStatus;
+        Boolean(
+          p.description?.toLowerCase().includes(searchQuery.toLowerCase()),
+        );
+      const matchStatus =
+        selectedStatus === "all" || p.status === selectedStatus;
       return matchSearch && matchStatus;
     });
   }, [projects, searchQuery, selectedStatus]);
@@ -66,8 +80,12 @@ export function useProjectsState() {
   // Metrics
   const metrics = useMemo(() => {
     const totalProjects = projects.length;
-    const activeProjects = projects.filter((p) => p.status === "active" || p.status === "planning").length;
-    const completedProjects = projects.filter((p) => p.status === "completed").length;
+    const activeProjects = projects.filter(
+      (p) => p.status === "active" || p.status === "planning",
+    ).length;
+    const completedProjects = projects.filter(
+      (p) => p.status === "completed",
+    ).length;
     const totalMembers = projects.reduce((n, p) => n + p.members.length, 0);
 
     return {
@@ -87,10 +105,12 @@ export function useProjectsState() {
     }, 4000);
   };
 
-  // Mutations
-  const { mutate: createProjectMutation, isPending: isCreatingProject } = useCreateProject();
-  const { mutate: updateProjectMutation, isPending: isUpdatingProject } = useUpdateProject();
-  const { mutate: deleteProjectMutation, isPending: isDeletingProject } = useDeleteProject();
+  const { mutate: createProjectMutation, isPending: isCreatingProject } =
+    useCreateProject();
+  const { mutate: updateProjectMutation, isPending: isUpdatingProject } =
+    useUpdateProject();
+  const { mutate: deleteProjectMutation, isPending: isDeletingProject } =
+    useDeleteProject();
 
   const handleCreateProject = (data: {
     name: string;
@@ -104,30 +124,37 @@ export function useProjectsState() {
         data: {
           name: data.name,
           description: data.description,
-          status: data.status,
         },
       },
       {
         onSuccess: () => {
           addToast("success", `Project "${data.name}" created successfully!`);
           setCreateModalOpen(false);
-          queryClient.invalidateQueries({ queryKey: ["workspace-projects", data.workspaceId] });
+          queryClient.invalidateQueries({
+            queryKey: ["workspace-projects", data.workspaceId],
+          });
         },
         onError: (err: any) => {
           addToast("warning", err?.message || "Failed to create project.");
         },
-      }
+      },
     );
   };
 
   const handleUpdateProject = (
     projectId: string,
-    data: { name?: string; description?: string; status?: ProjectStatus }
+    data: { name?: string; description?: string; status?: ProjectStatus },
   ) => {
+    const project = projects.find((p) => p.id === projectId) ?? editingProject;
+    const workspaceId = (project as any)?.workspaceId ?? targetWorkspaceId;
+
+    const { status, ...updateData } = data;
+
     updateProjectMutation(
       {
+        workspaceId,
         projectId,
-        data,
+        data: updateData,
       },
       {
         onSuccess: () => {
@@ -138,21 +165,26 @@ export function useProjectsState() {
         onError: (err: any) => {
           addToast("warning", err?.message || "Failed to update project.");
         },
-      }
+      },
     );
   };
 
   const handleDeleteProject = (projectId: string) => {
-    deleteProjectMutation(projectId, {
-      onSuccess: () => {
-        addToast("info", "Project deleted successfully!");
-        setSelectedProject(null);
-        queryClient.invalidateQueries({ queryKey: ["workspace-projects"] });
+    const project = projects.find((p) => p.id === projectId) ?? selectedProject;
+    const workspaceId = (project as any)?.workspaceId ?? targetWorkspaceId;
+    deleteProjectMutation(
+      { workspaceId, projectId },
+      {
+        onSuccess: () => {
+          addToast("info", "Project deleted successfully!");
+          setSelectedProject(null);
+          queryClient.invalidateQueries({ queryKey: ["workspace-projects"] });
+        },
+        onError: (err: any) => {
+          addToast("warning", err?.message || "Failed to delete project.");
+        },
       },
-      onError: (err: any) => {
-        addToast("warning", err?.message || "Failed to delete project.");
-      },
-    });
+    );
   };
 
   return {
