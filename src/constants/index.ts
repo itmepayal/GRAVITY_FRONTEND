@@ -1,6 +1,11 @@
 import type { ElementType } from "react";
-import { GitBranch, Clock, Users, Workflow } from "lucide-react";
+import { GitBranch, Users, Kanban, CheckCircle2 } from "lucide-react";
 import type { DepEdge, DepNode, DepStatus, StatusColorMap } from "@/types";
+import {
+  TMS_STATS,
+  TASK_DEP_NODES,
+  TASK_DEP_EDGES,
+} from "@/constants/task/landingData";
 
 export const NAV_LINKS: [string, string][] = [
   ["product", "Product"],
@@ -12,24 +17,9 @@ export const NAV_LINKS: [string, string][] = [
 ];
 
 
-export const DEP_NODES = [
-  { id: "a", label: "Schema", x: 8, y: 50, status: "done" },
-  { id: "b", label: "Auth service", x: 32, y: 20, status: "done" },
-  { id: "c", label: "Billing API", x: 32, y: 78, status: "active" },
-  { id: "d", label: "Web client", x: 58, y: 50, status: "active" },
-  { id: "e", label: "Mobile client", x: 58, y: 88, status: "blocked" },
-  { id: "f", label: "Launch", x: 86, y: 60, status: "pending" },
-];
+export const DEP_NODES = TASK_DEP_NODES;
 
-export const DEP_EDGES = [
-  ["a", "b"],
-  ["a", "c"],
-  ["b", "d"],
-  ["c", "d"],
-  ["c", "e"],
-  ["d", "f"],
-  ["e", "f"],
-];
+export const DEP_EDGES = TASK_DEP_EDGES;
 
 export const STATUS_COLOR = {
   done: "#3FA787",
@@ -52,10 +42,26 @@ export interface Stat {
 }
 
 export const STATS: Stat[] = [
-  { value: "3.2M", label: "Dependencies tracked", icon: GitBranch },
-  { value: "41%", label: "Fewer schedule slips", icon: Clock },
-  { value: "12,400", label: "Teams onboarded", icon: Users },
-  { value: "98.7%", label: "Uptime, last 12 months", icon: Workflow },
+  {
+    value: `${TMS_STATS.totalTasks}+`,
+    label: "Tasks tracked per sprint",
+    icon: Kanban,
+  },
+  {
+    value: `${TMS_STATS.activeTasks}`,
+    label: "Active in-progress tasks",
+    icon: GitBranch,
+  },
+  {
+    value: `${TMS_STATS.teamMembers}`,
+    label: "Team members onboarded",
+    icon: Users,
+  },
+  {
+    value: `${TMS_STATS.completedTasks}`,
+    label: "Tasks shipped this sprint",
+    icon: CheckCircle2,
+  },
 ];
 
 export const LOGOS = [

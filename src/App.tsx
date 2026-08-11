@@ -19,6 +19,8 @@ import Projects from "./pages/dashboard/projects/Projects";
 
 import { ProtectedRoute } from "@/routes/ProtectedRoute";
 import { PublicRoute } from "@/routes/PublicRoute";
+import Board from "./pages/dashboard/board/Board";
+import Sprints from "./pages/dashboard/sprint/Sprints";
 
 function App() {
   return (
@@ -36,8 +38,11 @@ function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<DashboardLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
+          Board
           <Route path="/dashboard/workspaces" element={<Workspaces />} />
           <Route path="/dashboard/projects" element={<Projects />} />
+          <Route path="/dashboard/boards" element={<Board />} />
+          <Route path="/dashboard/sprints" element={<Sprints />} />
           <Route path="/dashboard/tasks" element={<MyTasks />} />
           <Route path="/dashboard/members" element={<Members />} />
           <Route path="/dashboard/archived" element={<Archived />} />

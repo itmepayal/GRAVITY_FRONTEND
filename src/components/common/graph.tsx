@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { COLORS, EDGES, NODES, STATUS_LIST } from "@/constants";
 import type { DepNode } from "@/types";
+import { LANDING_PROJECT } from "@/constants/task/landingData";
 
 export const DependencyGraph = () => {
   const [revealed, setRevealed] = useState<number>(0);
@@ -9,7 +10,6 @@ export const DependencyGraph = () => {
     const t = setInterval(() => {
       setRevealed((r) => (r < EDGES.length ? r + 1 : r));
     }, 260);
-
     return () => clearInterval(t);
   }, []);
 
@@ -17,27 +17,23 @@ export const DependencyGraph = () => {
     NODES.find((n) => n.id === id);
 
   return (
-    <div className="bg-[#143631] rounded-2xl p-5 shadow-[0_30px_60px_rgba(0,0,0,0.35)] border border-white/5">
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-[10.5px] font-semibold text-[#B7CFC7] uppercase tracking-wide">
-          Dependency graph — Launch v2.3
+    <div className="border border-white/8 bg-[#143631] p-5 shadow-[0_20px_48px_rgba(0,0,0,0.35)]">
+      <div className="mb-4 flex items-center justify-between">
+        <span className="text-[10.5px] font-semibold uppercase tracking-wide text-[#B7CFC7]">
+          Task dependency graph — {LANDING_PROJECT.name}
         </span>
-
-        <span className="flex items-center gap-1.5 text-[10px] text-[#8FE3C4] bg-[#8FE3C4]/10 rounded-md px-2.5 py-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#8FE3C4] animate-pulse" />
+        <span className="flex items-center gap-1.5 bg-[#8FE3C4]/10 px-2.5 py-1 text-[10px] text-[#8FE3C4]">
+          <span className="h-1.5 w-1.5 animate-pulse bg-[#8FE3C4]" />
           Live
         </span>
       </div>
 
-      <svg viewBox="0 0 100 100" className="w-full h-[240px]">
+      <svg viewBox="0 0 100 100" className="h-[240px] w-full">
         {EDGES.map(([from, to], i) => {
           const a = nodeById(from);
           const b = nodeById(to);
-
           if (!a || !b) return null;
-
           const show = i < revealed;
-
           return (
             <line
               key={`${from}-${to}`}
@@ -75,7 +71,6 @@ export const DependencyGraph = () => {
                 />
               )}
             </circle>
-
             <text
               x={n.x}
               y={n.y + 8}
@@ -89,16 +84,14 @@ export const DependencyGraph = () => {
         ))}
       </svg>
 
-      <div className="flex items-center gap-4 mt-3 px-1">
+      <div className="mt-3 flex flex-wrap items-center gap-4 px-1">
         {STATUS_LIST.map((s) => (
           <div key={s} className="flex items-center gap-1.5">
             <span
-              className="w-2 h-2 rounded-full"
+              className="h-2 w-2"
               style={{ background: COLORS[s] }}
             />
-            <span className="text-[10px] text-[#B7CFC7] capitalize">
-              {s}
-            </span>
+            <span className="text-[10px] capitalize text-[#B7CFC7]">{s}</span>
           </div>
         ))}
       </div>

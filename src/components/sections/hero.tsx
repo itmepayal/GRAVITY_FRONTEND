@@ -1,96 +1,120 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, CheckCircle2, Kanban, Zap, Shield, LayoutGrid } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Kanban,
+  Zap,
+  Shield,
+  LayoutGrid,
+} from "lucide-react";
 import { Highlight } from "@/components/common/highlight";
 import { DependencyGraph } from "@/components/common/graph";
+import {
+  LANDING_BOARD,
+  LANDING_PROJECT,
+} from "@/constants/task/landingData";
 
 export const Hero = () => {
   return (
     <section className="relative overflow-hidden bg-[#0F2D29] text-white">
-      {/* Background Dot Grid */}
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.06]"
         style={{
-          backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
+          backgroundImage:
+            "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
           backgroundSize: "28px 28px",
         }}
       />
-      {/* Ambient Radial Glow */}
       <div
-        className="pointer-events-none absolute -top-24 -right-24 sm:-top-32 sm:-right-32 lg:-top-40 lg:-right-40 w-[220px] h-[220px] sm:w-[380px] sm:h-[380px] lg:w-[520px] lg:h-[520px] rounded-none opacity-25 blur-3xl"
+        className="pointer-events-none absolute -top-24 -right-24 h-[220px] w-[220px] opacity-25 blur-3xl sm:-top-32 sm:-right-32 sm:h-[380px] sm:w-[380px] lg:-top-40 lg:-right-40 lg:h-[520px] lg:w-[520px]"
         style={{
           background: "radial-gradient(circle, #8FE3C4 0%, transparent 70%)",
         }}
       />
+      <div
+        className="pointer-events-none absolute -bottom-32 -left-20 h-[200px] w-[200px] opacity-15 blur-3xl sm:h-[320px] sm:w-[320px]"
+        style={{
+          background: "radial-gradient(circle, #E98A57 0%, transparent 70%)",
+        }}
+      />
 
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-12 sm:py-16 lg:py-20">
-        <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-10 sm:gap-12 lg:gap-16 items-center relative">
-
-          {/* Left Hero Text Column */}
-          <div className="text-center lg:text-left space-y-6">
-            <div className="inline-flex items-center gap-2 text-[11px] sm:text-[12px] font-bold text-[#8FE3C4] bg-white/5 border border-[#8FE3C4]/20 px-3.5 py-1.5 uppercase tracking-wider">
-              <span className="w-2 h-2 rounded-none bg-[#8FE3C4] animate-pulse shrink-0" />
-              Gravity TMS v2.4 — Enterprise Task Management System
+      <div className="relative mx-auto max-w-[1400px] px-4 py-14 sm:px-6 sm:py-18 md:px-8 lg:px-12 lg:py-22 xl:px-16">
+        <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
+          <div className="space-y-7 text-center lg:text-left">
+            <div className="inline-flex items-center gap-2 border border-[#8FE3C4]/25 bg-white/5 px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[#8FE3C4] sm:text-[12px]">
+              <span className="h-2 w-2 shrink-0 animate-pulse bg-[#8FE3C4]" />
+              Gravity TMS — Enterprise Task Management
             </div>
 
-            <h1 className="text-white text-[28px] sm:text-[40px] md:text-[48px] lg:text-[52px] font-extrabold leading-[1.15] tracking-tight">
-              Task Management that finds your{" "}
-              <Highlight><span className="capitalize">critical path</span></Highlight> automatically
+            <h1 className="text-[28px] font-extrabold leading-[1.12] tracking-tight text-white sm:text-[40px] md:text-[48px] lg:text-[52px]">
+              Plan, assign & ship tasks on your{" "}
+              <Highlight>
+                <span className="capitalize">critical path</span>
+              </Highlight>
             </h1>
 
-            <p className="text-[#B7CFC7] text-sm sm:text-base font-['Poppins',sans-serif] max-w-[520px] mx-auto lg:mx-0 leading-relaxed font-normal">
-              Plan, track, and ship high-impact work without the manual overhead.
-              Gravity TMS automatically calculates task dependencies, resource capacity, and sprint roadmaps in real time.
+            <p className="mx-auto max-w-[540px] text-sm font-normal leading-relaxed text-[#B7CFC7] sm:text-base lg:mx-0">
+              Kanban boards, sprint tracking, subtasks, and dependency graphs —
+              all in one workspace. {LANDING_PROJECT.name} is{" "}
+              {LANDING_PROJECT.progress}% complete with real-time capacity
+              planning built in.
             </p>
 
-            {/* CTA Buttons */}
-            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3.5 pt-2">
+            <div className="flex flex-wrap items-center justify-center gap-3.5 pt-1 lg:justify-start">
               <Link
                 to="/dashboard"
-                className="flex items-center gap-2.5 bg-[#8FE3C4] text-[#0F2D29] px-6 py-3.5 text-[14px] font-extrabold tracking-wide hover:bg-white transition shadow-lg"
+                className="flex items-center gap-2.5 bg-[#8FE3C4] px-6 py-3.5 text-[14px] font-extrabold tracking-wide text-[#0F2D29] shadow-[0_8px_24px_rgba(143,227,196,0.25)] transition hover:bg-white"
               >
                 Go to Dashboard
                 <ArrowRight size={16} strokeWidth={2.5} />
               </Link>
-
               <Link
                 to="/dashboard/tasks"
-                className="flex items-center gap-2 bg-white/10 text-white border border-white/20 px-6 py-3.5 text-[14px] font-bold hover:bg-white/20 transition"
+                className="flex items-center gap-2 border border-white/20 bg-white/10 px-6 py-3.5 text-[14px] font-bold text-white transition hover:bg-white/20"
               >
                 <Kanban size={16} />
-                Explore Kanban Boards
+                Open Kanban Board
               </Link>
             </div>
 
-            {/* Quick Feature Badges */}
-            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-x-6 gap-y-2 pt-4 text-[12px] font-semibold text-[#B7CFC7]">
+            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 pt-2 text-[12px] font-semibold text-[#B7CFC7] lg:justify-start">
               <span className="flex items-center gap-1.5">
                 <CheckCircle2 size={15} className="text-[#8FE3C4]" />
-                Zero setup friction
+                {LANDING_BOARD.columns.length} workflow columns
               </span>
               <span className="flex items-center gap-1.5">
                 <Shield size={15} className="text-[#8FE3C4]" />
-                Enterprise RBAC Security
+                Workspace RBAC security
               </span>
               <span className="flex items-center gap-1.5">
                 <Zap size={15} className="text-[#8FE3C4]" />
-                Real-time Automation
+                Live task sync
               </span>
             </div>
           </div>
 
-          {/* Right Interactive Graph / Kanban Preview */}
-          <div className="relative w-full overflow-hidden border border-[#8FE3C4]/20 bg-[#0F2D29]/80 p-2 shadow-2xl">
-            <div className="mb-2 flex items-center justify-between border-b border-white/10 bg-white/5 px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-[#8FE3C4]">
-              <span className="flex items-center gap-1.5">
-                <LayoutGrid size={14} /> Active Sprint Pipeline
+          <div className="relative w-full border border-[#8FE3C4]/20 bg-[#0F2D29]/90 p-2 shadow-[0_24px_64px_rgba(0,0,0,0.45)]">
+            <div className="mb-2 flex items-center justify-between border-b border-white/10 bg-white/5 px-3 py-2.5">
+              <span className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-[#8FE3C4]">
+                <LayoutGrid size={14} />
+                {LANDING_BOARD.name}
               </span>
-              <span className="bg-[#8FE3C4] text-[#0F2D29] px-2 py-0.5 text-[10px] font-extrabold">
+              <span className="bg-[#8FE3C4] px-2 py-0.5 text-[10px] font-extrabold text-[#0F2D29]">
                 LIVE SYNC
               </span>
             </div>
+            <div className="mb-2 flex gap-1 px-1">
+              {LANDING_BOARD.columns.slice(0, 5).map((col) => (
+                <span
+                  key={col}
+                  className="flex-1 truncate border border-white/8 bg-white/5 px-1.5 py-1 text-center text-[9px] font-bold uppercase tracking-wide text-[#B7CFC7]"
+                >
+                  {col}
+                </span>
+              ))}
+            </div>
             <DependencyGraph />
           </div>
-
         </div>
       </div>
     </section>

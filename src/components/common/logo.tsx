@@ -1,6 +1,14 @@
 import type { GravityMarkProps } from "@/types";
 
-export const GravityMark = ({ size = 28, className = "" }: GravityMarkProps) => (
+const MARK_BG = "#0F2D29";
+const MARK_MINT = "#8FE3C4";
+const MARK_MUTED = "#B7CFC7";
+
+/** Shared SVG mark — used in navbar, footer, sidebar, and loader */
+export const GravityMark = ({
+  size = 28,
+  className = "",
+}: GravityMarkProps) => (
   <svg
     width={size}
     height={size}
@@ -10,30 +18,25 @@ export const GravityMark = ({ size = 28, className = "" }: GravityMarkProps) => 
     aria-hidden="true"
     className={`shrink-0 ${className}`}
   >
-    {/* Dark Emerald Container Background */}
-    <rect width="40" height="40" fill="#0F2D29" />
+    <rect width="40" height="40" fill={MARK_BG} />
     <rect
       x="0.5"
       y="0.5"
       width="39"
       height="39"
-      stroke="#8FE3C4"
+      stroke={MARK_MINT}
       strokeOpacity="0.25"
       strokeWidth="1"
     />
-
-    {/* Orbital Gravity Ring Accent */}
     <circle
       cx="20"
       cy="20"
       r="13"
-      stroke="#8FE3C4"
+      stroke={MARK_MINT}
       strokeOpacity="0.2"
       strokeWidth="1.5"
       strokeDasharray="4 3"
     />
-
-    {/* Dynamic 'G' Ascending Anti-Gravity Curve */}
     <path
       d="M11 25.5C11 18.5 15.5 12 22.5 12C26 12 28.5 13.5 30 15.5"
       stroke="url(#gravity-grad-1)"
@@ -42,19 +45,22 @@ export const GravityMark = ({ size = 28, className = "" }: GravityMarkProps) => 
     />
     <path
       d="M30 15.5L30 22C30 25.5 27 28 23.5 28C19 28 17 25 17 22H27"
-      stroke="#8FE3C4"
+      stroke={MARK_MINT}
       strokeWidth="2.75"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
-
-    {/* Ascending Nodes */}
-    <circle cx="11" cy="25.5" r="2" fill="#8FE3C4" />
-    <circle cx="22.5" cy="12" r="2" fill="#8FE3C4" />
-    <circle cx="30" cy="15.5" r="2.5" fill="#FFFFFF" stroke="#8FE3C4" strokeWidth="1.5" />
-    <circle cx="27" cy="22" r="2" fill="#8FE3C4" />
-
-    {/* Gradient Definitions */}
+    <circle cx="11" cy="25.5" r="2" fill={MARK_MINT} />
+    <circle cx="22.5" cy="12" r="2" fill={MARK_MINT} />
+    <circle
+      cx="30"
+      cy="15.5"
+      r="2.5"
+      fill="#FFFFFF"
+      stroke={MARK_MINT}
+      strokeWidth="1.5"
+    />
+    <circle cx="27" cy="22" r="2" fill={MARK_MINT} />
     <defs>
       <linearGradient
         id="gravity-grad-1"
@@ -64,70 +70,125 @@ export const GravityMark = ({ size = 28, className = "" }: GravityMarkProps) => 
         y2="15.5"
         gradientUnits="userSpaceOnUse"
       >
-        <stop stopColor="#8FE3C4" stopOpacity="0.4" />
-        <stop offset="1" stopColor="#8FE3C4" />
+        <stop stopColor={MARK_MINT} stopOpacity="0.4" />
+        <stop offset="1" stopColor={MARK_MINT} />
       </linearGradient>
     </defs>
   </svg>
 );
 
+/** Animated loader — same mark, orbital ring spin + path reveal */
 export const GravityMarkLoader = ({ step }: { step: number }) => {
-  const nodes = [
-    { cx: 6, cy: 19 },
-    { cx: 12.5, cy: 12.5 },
-    { cx: 17, cy: 16 },
-    { cx: 22, cy: 9 },
-  ];
   const progress = Math.min(step, 4) / 4;
+  const nodes = [
+    { cx: 11, cy: 25.5, r: 2, active: step >= 1 },
+    { cx: 22.5, cy: 12, r: 2, active: step >= 2 },
+    { cx: 30, cy: 15.5, r: 2.5, active: step >= 3 },
+    { cx: 27, cy: 22, r: 2, active: step >= 4 },
+  ];
+
   return (
-    <div className="relative w-[76px] h-[76px] flex items-center justify-center">
-      <div className="absolute inset-0 bg-[radial-gradient(circle,_#8FE3C433_0%,_transparent_68%)] animate-[mark-breathe_2.6s_ease-in-out_infinite]" />
-      <svg width="52" height="52" viewBox="0 0 28 28" fill="none" aria-hidden="true" className="relative">
-        <rect width="28" height="28" className="fill-[#8FE3C4]" opacity={0.1} />
+    <div className="relative flex h-[88px] w-[88px] items-center justify-center">
+      <div
+        className="absolute inset-0 animate-[mark-breathe_2.6s_ease-in-out_infinite]"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(143,227,196,0.22) 0%, transparent 68%)",
+        }}
+      />
+      <svg
+        width="72"
+        height="72"
+        viewBox="0 0 40 40"
+        fill="none"
+        aria-hidden="true"
+        className="relative"
+      >
+        <rect width="40" height="40" fill={MARK_BG} />
         <rect
-          width="27"
-          height="27"
           x="0.5"
           y="0.5"
-          className="stroke-[#8FE3C4]"
-          strokeOpacity={0.18}
-          fill="none"
+          width="39"
+          height="39"
+          stroke={MARK_MINT}
+          strokeOpacity="0.25"
+          strokeWidth="1"
+        />
+        <circle
+          cx="20"
+          cy="20"
+          r="13"
+          stroke={MARK_MINT}
+          strokeOpacity="0.35"
+          strokeWidth="1.5"
+          strokeDasharray="4 3"
+          className="origin-center animate-[spin_8s_linear_infinite]"
+          style={{ transformOrigin: "20px 20px" }}
         />
         <path
-          d="M6 19 L12.5 12.5 L17 16 L22 9"
-          className="stroke-[#8FE3C4] transition-[stroke-dashoffset] duration-500 ease-out"
-          strokeWidth="1.6"
+          d="M11 25.5C11 18.5 15.5 12 22.5 12C26 12 28.5 13.5 30 15.5"
+          stroke={MARK_MINT}
+          strokeWidth="2.75"
+          strokeLinecap="round"
+          strokeDasharray="28"
+          strokeDashoffset={28 - progress * 28}
+          style={{ transition: "stroke-dashoffset 0.45s ease-out" }}
+        />
+        <path
+          d="M30 15.5L30 22C30 25.5 27 28 23.5 28C19 28 17 25 17 22H27"
+          stroke={MARK_MINT}
+          strokeWidth="2.75"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeDasharray="26"
-          strokeDashoffset={26 - progress * 26}
+          strokeDasharray="22"
+          strokeDashoffset={22 - Math.max(0, progress - 0.35) * 22 * 2.8}
+          style={{ transition: "stroke-dashoffset 0.45s ease-out" }}
         />
-        {progress > 0 && progress < 1 && (
-          <circle r="1.3" className="fill-white">
-            <animateMotion
-              dur="0.5s"
-              repeatCount="1"
-              path="M6 19 L12.5 12.5 L17 16 L22 9"
-              keyPoints={`${Math.max(0, progress - 0.25)};${progress}`}
-              keyTimes="0;1"
-              calcMode="linear"
-            />
-          </circle>
-        )}
         {nodes.map((n, i) => (
           <circle
             key={i}
             cx={n.cx}
             cy={n.cy}
-            r={i === 3 ? 2.4 : 1.9}
-            className={`transition-[fill,r] duration-300 ease-out ${
-              step > i ? "fill-[#8FE3C4]" : "fill-[#B7CFC7]/25"
-            }`}
+            r={n.r}
+            fill={n.active ? MARK_MINT : `${MARK_MUTED}40`}
+            stroke={n.active ? MARK_MINT : "transparent"}
+            strokeWidth={n.r > 2 ? 1.5 : 0}
+            style={{ transition: "fill 0.3s ease-out" }}
           />
         ))}
       </svg>
     </div>
   );
 };
+
+/** Wordmark row — mark + Gravity TMS (shared by loader & navbar) */
+export const GravityBrand = ({
+  size = 28,
+  showTag = true,
+  dark = true,
+}: {
+  size?: number;
+  showTag?: boolean;
+  dark?: boolean;
+}) => (
+  <div className="flex items-center gap-2.5">
+    <GravityMark size={size} />
+    <div className="flex items-center gap-1.5">
+      <span
+        className={`text-[19px] font-extrabold tracking-tight sm:text-[21px] ${
+          dark ? "text-white" : "text-[#0F2D29]"
+        }`}
+        style={{ fontFamily: "var(--font-heading)" }}
+      >
+        Gravity
+      </span>
+      {showTag && (
+        <span className="border border-[#8FE3C4]/30 bg-[#8FE3C4]/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#8FE3C4]">
+          TMS
+        </span>
+      )}
+    </div>
+  </div>
+);
 
 export default GravityMark;

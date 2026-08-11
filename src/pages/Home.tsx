@@ -26,7 +26,7 @@ function Home(): JSX.Element {
   }, []);
 
   if (isLoading) {
-    return <Loader label="Loading your schedule" />;
+    return <Loader label="Loading Task Management Workspace" />;
   }
 
   return (
