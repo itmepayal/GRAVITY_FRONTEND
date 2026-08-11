@@ -1,4 +1,3 @@
-import React from "react";
 import { Building2, Plus, Sparkles } from "lucide-react";
 
 export const SidebarEmpty = ({ onCreate }: { onCreate: () => void }) => (
@@ -6,7 +5,9 @@ export const SidebarEmpty = ({ onCreate }: { onCreate: () => void }) => (
     <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center bg-[#0F2D29]/10 text-[#0F2D29]">
       <Building2 size={22} />
     </div>
-    <p className="text-[14px] font-bold font-['Goldman',sans-serif] text-[#0F2D29]">No workspaces yet</p>
+    <p className="text-[14px] font-bold font-['Goldman',sans-serif] text-[#0F2D29]">
+      No workspaces yet
+    </p>
     <p className="mt-1 text-[12px] font-medium text-[#5B6E68]">
       Create your first space to organize projects and teammates.
     </p>
