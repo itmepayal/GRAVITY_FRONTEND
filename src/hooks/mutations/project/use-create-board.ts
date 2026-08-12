@@ -14,6 +14,7 @@ export const useCreateBoard = () => {
       data: {
         name: string;
         description?: string;
+        type?: string;
       };
     }) => createBoard(projectId, data),
 

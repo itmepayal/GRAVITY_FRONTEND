@@ -1,7 +1,15 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useParams } from "react-router-dom";
 import { Topbar } from "@/components/layout/Topbar";
 import { useDashboardContext } from "@/components/layout/DashboardLayout";
 import { DashboardMetricsBanner } from "@/components/common/DashboardMetricsBanner";
+import { useGetAllUserBoards } from "@/hooks/queries/board/use-get-all-user-boards";
+import { useGetBoardById } from "@/hooks/queries/board/use-get-board-by-id";
+import { useCreateBoard } from "@/hooks/mutations/project/use-create-board";
+import { useUpdateBoard } from "@/hooks/mutations/board/use-update-board";
+import { useDeleteBoard } from "@/hooks/mutations/board/use-delete-board";
+import { useGetUserWorkspaces } from "@/hooks/queries/workspace/use-get-user-workspaces";
+import { useGetWorkspaceProjects } from "@/hooks/queries/project/use-get-workspace-projects";
 import {
   Plus,
   MoreHorizontal,
@@ -18,16 +26,45 @@ import {
   Users,
   X,
   Check,
+  AlertCircle,
+  LayoutGrid,
+  Pencil,
+  Trash2,
+  Zap,
 } from "lucide-react";
 
 const INK = "#0F2D29";
 const MINT = "#8FE3C4";
 const TEAL = "#0F8A65";
 
-const boardMeta = {
-  name: "Aurora Design System",
-  description: "Component library rollout — sprint board",
-  type: "kanban" as "kanban" | "scrum",
+type BoardType = "kanban" | "scrum";
+
+// Central place for the two board "themes" so kanban and scrum
+// are visually distinct instead of sharing one accent color everywhere.
+const BOARD_THEME: Record<
+  BoardType,
+  {
+    accent: string;
+    accentSoft: string;
+    accentBorder: string;
+    toolbarBg: string;
+    badgeText: string;
+  }
+> = {
+  kanban: {
+    accent: INK,
+    accentSoft: "#EDEBE3",
+    accentBorder: `${INK}22`,
+    toolbarBg: "white",
+    badgeText: `${INK}99`,
+  },
+  scrum: {
+    accent: TEAL,
+    accentSoft: "#E7F5EF",
+    accentBorder: `${TEAL}33`,
+    toolbarBg: "#F4FBF8",
+    badgeText: TEAL,
+  },
 };
 
 type Priority = "low" | "medium" | "high" | "urgent";
@@ -36,10 +73,26 @@ const PRIORITY_META: Record<
   Priority,
   { label: string; color: string; bg: string }
 > = {
-  low: { label: "Low", color: INK, bg: "#EDEBE3" },
-  medium: { label: "Medium", color: "#C2680B", bg: "#FDF1E4" },
-  high: { label: "High", color: "#B3261E", bg: "#FBEAE9" },
-  urgent: { label: "Urgent", color: "#B3261E", bg: "#FBEAE9" },
+  low: {
+    label: "Low",
+    color: INK,
+    bg: "#EDEBE3",
+  },
+  medium: {
+    label: "Medium",
+    color: "#C2680B",
+    bg: "#FDF1E4",
+  },
+  high: {
+    label: "High",
+    color: "#B3261E",
+    bg: "#FBEAE9",
+  },
+  urgent: {
+    label: "Urgent",
+    color: "#B3261E",
+    bg: "#FBEAE9",
+  },
 };
 
 const PRIORITY_ORDER: Priority[] = ["low", "medium", "high", "urgent"];
@@ -54,8 +107,6 @@ const TAG_COLORS: Record<TagName, { color: string; bg: string }> = {
   Docs: { color: "#6A4EE0", bg: "#EFEBFC" },
 };
 
-const DEFAULT_COLUMNS = ["Backlog", "Todo", "In Progress", "Review", "Done"];
-
 interface Task {
   id: string;
   title: string;
@@ -65,127 +116,114 @@ interface Task {
   comments: number;
   attachments: number;
   due: string | null;
+  storyPoints?: number;
 }
 
-const initialTasks: Record<string, Task[]> = {
-  Backlog: [
-    {
-      id: "t1",
-      title: "Audit existing color tokens across product surfaces",
-      priority: "low",
-      tags: ["Design"],
-      assignee: "PY",
-      comments: 2,
-      attachments: 0,
-      due: null,
-    },
-    {
-      id: "t2",
-      title: "Research accessible focus-ring patterns",
-      priority: "medium",
-      tags: ["Design", "Docs"],
-      assignee: "RK",
-      comments: 0,
-      attachments: 1,
-      due: null,
-    },
-  ],
-  Todo: [
-    {
-      id: "t3",
-      title: "Build Button component with all variants",
-      priority: "high",
-      tags: ["Frontend"],
-      assignee: "PY",
-      comments: 3,
-      attachments: 0,
-      due: "Aug 14",
-    },
-    {
-      id: "t4",
-      title: "Define spacing scale in tailwind config",
-      priority: "medium",
-      tags: ["Frontend"],
-      assignee: "SN",
-      comments: 1,
-      attachments: 0,
-      due: "Aug 15",
-    },
-    {
-      id: "t5",
-      title: "Set up Storybook for component previews",
-      priority: "low",
-      tags: ["Docs"],
-      assignee: "RK",
-      comments: 0,
-      attachments: 0,
-      due: null,
-    },
-  ],
-  "In Progress": [
-    {
-      id: "t6",
-      title: "Implement Modal + Drawer primitives",
-      priority: "high",
-      tags: ["Frontend", "Bug"],
-      assignee: "PY",
-      comments: 5,
-      attachments: 2,
-      due: "Aug 12",
-    },
-    {
-      id: "t7",
-      title: "Wire theming API to backend config service",
-      priority: "urgent",
-      tags: ["Backend"],
-      assignee: "AM",
-      comments: 2,
-      attachments: 1,
-      due: "Aug 13",
-    },
-  ],
-  Review: [
-    {
-      id: "t8",
-      title: "Form field validation states — PR review",
-      priority: "medium",
-      tags: ["Frontend"],
-      assignee: "SN",
-      comments: 4,
-      attachments: 0,
-      due: "Aug 11",
-    },
-  ],
-  Done: [
-    {
-      id: "t9",
-      title: "Typography scale finalized and documented",
-      priority: "low",
-      tags: ["Docs"],
-      assignee: "RK",
-      comments: 1,
-      attachments: 1,
-      due: null,
-    },
-    {
-      id: "t10",
-      title: "Icon set audit and cleanup",
-      priority: "low",
-      tags: ["Design"],
-      assignee: "PY",
-      comments: 0,
-      attachments: 0,
-      due: null,
-    },
-  ],
-};
+interface ApiTask {
+  id?: string;
+  _id?: string;
+  title: string;
+  priority: Priority;
+  tags: string[];
+  assignee: string;
+  commentsCount: number;
+  attachmentsCount: number;
+  dueDate: string | null;
+  status: string;
+  storyPoints?: number;
+}
 
-function TaskCard({ task }: { task: Task }) {
+interface ApiBoardProject {
+  id?: string;
+  _id?: string;
+  name?: string;
+}
+
+interface ApiBoard {
+  id?: string;
+  _id?: string;
+  workspace?: string;
+  project?: ApiBoardProject;
+  name: string;
+  description: string;
+  type: BoardType;
+  columns: string[];
+  tasks?: ApiTask[];
+}
+
+interface WorkspaceOption {
+  id: string;
+  name: string;
+}
+
+interface ProjectOption {
+  id: string;
+  name: string;
+}
+
+function unwrapList<T>(res: any): T[] {
+  if (Array.isArray(res)) return res as T[];
+  if (Array.isArray(res?.data)) return res.data as T[];
+  return [];
+}
+
+function unwrapObject<T>(res: any): T | undefined {
+  if (!res) return undefined;
+  if (res.data && typeof res.data === "object" && !Array.isArray(res.data)) {
+    return res.data as T;
+  }
+  return res as T;
+}
+
+function getProjectId(board: ApiBoard): string | undefined {
+  return board.project?.id ?? board.project?._id;
+}
+
+function getBoardId(board: ApiBoard | undefined): string | undefined {
+  return board?.id ?? board?._id;
+}
+
+function truncateText(text: string, maxLen: number): string {
+  if (!text) return text;
+  return text.length > maxLen ? `${text.slice(0, maxLen).trim()}…` : text;
+}
+
+function mapApiTask(t: ApiTask): Task {
+  return {
+    id: t.id ?? t._id ?? "",
+    title: t.title,
+    priority: t.priority,
+    tags: (t.tags ?? []).filter((tag): tag is TagName => tag in TAG_COLORS),
+    assignee: t.assignee,
+    comments: t.commentsCount ?? 0,
+    attachments: t.attachmentsCount ?? 0,
+    due: t.dueDate,
+    storyPoints: t.storyPoints,
+  };
+}
+
+function groupTasksByColumn(
+  columns: string[],
+  apiTasks: ApiTask[] | undefined,
+): Record<string, Task[]> {
+  const grouped: Record<string, Task[]> = {};
+  for (const col of columns) grouped[col] = [];
+  for (const t of apiTasks ?? []) {
+    const mapped = mapApiTask(t);
+    if (!grouped[t.status]) grouped[t.status] = [];
+    grouped[t.status].push(mapped);
+  }
+  return grouped;
+}
+
+function TaskCard({ task, boardType }: { task: Task; boardType: BoardType }) {
   const priority = PRIORITY_META[task.priority];
+  const theme = BOARD_THEME[boardType];
+
   return (
     <div
-      className="cursor-pointer border bg-white p-3.5 transition-shadow hover:shadow-md"
-      style={{ borderColor: `${INK}22` }}
+      className="cursor-pointer border border-l-[3px] bg-white p-3.5 transition-shadow hover:shadow-md"
+      style={{ borderColor: `${INK}22`, borderLeftColor: theme.accent }}
     >
       {task.tags?.length > 0 && (
         <div className="mb-2.5 flex flex-wrap gap-1.5">
@@ -220,6 +258,17 @@ function TaskCard({ task }: { task: Task }) {
             <Flag size={10} />
             {priority.label}
           </span>
+
+          {/* Story points only make sense in a scrum/sprint context */}
+          {boardType === "scrum" && typeof task.storyPoints === "number" && (
+            <span
+              className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-bold"
+              style={{ color: theme.accent, backgroundColor: theme.accentSoft }}
+            >
+              {task.storyPoints} SP
+            </span>
+          )}
+
           {task.due && (
             <span
               className="flex items-center gap-1 text-[11px] font-medium"
@@ -265,24 +314,53 @@ function TaskCard({ task }: { task: Task }) {
 interface ColumnProps {
   name: string;
   tasks: Task[];
+  boardType: BoardType;
   onAddTask: (columnName: string) => void;
+  showWipLimit?: boolean;
+  wipLimit?: number;
 }
 
-function Column({ name, tasks, onAddTask }: ColumnProps) {
+function Column({
+  name,
+  tasks,
+  boardType,
+  onAddTask,
+  showWipLimit = false,
+  wipLimit = 5,
+}: ColumnProps) {
+  const isOverLimit = showWipLimit && tasks.length > wipLimit;
+  const theme = BOARD_THEME[boardType];
+
   return (
     <div className="flex max-h-full w-72 shrink-0 flex-col">
-      <div className="flex items-center justify-between px-0.5 pb-3">
+      <div
+        className="flex items-center justify-between border-t-2 px-0.5 pb-3 pt-2"
+        style={{ borderColor: theme.accent }}
+      >
         <span
           className="flex items-center gap-2 text-sm font-black"
           style={{ color: INK }}
         >
           {name}
           <span
-            className="flex h-5 w-5 items-center justify-center text-[11px] font-bold"
-            style={{ backgroundColor: "#EDEBE3", color: `${INK}99` }}
+            className="flex h-5 items-center justify-center px-1.5 text-[11px] font-bold"
+            style={{
+              backgroundColor: isOverLimit ? "#FBEAE9" : theme.accentSoft,
+              color: isOverLimit ? "#B3261E" : theme.badgeText,
+            }}
           >
             {tasks.length}
+            {showWipLimit ? ` / ${wipLimit}` : ""}
           </span>
+          {isOverLimit && (
+            <span
+              className="flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide"
+              style={{ color: "#B3261E", backgroundColor: "#FBEAE9" }}
+            >
+              <AlertCircle size={9} />
+              WIP limit
+            </span>
+          )}
         </span>
         <button
           className="flex h-6 w-6 items-center justify-center"
@@ -294,7 +372,7 @@ function Column({ name, tasks, onAddTask }: ColumnProps) {
 
       <div className="flex-1 space-y-2.5 overflow-y-auto pb-2 pr-1">
         {tasks.map((task) => (
-          <TaskCard key={task.id} task={task} />
+          <TaskCard key={task.id} task={task} boardType={boardType} />
         ))}
 
         {tasks.length === 0 && (
@@ -309,7 +387,7 @@ function Column({ name, tasks, onAddTask }: ColumnProps) {
         <button
           onClick={() => onAddTask(name)}
           className="flex w-full items-center justify-center gap-1.5 border border-dashed py-2.5 text-xs font-bold"
-          style={{ borderColor: `${INK}33`, color: `${INK}77` }}
+          style={{ borderColor: theme.accentBorder, color: `${INK}77` }}
         >
           <Plus size={13} />
           Add Task
@@ -319,11 +397,104 @@ function Column({ name, tasks, onAddTask }: ColumnProps) {
   );
 }
 
+// Shown only on scrum boards — gives the board a "sprint" identity at a glance.
+// Purely presentational for now; wire up real sprint dates/goals later if needed.
+function SprintBanner({ boardName }: { boardName: string }) {
+  return (
+    <div
+      className="flex flex-wrap items-center justify-between gap-3 border p-3.5"
+      style={{ borderColor: `${TEAL}33`, backgroundColor: "#E7F5EF" }}
+    >
+      <div className="flex items-center gap-2.5">
+        <div
+          className="flex h-8 w-8 items-center justify-center"
+          style={{ backgroundColor: TEAL }}
+        >
+          <Zap size={15} className="text-white" />
+        </div>
+        <div>
+          <p className="text-xs font-black" style={{ color: INK }}>
+            Sprint 1 · {boardName}
+          </p>
+          <p className="text-[11px] font-medium" style={{ color: `${INK}77` }}>
+            Active sprint · 14 days remaining
+          </p>
+        </div>
+      </div>
+
+      <div
+        className="flex items-center gap-1.5 px-2.5 py-1"
+        style={{ backgroundColor: "white" }}
+      >
+        <span
+          className="text-[10px] font-bold uppercase tracking-wide"
+          style={{ color: TEAL }}
+        >
+          In Progress
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export const Board = () => {
   const { openMobileNav } = useDashboardContext();
+  const { projectId } = useParams<{ projectId: string }>();
 
-  const [columns, setColumns] = useState<string[]>(DEFAULT_COLUMNS);
-  const [tasks, setTasks] = useState<Record<string, Task[]>>(initialTasks);
+  const {
+    data: allBoardsResponse,
+    isLoading,
+    isError,
+    error,
+  } = useGetAllUserBoards();
+
+  const allBoards = unwrapList<ApiBoard>(allBoardsResponse);
+
+  const [selectedBoardId, setSelectedBoardId] = useState<string>("");
+
+  useEffect(() => {
+    if (!allBoards.length) return;
+    if (
+      selectedBoardId &&
+      allBoards.some((b) => (b.id ?? b._id) === selectedBoardId)
+    ) {
+      return;
+    }
+    const matched = allBoards.find((b) => getProjectId(b) === projectId);
+    const fallback = matched ?? allBoards[0];
+    setSelectedBoardId(fallback.id ?? fallback._id ?? "");
+  }, [allBoards, projectId]);
+
+  const board = useMemo(() => {
+    if (!allBoards.length) return undefined;
+    return (
+      allBoards.find((b) => (b.id ?? b._id) === selectedBoardId) ?? allBoards[0]
+    );
+  }, [allBoards, selectedBoardId]);
+
+  const { data: boardDetailResponse, isFetching: isBoardDetailFetching } =
+    useGetBoardById(selectedBoardId);
+
+  const boardDetail = useMemo(
+    () => unwrapObject<ApiBoard>(boardDetailResponse),
+    [boardDetailResponse],
+  );
+
+  const [columns, setColumns] = useState<string[]>([]);
+  const [tasks, setTasks] = useState<Record<string, Task[]>>({});
+
+  useEffect(() => {
+    if (!board) return;
+    setColumns(board.columns);
+    setTasks(groupTasksByColumn(board.columns, board.tasks));
+  }, [board]);
+
+  useEffect(() => {
+    if (!boardDetail) return;
+    if (getBoardId(boardDetail) !== selectedBoardId) return;
+    setColumns(boardDetail.columns);
+    setTasks(groupTasksByColumn(boardDetail.columns, boardDetail.tasks));
+  }, [boardDetail, selectedBoardId]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<Priority | null>(null);
@@ -331,6 +502,113 @@ export const Board = () => {
 
   const [showAddColumn, setShowAddColumn] = useState(false);
   const [newColumnName, setNewColumnName] = useState("");
+
+  const [showBoardMenu, setShowBoardMenu] = useState(false);
+
+  const [editBoardOpen, setEditBoardOpen] = useState(false);
+  const [editBoardName, setEditBoardName] = useState("");
+  const [editBoardDescription, setEditBoardDescription] = useState("");
+  const [editBoardType, setEditBoardType] = useState<BoardType>("kanban");
+
+  const { mutate: updateBoardMutate, isPending: isUpdatingBoard } =
+    useUpdateBoard();
+  const { mutate: deleteBoardMutate, isPending: isDeletingBoard } =
+    useDeleteBoard();
+
+  const handleOpenEditBoard = () => {
+    if (!board) return;
+    setEditBoardName(board.name);
+    setEditBoardDescription(board.description ?? "");
+    setEditBoardType(board.type);
+    setShowBoardMenu(false);
+    setEditBoardOpen(true);
+  };
+
+  const handleSubmitEditBoard = () => {
+    const boardId = getBoardId(board);
+    if (!boardId || !editBoardName.trim()) return;
+    updateBoardMutate(
+      {
+        boardId,
+        data: {
+          name: editBoardName.trim(),
+          description: editBoardDescription.trim() || undefined,
+          type: editBoardType,
+        },
+      },
+      { onSuccess: () => setEditBoardOpen(false) },
+    );
+  };
+
+  const handleDeleteBoard = () => {
+    const boardId = getBoardId(board);
+    if (!boardId || !board) return;
+    const confirmed = window.confirm(
+      `Delete "${board.name}"? This can't be undone.`,
+    );
+    if (!confirmed) return;
+    setShowBoardMenu(false);
+    deleteBoardMutate(boardId, {
+      onSuccess: () => {
+        const remaining = allBoards.filter((b) => (b.id ?? b._id) !== boardId);
+        setSelectedBoardId(remaining[0]?.id ?? remaining[0]?._id ?? "");
+      },
+    });
+  };
+
+  const [createBoardOpen, setCreateBoardOpen] = useState(false);
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState("");
+  const [selectedProjectId, setSelectedProjectId] = useState("");
+  const [boardName, setBoardName] = useState("");
+  const [boardDescription, setBoardDescription] = useState("");
+  const [boardType, setBoardType] = useState<BoardType>("kanban");
+
+  const { mutate: createBoard, isPending: isCreatingBoard } = useCreateBoard();
+
+  const { data: workspaces, isLoading: isLoadingWorkspaces } =
+    useGetUserWorkspaces();
+
+  const { data: workspaceProjects, isLoading: isLoadingProjects } =
+    useGetWorkspaceProjects(selectedWorkspaceId);
+
+  const workspaceOptions: WorkspaceOption[] = unwrapList<any>(workspaces).map(
+    (ws: any) => ({ id: ws._id ?? ws.id, name: ws.name }),
+  );
+
+  const projectOptions: ProjectOption[] = unwrapList<any>(
+    workspaceProjects,
+  ).map((p: any) => ({ id: p._id ?? p.id, name: p.name }));
+
+  const handleOpenCreateBoard = () => {
+    setSelectedWorkspaceId("");
+    setSelectedProjectId(projectId ?? "");
+    setBoardName("");
+    setBoardDescription("");
+    setBoardType("kanban");
+    setCreateBoardOpen(true);
+  };
+
+  const handleWorkspaceChange = (workspaceId: string) => {
+    setSelectedWorkspaceId(workspaceId);
+    setSelectedProjectId("");
+  };
+
+  const handleSubmitCreateBoard = () => {
+    if (!selectedProjectId || !boardName.trim()) return;
+    createBoard(
+      {
+        projectId: selectedProjectId,
+        data: {
+          name: boardName.trim(),
+          description: boardDescription.trim() || undefined,
+          type: boardType,
+        },
+      },
+      {
+        onSuccess: () => setCreateBoardOpen(false),
+      },
+    );
+  };
 
   const totalTasks = Object.values(tasks).reduce(
     (sum, col) => sum + col.length,
@@ -343,6 +621,13 @@ export const Board = () => {
       .flat()
       .map((t) => t.assignee),
   ).size;
+
+  // Scrum cares about story points committed/completed; kanban cares about
+  // raw throughput. Swap the 4th metric card depending on board type so the
+  // banner itself signals which kind of board you're looking at.
+  const totalStoryPoints = Object.values(tasks)
+    .flat()
+    .reduce((sum, t) => sum + (t.storyPoints ?? 0), 0);
 
   const metricCards = [
     {
@@ -369,14 +654,23 @@ export const Board = () => {
       accentColor: "#2563EB",
       bgGradient: "from-[#2563EB]/10 to-transparent",
     },
-    {
-      title: "Contributors",
-      value: assignees,
-      subtitle: "Active board members",
-      icon: Users,
-      accentColor: "#D97706",
-      bgGradient: "from-[#D97706]/10 to-transparent",
-    },
+    board?.type === "scrum"
+      ? {
+          title: "Story Points",
+          value: totalStoryPoints,
+          subtitle: "Committed this sprint",
+          icon: Zap,
+          accentColor: TEAL,
+          bgGradient: "from-[#0F8A65]/10 to-transparent",
+        }
+      : {
+          title: "Contributors",
+          value: assignees,
+          subtitle: "Active board members",
+          icon: Users,
+          accentColor: "#D97706",
+          bgGradient: "from-[#D97706]/10 to-transparent",
+        },
   ];
 
   const handleAddColumn = () => {
@@ -432,19 +726,254 @@ export const Board = () => {
     return result;
   }, [tasks, columns, searchQuery, priorityFilter]);
 
+  if (isLoading) {
+    return (
+      <main className="flex flex-1 items-center justify-center p-8">
+        <p className="text-sm font-semibold" style={{ color: `${INK}77` }}>
+          Loading board...
+        </p>
+      </main>
+    );
+  }
+
+  if (isError) {
+    return (
+      <main className="flex flex-1 items-center justify-center p-8">
+        <div className="flex max-w-sm flex-col items-center gap-3 text-center">
+          <div
+            className="flex h-14 w-14 items-center justify-center"
+            style={{ backgroundColor: "#FBEAE9" }}
+          >
+            <AlertCircle size={24} style={{ color: "#B3261E" }} />
+          </div>
+          <p className="text-sm font-bold" style={{ color: INK }}>
+            Something went wrong
+          </p>
+          <p className="text-xs font-medium" style={{ color: `${INK}77` }}>
+            {(error as Error)?.message ?? "Failed to load board."}
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  // --- No board found — polished empty state (matches Project UI) ---
+  if (!board) {
+    return (
+      <>
+        <Topbar
+          variant="light"
+          title="Board"
+          subtitle="No board created for this project yet"
+          onMenuClick={openMobileNav}
+        />
+
+        <main className="mx-auto flex w-full max-w-[1600px] flex-1 items-center justify-center p-4 sm:p-6 lg:p-8">
+          <div className="flex w-full max-w-md flex-col items-center border border-dashed border-[#0F2D29]/20 bg-white px-8 py-14 text-center">
+            <div
+              className="mb-5 flex h-16 w-16 items-center justify-center"
+              style={{ backgroundColor: "#E7F5EF" }}
+            >
+              <KanbanSquare size={28} style={{ color: TEAL }} />
+            </div>
+
+            <h2 className="text-base font-black" style={{ color: INK }}>
+              No board found
+            </h2>
+            <p
+              className="mt-1.5 max-w-xs text-xs font-medium leading-relaxed"
+              style={{ color: `${INK}77` }}
+            >
+              This project doesn't have a board yet. Create one to start
+              organizing tasks into columns and tracking progress.
+            </p>
+
+            <button
+              onClick={handleOpenCreateBoard}
+              className="mt-6 flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold text-white"
+              style={{ backgroundColor: INK }}
+            >
+              <Plus size={13} />
+              Create Board
+            </button>
+          </div>
+        </main>
+
+        {createBoardOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="w-full max-w-md border border-[#0F2D29]/15 bg-white p-5 shadow-xl">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-sm font-black" style={{ color: INK }}>
+                  New Board
+                </h2>
+                <button
+                  onClick={() => setCreateBoardOpen(false)}
+                  className="flex h-6 w-6 items-center justify-center"
+                  style={{ color: `${INK}99` }}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              <label
+                className="mb-1 block text-[11px] font-bold"
+                style={{ color: `${INK}B3` }}
+              >
+                Workspace
+              </label>
+              <select
+                value={selectedWorkspaceId}
+                onChange={(e) => handleWorkspaceChange(e.target.value)}
+                disabled={isLoadingWorkspaces}
+                className="mb-3 w-full border bg-white px-3 py-2 text-xs outline-none disabled:opacity-60"
+                style={{ borderColor: `${INK}33`, color: INK }}
+              >
+                <option value="">
+                  {isLoadingWorkspaces
+                    ? "Loading workspaces..."
+                    : "Select a workspace"}
+                </option>
+                {workspaceOptions.map((ws) => (
+                  <option key={ws.id} value={ws.id}>
+                    {ws.name}
+                  </option>
+                ))}
+              </select>
+
+              <label
+                className="mb-1 block text-[11px] font-bold"
+                style={{ color: `${INK}B3` }}
+              >
+                Project
+              </label>
+              <select
+                value={selectedProjectId}
+                onChange={(e) => setSelectedProjectId(e.target.value)}
+                disabled={!selectedWorkspaceId || isLoadingProjects}
+                className="mb-3 w-full border bg-white px-3 py-2 text-xs outline-none disabled:opacity-60"
+                style={{ borderColor: `${INK}33`, color: INK }}
+              >
+                <option value="">
+                  {!selectedWorkspaceId
+                    ? "Select a workspace first"
+                    : isLoadingProjects
+                      ? "Loading projects..."
+                      : "Select a project"}
+                </option>
+                {projectOptions.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+
+              <label
+                className="mb-1 block text-[11px] font-bold"
+                style={{ color: `${INK}B3` }}
+              >
+                Board name
+              </label>
+              <input
+                value={boardName}
+                onChange={(e) => setBoardName(e.target.value)}
+                placeholder="e.g. Sprint Board"
+                className="mb-3 w-full border px-3 py-2 text-xs outline-none"
+                style={{ borderColor: `${INK}33`, color: INK }}
+              />
+
+              <label
+                className="mb-1 block text-[11px] font-bold"
+                style={{ color: `${INK}B3` }}
+              >
+                Description (optional)
+              </label>
+              <textarea
+                value={boardDescription}
+                onChange={(e) => setBoardDescription(e.target.value)}
+                placeholder="What's this board for?"
+                rows={3}
+                className="mb-3 w-full border px-3 py-2 text-xs outline-none"
+                style={{ borderColor: `${INK}33`, color: INK }}
+              />
+
+              <label
+                className="mb-1.5 block text-[11px] font-bold"
+                style={{ color: `${INK}B3` }}
+              >
+                Board type
+              </label>
+              <div className="mb-4 flex gap-2">
+                {(["kanban", "scrum"] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setBoardType(t)}
+                    className="flex flex-1 items-center justify-center gap-1.5 border py-2 text-xs font-bold capitalize"
+                    style={{
+                      borderColor: boardType === t ? TEAL : `${INK}22`,
+                      backgroundColor: boardType === t ? "#E7F5EF" : "white",
+                      color: boardType === t ? TEAL : `${INK}99`,
+                    }}
+                  >
+                    {t === "scrum" ? (
+                      <Zap size={13} />
+                    ) : (
+                      <LayoutGrid size={13} />
+                    )}
+                    {t}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => setCreateBoardOpen(false)}
+                  className="px-3.5 py-2 text-xs font-bold"
+                  style={{ color: `${INK}B3` }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSubmitCreateBoard}
+                  disabled={
+                    !selectedProjectId || !boardName.trim() || isCreatingBoard
+                  }
+                  className="px-3.5 py-2 text-xs font-bold text-white disabled:opacity-50"
+                  style={{ backgroundColor: INK }}
+                >
+                  {isCreatingBoard ? "Creating..." : "Create Board"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
+
+  const theme = BOARD_THEME[board.type];
+
   return (
     <>
       <Topbar
         variant="light"
-        title={boardMeta.name}
-        subtitle={`${totalTasks} tasks · ${boardMeta.description}`}
+        title={truncateText(board.name, 40)}
+        subtitle={`${totalTasks} tasks · ${truncateText(board.description, 70)}`}
         onMenuClick={openMobileNav}
       />
 
       <main className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col space-y-6 p-4 sm:p-6 lg:p-8">
         <DashboardMetricsBanner cards={metricCards} />
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border border-[#0F2D29]/15 bg-white p-3">
+        {/* Sprint identity strip — only relevant for scrum boards */}
+        {board.type === "scrum" && <SprintBanner boardName={board.name} />}
+
+        <div
+          className="flex flex-wrap items-center justify-between gap-3 border p-3"
+          style={{
+            borderColor: theme.accentBorder,
+            backgroundColor: theme.toolbarBg,
+          }}
+        >
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative">
               <Search
@@ -467,8 +996,8 @@ export const Board = () => {
                 onClick={() => setShowFilterMenu((v) => !v)}
                 className="flex items-center gap-1.5 border bg-white px-3 py-2.5 text-xs font-bold"
                 style={{
-                  borderColor: priorityFilter ? TEAL : `${INK}22`,
-                  color: priorityFilter ? TEAL : INK,
+                  borderColor: priorityFilter ? theme.accent : `${INK}22`,
+                  color: priorityFilter ? theme.accent : INK,
                 }}
               >
                 {priorityFilter
@@ -513,11 +1042,81 @@ export const Board = () => {
 
             <span
               className="flex items-center gap-1.5 px-2 py-1 text-[10px] font-bold uppercase tracking-wide"
-              style={{ color: TEAL, backgroundColor: "#E7F5EF" }}
+              style={{ color: theme.accent, backgroundColor: theme.accentSoft }}
             >
-              <KanbanSquare size={11} />
-              {boardMeta.type}
+              {board.type === "scrum" ? (
+                <Zap size={11} />
+              ) : (
+                <KanbanSquare size={11} />
+              )}
+              {board.type}
+              {isBoardDetailFetching && (
+                <span className="normal-case font-medium opacity-60">
+                  · syncing
+                </span>
+              )}
             </span>
+
+            {allBoards.length > 1 && (
+              <div className="relative">
+                <select
+                  value={selectedBoardId}
+                  onChange={(e) => setSelectedBoardId(e.target.value)}
+                  className="appearance-none border bg-white py-2.5 pl-3 pr-7 text-xs font-bold outline-none"
+                  style={{ borderColor: `${INK}22`, color: INK }}
+                >
+                  {allBoards.map((b) => (
+                    <option key={b.id ?? b._id} value={b.id ?? b._id}>
+                      {truncateText(b.name, 30)}
+                      {b.project?.name
+                        ? ` · ${truncateText(b.project.name, 20)}`
+                        : ""}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  size={13}
+                  className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2"
+                  style={{ color: `${INK}77` }}
+                />
+              </div>
+            )}
+
+            {/* Board settings: edit / delete the currently selected board */}
+            <div className="relative">
+              <button
+                onClick={() => setShowBoardMenu((v) => !v)}
+                className="flex h-8 w-8 items-center justify-center border bg-white"
+                style={{ borderColor: `${INK}22`, color: `${INK}99` }}
+              >
+                <MoreHorizontal size={14} />
+              </button>
+
+              {showBoardMenu && (
+                <div
+                  className="absolute left-0 top-full z-10 mt-1.5 w-40 border bg-white py-1 shadow-lg"
+                  style={{ borderColor: `${INK}22` }}
+                >
+                  <button
+                    onClick={handleOpenEditBoard}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-semibold hover:bg-[#EDEBE3]"
+                    style={{ color: INK }}
+                  >
+                    <Pencil size={12} />
+                    Edit board
+                  </button>
+                  <button
+                    onClick={handleDeleteBoard}
+                    disabled={isDeletingBoard}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-semibold hover:bg-[#FBEAE9] disabled:opacity-50"
+                    style={{ color: "#B3261E" }}
+                  >
+                    <Trash2 size={12} />
+                    {isDeletingBoard ? "Deleting..." : "Delete board"}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="relative">
@@ -544,7 +1143,7 @@ export const Board = () => {
                 <button
                   onClick={handleAddColumn}
                   className="flex h-7 w-7 items-center justify-center text-white"
-                  style={{ backgroundColor: TEAL }}
+                  style={{ backgroundColor: theme.accent }}
                 >
                   <Check size={13} />
                 </button>
@@ -563,7 +1162,7 @@ export const Board = () => {
               <button
                 onClick={() => setShowAddColumn(true)}
                 className="flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-bold text-white"
-                style={{ backgroundColor: INK }}
+                style={{ backgroundColor: theme.accent }}
               >
                 <Plus size={13} />
                 Add Column
@@ -578,11 +1177,106 @@ export const Board = () => {
               key={col}
               name={col}
               tasks={filteredTasks[col] || []}
+              boardType={board.type}
               onAddTask={handleAddTask}
+              // WIP limits are a Kanban-specific practice — only surface them
+              // on kanban boards, and only on the "In Progress" column.
+              showWipLimit={board.type === "kanban" && col === "In Progress"}
+              wipLimit={5}
             />
           ))}
         </div>
       </main>
+
+      {editBoardOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md border border-[#0F2D29]/15 bg-white p-5 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-sm font-black" style={{ color: INK }}>
+                Edit Board
+              </h2>
+              <button
+                onClick={() => setEditBoardOpen(false)}
+                className="flex h-6 w-6 items-center justify-center"
+                style={{ color: `${INK}99` }}
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <label
+              className="mb-1 block text-[11px] font-bold"
+              style={{ color: `${INK}B3` }}
+            >
+              Board name
+            </label>
+            <input
+              value={editBoardName}
+              onChange={(e) => setEditBoardName(e.target.value)}
+              placeholder="e.g. Sprint Board"
+              className="mb-3 w-full border px-3 py-2 text-xs outline-none"
+              style={{ borderColor: `${INK}33`, color: INK }}
+            />
+
+            <label
+              className="mb-1 block text-[11px] font-bold"
+              style={{ color: `${INK}B3` }}
+            >
+              Description (optional)
+            </label>
+            <textarea
+              value={editBoardDescription}
+              onChange={(e) => setEditBoardDescription(e.target.value)}
+              placeholder="What's this board for?"
+              rows={3}
+              className="mb-3 w-full border px-3 py-2 text-xs outline-none"
+              style={{ borderColor: `${INK}33`, color: INK }}
+            />
+
+            <label
+              className="mb-1.5 block text-[11px] font-bold"
+              style={{ color: `${INK}B3` }}
+            >
+              Board type
+            </label>
+            <div className="mb-4 flex gap-2">
+              {(["kanban", "scrum"] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setEditBoardType(t)}
+                  className="flex flex-1 items-center justify-center gap-1.5 border py-2 text-xs font-bold capitalize"
+                  style={{
+                    borderColor: editBoardType === t ? TEAL : `${INK}22`,
+                    backgroundColor: editBoardType === t ? "#E7F5EF" : "white",
+                    color: editBoardType === t ? TEAL : `${INK}99`,
+                  }}
+                >
+                  {t === "scrum" ? <Zap size={13} /> : <LayoutGrid size={13} />}
+                  {t}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setEditBoardOpen(false)}
+                className="px-3.5 py-2 text-xs font-bold"
+                style={{ color: `${INK}B3` }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitEditBoard}
+                disabled={!editBoardName.trim() || isUpdatingBoard}
+                className="px-3.5 py-2 text-xs font-bold text-white disabled:opacity-50"
+                style={{ backgroundColor: INK }}
+              >
+                {isUpdatingBoard ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

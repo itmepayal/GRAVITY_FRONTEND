@@ -19,15 +19,26 @@ export const useCreateProject = () => {
 
     onSuccess: (_, variables) => {
       toast.success("Project created successfully");
+
       queryClient.invalidateQueries({
         queryKey: ["projects", variables.workspaceId],
       });
+
       queryClient.invalidateQueries({
         queryKey: ["workspaces"],
       });
     },
+
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message || "Failed to create project");
+      const errors = error?.response?.data?.errors;
+
+      if (errors?.length > 0) {
+        toast.error(errors[0].message);
+      } else {
+        toast.error(
+          error?.response?.data?.message || "Failed to create project",
+        );
+      }
     },
   });
 };

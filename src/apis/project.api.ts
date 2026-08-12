@@ -39,6 +39,7 @@ export const createBoard = async (
   data: {
     name: string;
     description?: string;
+    type?: string;
   },
 ) => {
   const response = await api.post(`/projects/${projectId}/boards`, data);

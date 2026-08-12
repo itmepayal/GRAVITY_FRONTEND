@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { createPortal } from "react-dom";
-import { X, Pencil, Trash2, Layers } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { X, Pencil, Trash2, Layers, KanbanSquare } from "lucide-react";
 import {
   type Project,
   type ProjectStatus,
@@ -14,6 +15,7 @@ export interface ProjectDetailDrawerProps {
   onEdit: (project: Project) => void;
   onDelete: (projectId: string) => void;
   onUpdateStatus: (projectId: string, status: ProjectStatus) => void;
+  onCreateBoard: () => void;
 }
 
 export const ProjectDetailDrawer: React.FC<ProjectDetailDrawerProps> = ({
@@ -22,18 +24,24 @@ export const ProjectDetailDrawer: React.FC<ProjectDetailDrawerProps> = ({
   onEdit,
   onDelete,
   onUpdateStatus,
+  onCreateBoard,
 }) => {
   const [activeTab, setActiveTab] = useState<"overview" | "members">(
     "overview",
   );
   const meta = STATUS_META[project.status] || STATUS_META.planning;
+  const navigate = useNavigate();
+
+  const handleCreateBoard = () => {
+    onCreateBoard();
+    navigate("/dashboard/boards");
+  };
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex justify-end bg-[#0F2D29]/50 backdrop-blur-md transition-all">
       <div className="fixed inset-0" onClick={onClose} />
 
       <aside className="relative flex h-full w-full max-w-lg flex-col border-l border-[#0F2D29] bg-white shadow-2xl z-10">
-        {/* Top Header Banner */}
         <div className="flex items-start justify-between bg-[#0F2D29] p-6 text-white sm:p-7">
           <div className="flex items-center gap-3.5 min-w-0">
             <div
@@ -78,6 +86,13 @@ export const ProjectDetailDrawer: React.FC<ProjectDetailDrawerProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleCreateBoard}
+              className="flex items-center gap-1.5 border border-[#0F8A65]/30 bg-[#E7F5EF] px-3 py-1.5 text-[12px] font-bold font-['Goldman',sans-serif] text-[#0F8A65] hover:bg-[#0F8A65] hover:text-white transition"
+            >
+              <KanbanSquare size={13} />
+              New Board
+            </button>
             <button
               onClick={() => onEdit(project)}
               className="flex items-center gap-1.5 border border-[#0F2D29]/20 bg-white px-3 py-1.5 text-[12px] font-bold font-['Goldman',sans-serif] text-[#0F2D29] hover:bg-[#0F2D29] hover:text-white transition"
@@ -153,7 +168,6 @@ export const ProjectDetailDrawer: React.FC<ProjectDetailDrawerProps> = ({
                 </div>
               </div>
 
-              {/* Quick Info Grid */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="border border-[#0F2D29]/15 p-4 bg-white">
                   <p className="text-[11px] font-bold font-['Goldman',sans-serif] text-[#5B6E68] uppercase">
