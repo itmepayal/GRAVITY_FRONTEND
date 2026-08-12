@@ -5,11 +5,31 @@ import { useDashboardContext } from "@/components/layout/DashboardLayout";
 import { DashboardMetricsBanner } from "@/components/common/DashboardMetricsBanner";
 import { useGetAllUserBoards } from "@/hooks/queries/board/use-get-all-user-boards";
 import { useGetBoardById } from "@/hooks/queries/board/use-get-board-by-id";
+import { useGetBoardTasks } from "@/hooks/queries/board/use-get-board-tasks";
 import { useCreateBoard } from "@/hooks/mutations/project/use-create-board";
 import { useUpdateBoard } from "@/hooks/mutations/board/use-update-board";
 import { useDeleteBoard } from "@/hooks/mutations/board/use-delete-board";
+import { useCreateTask } from "@/hooks/mutations/task/use-create-task";
 import { useGetUserWorkspaces } from "@/hooks/queries/workspace/use-get-user-workspaces";
 import { useGetWorkspaceProjects } from "@/hooks/queries/project/use-get-workspace-projects";
+import {
+  CreateTaskModal,
+  type NewTaskInput,
+  type TaskStatus,
+} from "@/components/task/CreateTaskModal";
+import {
+  INK,
+  MINT,
+  TEAL,
+  BOARD_THEME,
+  PRIORITY_META,
+  PRIORITY_ORDER,
+  TAG_COLORS,
+  type BoardType,
+  type Priority,
+  type TagName,
+  type Task,
+} from "./type";
 import {
   Plus,
   MoreHorizontal,
@@ -33,104 +53,50 @@ import {
   Zap,
 } from "lucide-react";
 
-const INK = "#0F2D29";
-const MINT = "#8FE3C4";
-const TEAL = "#0F8A65";
-
-type BoardType = "kanban" | "scrum";
-
-// Central place for the two board "themes" so kanban and scrum
-// are visually distinct instead of sharing one accent color everywhere.
-const BOARD_THEME: Record<
-  BoardType,
-  {
-    accent: string;
-    accentSoft: string;
-    accentBorder: string;
-    toolbarBg: string;
-    badgeText: string;
-  }
-> = {
-  kanban: {
-    accent: INK,
-    accentSoft: "#EDEBE3",
-    accentBorder: `${INK}22`,
-    toolbarBg: "white",
-    badgeText: `${INK}99`,
-  },
-  scrum: {
-    accent: TEAL,
-    accentSoft: "#E7F5EF",
-    accentBorder: `${TEAL}33`,
-    toolbarBg: "#F4FBF8",
-    badgeText: TEAL,
-  },
-};
-
-type Priority = "low" | "medium" | "high" | "urgent";
-
-const PRIORITY_META: Record<
-  Priority,
-  { label: string; color: string; bg: string }
-> = {
-  low: {
-    label: "Low",
-    color: INK,
-    bg: "#EDEBE3",
-  },
-  medium: {
-    label: "Medium",
-    color: "#C2680B",
-    bg: "#FDF1E4",
-  },
-  high: {
-    label: "High",
-    color: "#B3261E",
-    bg: "#FBEAE9",
-  },
-  urgent: {
-    label: "Urgent",
-    color: "#B3261E",
-    bg: "#FBEAE9",
-  },
-};
-
-const PRIORITY_ORDER: Priority[] = ["low", "medium", "high", "urgent"];
-
-type TagName = "Design" | "Frontend" | "Backend" | "Bug" | "Docs";
-
-const TAG_COLORS: Record<TagName, { color: string; bg: string }> = {
-  Design: { color: "#3B5BDB", bg: "#EAF0FE" },
-  Frontend: { color: TEAL, bg: "#E7F5EF" },
-  Backend: { color: "#0B6E4F", bg: "#E4F5EC" },
-  Bug: { color: "#B3261E", bg: "#FBEAE9" },
-  Docs: { color: "#6A4EE0", bg: "#EFEBFC" },
-};
-
-interface Task {
-  id: string;
+// --- matches ITask (server model) as returned by the API ---
+interface ApiSubTask {
+  id?: string;
+  _id?: string;
   title: string;
-  priority: Priority;
-  tags: TagName[];
-  assignee: string;
-  comments: number;
-  attachments: number;
-  due: string | null;
-  storyPoints?: number;
+  completed: boolean;
 }
 
 interface ApiTask {
   id?: string;
   _id?: string;
+
   title: string;
+  description?: string;
+
+  board?: string;
+  project?: string;
+  workspace?: string;
+  sprint?: string;
+
+  column: string;
+
+  assignee?: string;
+  assigneeLabel?: string; // populated/display name if backend sends one
+  watchers?: string[];
+
+  status: TaskStatus;
   priority: Priority;
+
   tags: string[];
-  assignee: string;
-  commentsCount: number;
-  attachmentsCount: number;
+
   dueDate: string | null;
-  status: string;
-  storyPoints?: number;
+
+  estimatedHours?: number;
+  actualHours?: number;
+
+  subtasks?: ApiSubTask[];
+
+  commentsCount?: number;
+  attachmentsCount?: number;
+  comments?: unknown[];
+  attachments?: unknown[];
+
+  isArchived?: boolean;
 }
 
 interface ApiBoardProject {
@@ -194,14 +160,17 @@ function mapApiTask(t: ApiTask): Task {
     title: t.title,
     priority: t.priority,
     tags: (t.tags ?? []).filter((tag): tag is TagName => tag in TAG_COLORS),
-    assignee: t.assignee,
-    comments: t.commentsCount ?? 0,
-    attachments: t.attachmentsCount ?? 0,
+    assignee: t.assigneeLabel || "—",
+    comments: t.comments?.length ?? t.commentsCount ?? 0,
+    attachments: t.attachments?.length ?? t.attachmentsCount ?? 0,
     due: t.dueDate,
-    storyPoints: t.storyPoints,
+    storyPoints: t.estimatedHours,
   };
 }
 
+// Groups strictly by `column` — this is the UI-driver field. `status` is a
+// separate workflow concept (todo/in_progress/completed/...) and must never
+// be used for grouping, or tasks silently disappear from every column.
 function groupTasksByColumn(
   columns: string[],
   apiTasks: ApiTask[] | undefined,
@@ -210,8 +179,9 @@ function groupTasksByColumn(
   for (const col of columns) grouped[col] = [];
   for (const t of apiTasks ?? []) {
     const mapped = mapApiTask(t);
-    if (!grouped[t.status]) grouped[t.status] = [];
-    grouped[t.status].push(mapped);
+    const col = t.column;
+    if (!grouped[col]) grouped[col] = [];
+    grouped[col].push(mapped);
   }
   return grouped;
 }
@@ -259,7 +229,6 @@ function TaskCard({ task, boardType }: { task: Task; boardType: BoardType }) {
             {priority.label}
           </span>
 
-          {/* Story points only make sense in a scrum/sprint context */}
           {boardType === "scrum" && typeof task.storyPoints === "number" && (
             <span
               className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-bold"
@@ -397,8 +366,6 @@ function Column({
   );
 }
 
-// Shown only on scrum boards — gives the board a "sprint" identity at a glance.
-// Purely presentational for now; wire up real sprint dates/goals later if needed.
 function SprintBanner({ boardName }: { boardName: string }) {
   return (
     <div
@@ -480,21 +447,35 @@ export const Board = () => {
     [boardDetailResponse],
   );
 
+  const {
+    data: boardTasksResponse,
+    isFetching: isBoardTasksFetching,
+    refetch: refetchBoardTasks,
+  } = useGetBoardTasks(selectedBoardId);
+
   const [columns, setColumns] = useState<string[]>([]);
   const [tasks, setTasks] = useState<Record<string, Task[]>>({});
 
   useEffect(() => {
     if (!board) return;
     setColumns(board.columns);
-    setTasks(groupTasksByColumn(board.columns, board.tasks));
   }, [board]);
 
   useEffect(() => {
     if (!boardDetail) return;
     if (getBoardId(boardDetail) !== selectedBoardId) return;
     setColumns(boardDetail.columns);
-    setTasks(groupTasksByColumn(boardDetail.columns, boardDetail.tasks));
   }, [boardDetail, selectedBoardId]);
+
+  // Tasks come from useGetBoardTasks — re-grouped whenever the task list
+  // or the column set changes. This is what keeps tasks visible after a
+  // refresh, since we no longer rely on board.tasks (which the API never
+  // actually sends).
+  useEffect(() => {
+    if (!selectedBoardId) return;
+    const apiTasks = unwrapList<ApiTask>(boardTasksResponse);
+    setTasks(groupTasksByColumn(columns, apiTasks));
+  }, [boardTasksResponse, columns, selectedBoardId]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<Priority | null>(null);
@@ -610,6 +591,93 @@ export const Board = () => {
     );
   };
 
+  const [taskModalOpen, setTaskModalOpen] = useState(false);
+  const [taskModalColumn, setTaskModalColumn] = useState("");
+
+  const { mutate: createTaskMutate, isPending: isCreatingTask } =
+    useCreateTask();
+
+  const handleOpenAddTask = (columnName: string) => {
+    setTaskModalColumn(columnName);
+    setTaskModalOpen(true);
+  };
+
+  const handleCreateTask = (input: NewTaskInput) => {
+    const boardId = getBoardId(board);
+    if (!boardId || !board) return;
+
+    const optimisticId = `t${Date.now()}`;
+    const optimisticTask: Task = {
+      id: optimisticId,
+      title: input.title,
+      priority: input.priority,
+      tags: input.tags,
+      assignee: input.assigneeLabel,
+      comments: 0,
+      attachments: 0,
+      due: input.dueDate,
+      storyPoints: input.estimatedHours,
+    };
+
+    setTasks((prev) => ({
+      ...prev,
+      [input.column]: [...(prev[input.column] || []), optimisticTask],
+    }));
+
+    createTaskMutate(
+      {
+        board: input.board,
+        project: input.project,
+        workspace: input.workspace,
+        sprint: input.sprint,
+        title: input.title,
+        description: input.description,
+        column: input.column,
+        status: input.status,
+        priority: input.priority,
+        tags: input.tags,
+        assignee: input.assignee,
+        watchers: input.watchers,
+        dueDate: input.dueDate ?? undefined,
+        estimatedHours: input.estimatedHours,
+        actualHours: input.actualHours,
+        subtasks: input.subtasks,
+        isArchived: input.isArchived,
+      },
+      {
+        onSuccess: (created: any) => {
+          const createdTask = unwrapObject<ApiTask>(created);
+          if (createdTask) {
+            setTasks((prev) => ({
+              ...prev,
+              [input.column]: (prev[input.column] || []).map((t) =>
+                t.id === optimisticId
+                  ? mapApiTask({
+                      ...createdTask,
+                      assigneeLabel:
+                        createdTask.assigneeLabel || input.assigneeLabel,
+                    })
+                  : t,
+              ),
+            }));
+          }
+          // Re-sync with the server so the board reflects the real,
+          // persisted task list — this is what survives a refresh.
+          refetchBoardTasks();
+          setTaskModalOpen(false);
+        },
+        onError: () => {
+          setTasks((prev) => ({
+            ...prev,
+            [input.column]: (prev[input.column] || []).filter(
+              (t) => t.id !== optimisticId,
+            ),
+          }));
+        },
+      },
+    );
+  };
+
   const totalTasks = Object.values(tasks).reduce(
     (sum, col) => sum + col.length,
     0,
@@ -685,27 +753,6 @@ export const Board = () => {
     setTasks((prev) => ({ ...prev, [name]: [] }));
     setNewColumnName("");
     setShowAddColumn(false);
-  };
-
-  const handleAddTask = (columnName: string) => {
-    const title = window.prompt(`New task title for "${columnName}"`);
-    if (!title?.trim()) return;
-    setTasks((prev) => ({
-      ...prev,
-      [columnName]: [
-        ...(prev[columnName] || []),
-        {
-          id: `t${Date.now()}`,
-          title: title.trim(),
-          priority: "medium",
-          tags: [],
-          assignee: "—",
-          comments: 0,
-          attachments: 0,
-          due: null,
-        },
-      ],
-    }));
   };
 
   const filteredTasks = useMemo(() => {
@@ -951,6 +998,7 @@ export const Board = () => {
   }
 
   const theme = BOARD_THEME[board.type];
+  const boardId = getBoardId(board) ?? "";
 
   return (
     <>
@@ -1050,7 +1098,7 @@ export const Board = () => {
                 <KanbanSquare size={11} />
               )}
               {board.type}
-              {isBoardDetailFetching && (
+              {(isBoardDetailFetching || isBoardTasksFetching) && (
                 <span className="normal-case font-medium opacity-60">
                   · syncing
                 </span>
@@ -1178,7 +1226,7 @@ export const Board = () => {
               name={col}
               tasks={filteredTasks[col] || []}
               boardType={board.type}
-              onAddTask={handleAddTask}
+              onAddTask={handleOpenAddTask}
               // WIP limits are a Kanban-specific practice — only surface them
               // on kanban boards, and only on the "In Progress" column.
               showWipLimit={board.type === "kanban" && col === "In Progress"}
@@ -1276,6 +1324,18 @@ export const Board = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {taskModalOpen && (
+        <CreateTaskModal
+          columns={columns}
+          defaultColumn={taskModalColumn || columns[0] || ""}
+          boardType={board.type}
+          boardId={boardId}
+          onClose={() => setTaskModalOpen(false)}
+          onCreated={handleCreateTask}
+          isSubmitting={isCreatingTask}
+        />
       )}
     </>
   );

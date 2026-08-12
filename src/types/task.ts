@@ -288,17 +288,22 @@ export const columnToStatus: Record<string, TaskStatus> = {
 export interface CreateTaskData {
   title: string;
   description?: string;
-  boardId: string;
-  projectId: string;
-  workspaceId: string;
+  board: string;
+  project: string;
+  workspace: string;
   column: string;
-  assigneeId?: string;
+  assignee?: string;
   status?: TaskStatus;
   priority?: TaskPriority;
   tags?: string[];
   dueDate?: string;
   estimatedHours?: number;
+  sprint?: string;
+  watchers?: string[];
+  actualHours?: number;
   sprintId?: string;
+  subtasks?: SubTaskData[];
+  isArchived?: boolean;
 }
 
 export type UpdateTaskData = Partial<CreateTaskData>;
