@@ -49,27 +49,8 @@ import { useGetWorkspaceProjects } from "@/hooks/queries/project/use-get-workspa
 import { useGetProjectBoards } from "@/hooks/queries/project/use-get-project-boards";
 import { useGetProjectSprints } from "@/hooks/queries/project/use-get-project-sprints";
 import { useCreateTask } from "@/hooks/mutations/task/use-create-task";
-import type { TaskResponse } from "@/types/task";
+import { STATUS_META, type TaskResponse, type TaskStatus } from "@/types/task";
 
-type TaskStatus =
-  | "todo"
-  | "in_progress"
-  | "in_review"
-  | "testing"
-  | "completed"
-  | "blocked";
-
-const STATUS_META: Record<
-  TaskStatus,
-  { label: string; color: string; bg: string }
-> = {
-  todo: { label: "To Do", color: "#5B6E68", bg: "#EDEBE3" },
-  in_progress: { label: "In Progress", color: "#0F8A65", bg: "#E7F5EF" },
-  in_review: { label: "In Review", color: "#B45309", bg: "#FEF3E2" },
-  testing: { label: "Testing", color: "#6D28D9", bg: "#F1EAFE" },
-  completed: { label: "Completed", color: "#2563EB", bg: "#EAF1FE" },
-  blocked: { label: "Blocked", color: "#B3261E", bg: "#FBEAE9" },
-};
 export const STATUS_ORDER: TaskStatus[] = [
   "todo",
   "in_progress",
@@ -154,7 +135,7 @@ interface CreateTaskModalProps {
   columns: string[];
   defaultColumn: string;
   boardType: BoardType;
-  defaultBoardId?: string; // 🔧 renamed from boardId — now just a preselect hint
+  defaultBoardId?: string;
   onClose: () => void;
 
   onCreated?: (task: TaskResponse) => void;

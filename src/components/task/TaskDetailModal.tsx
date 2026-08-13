@@ -310,7 +310,7 @@ export const TaskDetailModal = ({
           column: nextColumn,
           priority,
           tags,
-          dueDate: dueDate || null,
+          dueDate: dueDate || undefined,
           estimatedHours: estimatedHours ? Number(estimatedHours) : undefined,
           actualHours: actualHours ? Number(actualHours) : undefined,
           assignee: assigneeId || undefined,
