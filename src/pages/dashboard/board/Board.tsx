@@ -17,6 +17,8 @@ import {
   type NewTaskInput,
   type TaskStatus,
 } from "@/components/task/CreateTaskModal";
+import { TaskDetailModal } from "@/components/task/TaskDetailModal";
+import type { CreateTaskData } from "@/types/task";
 import {
   INK,
   MINT,
@@ -53,7 +55,6 @@ import {
   Zap,
 } from "lucide-react";
 
-// --- matches ITask (server model) as returned by the API ---
 interface ApiSubTask {
   id?: string;
   _id?: string;
@@ -76,7 +77,7 @@ interface ApiTask {
   column: string;
 
   assignee?: string;
-  assigneeLabel?: string; // populated/display name if backend sends one
+  assigneeLabel?: string;
   watchers?: string[];
 
   status: TaskStatus;
@@ -168,9 +169,6 @@ function mapApiTask(t: ApiTask): Task {
   };
 }
 
-// Groups strictly by `column` — this is the UI-driver field. `status` is a
-// separate workflow concept (todo/in_progress/completed/...) and must never
-// be used for grouping, or tasks silently disappear from every column.
 function groupTasksByColumn(
   columns: string[],
   apiTasks: ApiTask[] | undefined,
@@ -186,12 +184,58 @@ function groupTasksByColumn(
   return grouped;
 }
 
-function TaskCard({ task, boardType }: { task: Task; boardType: BoardType }) {
+function buildCreateTaskPayload(input: NewTaskInput): FormData {
+  const fields: CreateTaskData = {
+    board: input.board,
+    project: input.project,
+    workspace: input.workspace,
+    sprint: input.sprint,
+    title: input.title,
+    description: input.description,
+    column: input.column,
+    status: input.status,
+    priority: input.priority,
+    tags: input.tags,
+    assignee: input.assignee,
+    watchers: input.watchers,
+    dueDate: input.dueDate ?? undefined,
+    estimatedHours: input.estimatedHours,
+    actualHours: input.actualHours,
+    subtasks: input.subtasks,
+    isArchived: input.isArchived,
+  };
+
+  const cleanFields = Object.fromEntries(
+    Object.entries(fields).filter(
+      ([, value]) => value !== undefined && value !== null,
+    ),
+  );
+
+  const formData = new FormData();
+  formData.append("data", JSON.stringify(cleanFields));
+
+  (input.attachments || []).forEach((a) =>
+    formData.append("attachments", a.file, a.name),
+  );
+
+  return formData;
+}
+
+function TaskCard({
+  task,
+  boardType,
+  onOpen,
+}: {
+  task: Task;
+  boardType: BoardType;
+  onOpen: (taskId: string) => void;
+}) {
   const priority = PRIORITY_META[task.priority];
   const theme = BOARD_THEME[boardType];
 
   return (
     <div
+      onClick={() => onOpen(task.id)}
       className="cursor-pointer border border-l-[3px] bg-white p-3.5 transition-shadow hover:shadow-md"
       style={{ borderColor: `${INK}22`, borderLeftColor: theme.accent }}
     >
@@ -285,8 +329,13 @@ interface ColumnProps {
   tasks: Task[];
   boardType: BoardType;
   onAddTask: (columnName: string) => void;
+  onOpenTask: (taskId: string) => void;
   showWipLimit?: boolean;
   wipLimit?: number;
+  isMenuOpen: boolean;
+  onToggleMenu: () => void;
+  onRemoveColumn: (name: string) => void;
+  canRemove: boolean;
 }
 
 function Column({
@@ -294,8 +343,13 @@ function Column({
   tasks,
   boardType,
   onAddTask,
+  onOpenTask,
   showWipLimit = false,
   wipLimit = 5,
+  isMenuOpen,
+  onToggleMenu,
+  onRemoveColumn,
+  canRemove,
 }: ColumnProps) {
   const isOverLimit = showWipLimit && tasks.length > wipLimit;
   const theme = BOARD_THEME[boardType];
@@ -331,17 +385,45 @@ function Column({
             </span>
           )}
         </span>
-        <button
-          className="flex h-6 w-6 items-center justify-center"
-          style={{ color: `${INK}66` }}
-        >
-          <MoreHorizontal size={14} />
-        </button>
+        <div className="relative">
+          <button
+            onClick={onToggleMenu}
+            className="flex h-6 w-6 items-center justify-center"
+            style={{ color: `${INK}66` }}
+          >
+            <MoreHorizontal size={14} />
+          </button>
+
+          {isMenuOpen && (
+            <div
+              className="absolute right-0 top-full z-10 mt-1 w-40 border bg-white py-1 shadow-lg"
+              style={{ borderColor: `${INK}22` }}
+            >
+              <button
+                onClick={() => onRemoveColumn(name)}
+                disabled={!canRemove}
+                title={
+                  canRemove ? undefined : "A board needs at least one column"
+                }
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-semibold hover:bg-[#FBEAE9] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+                style={{ color: "#B3261E" }}
+              >
+                <Trash2 size={12} />
+                Remove column
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 space-y-2.5 overflow-y-auto pb-2 pr-1">
         {tasks.map((task) => (
-          <TaskCard key={task.id} task={task} boardType={boardType} />
+          <TaskCard
+            key={task.id}
+            task={task}
+            boardType={boardType}
+            onOpen={onOpenTask}
+          />
         ))}
 
         {tasks.length === 0 && (
@@ -404,6 +486,196 @@ function SprintBanner({ boardName }: { boardName: string }) {
   );
 }
 
+interface CreateBoardModalProps {
+  open: boolean;
+  onClose: () => void;
+
+  workspaceOptions: WorkspaceOption[];
+  isLoadingWorkspaces: boolean;
+  selectedWorkspaceId: string;
+  onWorkspaceChange: (workspaceId: string) => void;
+
+  projectOptions: ProjectOption[];
+  isLoadingProjects: boolean;
+  selectedProjectId: string;
+  onProjectChange: (projectId: string) => void;
+
+  boardName: string;
+  onBoardNameChange: (name: string) => void;
+  boardDescription: string;
+  onBoardDescriptionChange: (description: string) => void;
+  boardType: BoardType;
+  onBoardTypeChange: (type: BoardType) => void;
+
+  onSubmit: () => void;
+  isSubmitting: boolean;
+}
+
+function CreateBoardModal({
+  open,
+  onClose,
+  workspaceOptions,
+  isLoadingWorkspaces,
+  selectedWorkspaceId,
+  onWorkspaceChange,
+  projectOptions,
+  isLoadingProjects,
+  selectedProjectId,
+  onProjectChange,
+  boardName,
+  onBoardNameChange,
+  boardDescription,
+  onBoardDescriptionChange,
+  boardType,
+  onBoardTypeChange,
+  onSubmit,
+  isSubmitting,
+}: CreateBoardModalProps) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-md border border-[#0F2D29]/15 bg-white p-5 shadow-xl">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-sm font-black" style={{ color: INK }}>
+            New Board
+          </h2>
+          <button
+            onClick={onClose}
+            className="flex h-6 w-6 items-center justify-center"
+            style={{ color: `${INK}99` }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+
+        <label
+          className="mb-1 block text-[11px] font-bold"
+          style={{ color: `${INK}B3` }}
+        >
+          Workspace
+        </label>
+        <select
+          value={selectedWorkspaceId}
+          onChange={(e) => onWorkspaceChange(e.target.value)}
+          disabled={isLoadingWorkspaces}
+          className="mb-3 w-full border bg-white px-3 py-2 text-xs outline-none disabled:opacity-60"
+          style={{ borderColor: `${INK}33`, color: INK }}
+        >
+          <option value="">
+            {isLoadingWorkspaces
+              ? "Loading workspaces..."
+              : "Select a workspace"}
+          </option>
+          {workspaceOptions.map((ws) => (
+            <option key={ws.id} value={ws.id}>
+              {ws.name}
+            </option>
+          ))}
+        </select>
+
+        <label
+          className="mb-1 block text-[11px] font-bold"
+          style={{ color: `${INK}B3` }}
+        >
+          Project
+        </label>
+        <select
+          value={selectedProjectId}
+          onChange={(e) => onProjectChange(e.target.value)}
+          disabled={!selectedWorkspaceId || isLoadingProjects}
+          className="mb-3 w-full border bg-white px-3 py-2 text-xs outline-none disabled:opacity-60"
+          style={{ borderColor: `${INK}33`, color: INK }}
+        >
+          <option value="">
+            {!selectedWorkspaceId
+              ? "Select a workspace first"
+              : isLoadingProjects
+                ? "Loading projects..."
+                : "Select a project"}
+          </option>
+          {projectOptions.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+
+        <label
+          className="mb-1 block text-[11px] font-bold"
+          style={{ color: `${INK}B3` }}
+        >
+          Board name
+        </label>
+        <input
+          value={boardName}
+          onChange={(e) => onBoardNameChange(e.target.value)}
+          placeholder="e.g. Sprint Board"
+          className="mb-3 w-full border px-3 py-2 text-xs outline-none"
+          style={{ borderColor: `${INK}33`, color: INK }}
+        />
+
+        <label
+          className="mb-1 block text-[11px] font-bold"
+          style={{ color: `${INK}B3` }}
+        >
+          Description (optional)
+        </label>
+        <textarea
+          value={boardDescription}
+          onChange={(e) => onBoardDescriptionChange(e.target.value)}
+          placeholder="What's this board for?"
+          rows={3}
+          className="mb-3 w-full border px-3 py-2 text-xs outline-none"
+          style={{ borderColor: `${INK}33`, color: INK }}
+        />
+
+        <label
+          className="mb-1.5 block text-[11px] font-bold"
+          style={{ color: `${INK}B3` }}
+        >
+          Board type
+        </label>
+        <div className="mb-4 flex gap-2">
+          {(["kanban", "scrum"] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => onBoardTypeChange(t)}
+              className="flex flex-1 items-center justify-center gap-1.5 border py-2 text-xs font-bold capitalize"
+              style={{
+                borderColor: boardType === t ? TEAL : `${INK}22`,
+                backgroundColor: boardType === t ? "#E7F5EF" : "white",
+                color: boardType === t ? TEAL : `${INK}99`,
+              }}
+            >
+              {t === "scrum" ? <Zap size={13} /> : <LayoutGrid size={13} />}
+              {t}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={onClose}
+            className="px-3.5 py-2 text-xs font-bold"
+            style={{ color: `${INK}B3` }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onSubmit}
+            disabled={!selectedProjectId || !boardName.trim() || isSubmitting}
+            className="px-3.5 py-2 text-xs font-bold text-white disabled:opacity-50"
+            style={{ backgroundColor: INK }}
+          >
+            {isSubmitting ? "Creating..." : "Create Board"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export const Board = () => {
   const { openMobileNav } = useDashboardContext();
   const { projectId } = useParams<{ projectId: string }>();
@@ -413,6 +685,7 @@ export const Board = () => {
     isLoading,
     isError,
     error,
+    refetch: refetchAllBoards,
   } = useGetAllUserBoards();
 
   const allBoards = unwrapList<ApiBoard>(allBoardsResponse);
@@ -467,10 +740,6 @@ export const Board = () => {
     setColumns(boardDetail.columns);
   }, [boardDetail, selectedBoardId]);
 
-  // Tasks come from useGetBoardTasks — re-grouped whenever the task list
-  // or the column set changes. This is what keeps tasks visible after a
-  // refresh, since we no longer rely on board.tasks (which the API never
-  // actually sends).
   useEffect(() => {
     if (!selectedBoardId) return;
     const apiTasks = unwrapList<ApiTask>(boardTasksResponse);
@@ -483,6 +752,7 @@ export const Board = () => {
 
   const [showAddColumn, setShowAddColumn] = useState(false);
   const [newColumnName, setNewColumnName] = useState("");
+  const [openColumnMenu, setOpenColumnMenu] = useState<string | null>(null);
 
   const [showBoardMenu, setShowBoardMenu] = useState(false);
 
@@ -517,7 +787,12 @@ export const Board = () => {
           type: editBoardType,
         },
       },
-      { onSuccess: () => setEditBoardOpen(false) },
+      {
+        onSuccess: async () => {
+          setEditBoardOpen(false);
+          await refetchAllBoards();
+        },
+      },
     );
   };
 
@@ -530,9 +805,10 @@ export const Board = () => {
     if (!confirmed) return;
     setShowBoardMenu(false);
     deleteBoardMutate(boardId, {
-      onSuccess: () => {
+      onSuccess: async () => {
         const remaining = allBoards.filter((b) => (b.id ?? b._id) !== boardId);
         setSelectedBoardId(remaining[0]?.id ?? remaining[0]?._id ?? "");
+        await refetchAllBoards();
       },
     });
   };
@@ -561,8 +837,13 @@ export const Board = () => {
   ).map((p: any) => ({ id: p._id ?? p.id, name: p.name }));
 
   const handleOpenCreateBoard = () => {
-    setSelectedWorkspaceId("");
-    setSelectedProjectId(projectId ?? "");
+    setShowBoardMenu(false);
+
+    const currentWorkspaceId = board?.workspace ?? "";
+    setSelectedWorkspaceId(currentWorkspaceId);
+    setSelectedProjectId(
+      projectId ?? getProjectId(board ?? ({} as ApiBoard)) ?? "",
+    );
     setBoardName("");
     setBoardDescription("");
     setBoardType("kanban");
@@ -586,7 +867,15 @@ export const Board = () => {
         },
       },
       {
-        onSuccess: () => setCreateBoardOpen(false),
+        onSuccess: async (created: any) => {
+          setCreateBoardOpen(false);
+
+          const createdBoard = unwrapObject<ApiBoard>(created);
+          const createdId = getBoardId(createdBoard);
+
+          await refetchAllBoards();
+          if (createdId) setSelectedBoardId(createdId);
+        },
       },
     );
   };
@@ -606,76 +895,81 @@ export const Board = () => {
     const boardId = getBoardId(board);
     if (!boardId || !board) return;
 
+    const normalizedInput: NewTaskInput = {
+      ...input,
+      board: boardId,
+      project: input.project || getProjectId(board) || "",
+      workspace: input.workspace || board.workspace || "",
+    };
+
     const optimisticId = `t${Date.now()}`;
     const optimisticTask: Task = {
       id: optimisticId,
-      title: input.title,
-      priority: input.priority,
-      tags: input.tags,
-      assignee: input.assigneeLabel,
+      title: normalizedInput.title,
+      priority: normalizedInput.priority,
+      tags: normalizedInput.tags,
+      assignee: normalizedInput.assigneeLabel,
       comments: 0,
       attachments: 0,
-      due: input.dueDate,
-      storyPoints: input.estimatedHours,
+      due: normalizedInput.dueDate,
+      storyPoints: normalizedInput.estimatedHours,
     };
 
     setTasks((prev) => ({
       ...prev,
-      [input.column]: [...(prev[input.column] || []), optimisticTask],
+      [normalizedInput.column]: [
+        ...(prev[normalizedInput.column] || []),
+        optimisticTask,
+      ],
     }));
 
-    createTaskMutate(
-      {
-        board: input.board,
-        project: input.project,
-        workspace: input.workspace,
-        sprint: input.sprint,
-        title: input.title,
-        description: input.description,
-        column: input.column,
-        status: input.status,
-        priority: input.priority,
-        tags: input.tags,
-        assignee: input.assignee,
-        watchers: input.watchers,
-        dueDate: input.dueDate ?? undefined,
-        estimatedHours: input.estimatedHours,
-        actualHours: input.actualHours,
-        subtasks: input.subtasks,
-        isArchived: input.isArchived,
-      },
-      {
-        onSuccess: (created: any) => {
-          const createdTask = unwrapObject<ApiTask>(created);
-          if (createdTask) {
-            setTasks((prev) => ({
-              ...prev,
-              [input.column]: (prev[input.column] || []).map((t) =>
+    createTaskMutate(buildCreateTaskPayload(normalizedInput), {
+      onSuccess: (created: any) => {
+        const createdTask = unwrapObject<ApiTask>(created);
+        if (createdTask) {
+          setTasks((prev) => ({
+            ...prev,
+            [normalizedInput.column]: (prev[normalizedInput.column] || []).map(
+              (t) =>
                 t.id === optimisticId
                   ? mapApiTask({
                       ...createdTask,
                       assigneeLabel:
-                        createdTask.assigneeLabel || input.assigneeLabel,
+                        createdTask.assigneeLabel ||
+                        normalizedInput.assigneeLabel,
                     })
                   : t,
-              ),
-            }));
-          }
-          // Re-sync with the server so the board reflects the real,
-          // persisted task list — this is what survives a refresh.
-          refetchBoardTasks();
-          setTaskModalOpen(false);
-        },
-        onError: () => {
-          setTasks((prev) => ({
-            ...prev,
-            [input.column]: (prev[input.column] || []).filter(
-              (t) => t.id !== optimisticId,
             ),
           }));
-        },
+        }
+
+        refetchBoardTasks();
+        setTaskModalOpen(false);
       },
-    );
+      onError: () => {
+        setTasks((prev) => ({
+          ...prev,
+          [normalizedInput.column]: (prev[normalizedInput.column] || []).filter(
+            (t) => t.id !== optimisticId,
+          ),
+        }));
+      },
+    });
+  };
+
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+
+  const handleOpenTask = (taskId: string) => {
+    if (!taskId) return;
+    setSelectedTaskId(taskId);
+  };
+
+  const handleCloseTaskDetail = () => {
+    setSelectedTaskId(null);
+  };
+
+  const handleTaskChanged = () => {
+    refetchBoardTasks();
   };
 
   const totalTasks = Object.values(tasks).reduce(
@@ -690,9 +984,6 @@ export const Board = () => {
       .map((t) => t.assignee),
   ).size;
 
-  // Scrum cares about story points committed/completed; kanban cares about
-  // raw throughput. Swap the 4th metric card depending on board type so the
-  // banner itself signals which kind of board you're looking at.
   const totalStoryPoints = Object.values(tasks)
     .flat()
     .reduce((sum, t) => sum + (t.storyPoints ?? 0), 0);
@@ -741,6 +1032,15 @@ export const Board = () => {
         },
   ];
 
+  const persistColumns = (nextColumns: string[]) => {
+    const boardIdForPersist = getBoardId(board);
+    if (!boardIdForPersist) return;
+    updateBoardMutate({
+      boardId: boardIdForPersist,
+      data: { columns: nextColumns },
+    });
+  };
+
   const handleAddColumn = () => {
     const name = newColumnName.trim();
     if (!name) return;
@@ -749,10 +1049,37 @@ export const Board = () => {
       setShowAddColumn(false);
       return;
     }
-    setColumns((prev) => [...prev, name]);
+    const nextColumns = [...columns, name];
+    setColumns(nextColumns);
     setTasks((prev) => ({ ...prev, [name]: [] }));
     setNewColumnName("");
     setShowAddColumn(false);
+    persistColumns(nextColumns);
+  };
+
+  const handleRemoveColumn = (name: string) => {
+    setOpenColumnMenu(null);
+
+    if (columns.length <= 1) {
+      window.alert("A board needs at least one column.");
+      return;
+    }
+
+    const columnTasks = tasks[name] ?? [];
+    const confirmMessage =
+      columnTasks.length > 0
+        ? `"${name}" has ${columnTasks.length} task${columnTasks.length === 1 ? "" : "s"} in it. Remove this column anyway? Those tasks won't show up on the board until a column named "${name}" exists again.`
+        : `Remove the "${name}" column?`;
+    if (!window.confirm(confirmMessage)) return;
+
+    const nextColumns = columns.filter((c) => c !== name);
+    setColumns(nextColumns);
+    setTasks((prev) => {
+      const next = { ...prev };
+      delete next[name];
+      return next;
+    });
+    persistColumns(nextColumns);
   };
 
   const filteredTasks = useMemo(() => {
@@ -772,6 +1099,27 @@ export const Board = () => {
     }
     return result;
   }, [tasks, columns, searchQuery, priorityFilter]);
+
+  const createBoardModalProps: CreateBoardModalProps = {
+    open: createBoardOpen,
+    onClose: () => setCreateBoardOpen(false),
+    workspaceOptions,
+    isLoadingWorkspaces,
+    selectedWorkspaceId,
+    onWorkspaceChange: handleWorkspaceChange,
+    projectOptions,
+    isLoadingProjects,
+    selectedProjectId,
+    onProjectChange: setSelectedProjectId,
+    boardName,
+    onBoardNameChange: setBoardName,
+    boardDescription,
+    onBoardDescriptionChange: setBoardDescription,
+    boardType,
+    onBoardTypeChange: setBoardType,
+    onSubmit: handleSubmitCreateBoard,
+    isSubmitting: isCreatingBoard,
+  };
 
   if (isLoading) {
     return (
@@ -804,7 +1152,6 @@ export const Board = () => {
     );
   }
 
-  // --- No board found — polished empty state (matches Project UI) ---
   if (!board) {
     return (
       <>
@@ -846,153 +1193,7 @@ export const Board = () => {
           </div>
         </main>
 
-        {createBoardOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-            <div className="w-full max-w-md border border-[#0F2D29]/15 bg-white p-5 shadow-xl">
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-sm font-black" style={{ color: INK }}>
-                  New Board
-                </h2>
-                <button
-                  onClick={() => setCreateBoardOpen(false)}
-                  className="flex h-6 w-6 items-center justify-center"
-                  style={{ color: `${INK}99` }}
-                >
-                  <X size={14} />
-                </button>
-              </div>
-
-              <label
-                className="mb-1 block text-[11px] font-bold"
-                style={{ color: `${INK}B3` }}
-              >
-                Workspace
-              </label>
-              <select
-                value={selectedWorkspaceId}
-                onChange={(e) => handleWorkspaceChange(e.target.value)}
-                disabled={isLoadingWorkspaces}
-                className="mb-3 w-full border bg-white px-3 py-2 text-xs outline-none disabled:opacity-60"
-                style={{ borderColor: `${INK}33`, color: INK }}
-              >
-                <option value="">
-                  {isLoadingWorkspaces
-                    ? "Loading workspaces..."
-                    : "Select a workspace"}
-                </option>
-                {workspaceOptions.map((ws) => (
-                  <option key={ws.id} value={ws.id}>
-                    {ws.name}
-                  </option>
-                ))}
-              </select>
-
-              <label
-                className="mb-1 block text-[11px] font-bold"
-                style={{ color: `${INK}B3` }}
-              >
-                Project
-              </label>
-              <select
-                value={selectedProjectId}
-                onChange={(e) => setSelectedProjectId(e.target.value)}
-                disabled={!selectedWorkspaceId || isLoadingProjects}
-                className="mb-3 w-full border bg-white px-3 py-2 text-xs outline-none disabled:opacity-60"
-                style={{ borderColor: `${INK}33`, color: INK }}
-              >
-                <option value="">
-                  {!selectedWorkspaceId
-                    ? "Select a workspace first"
-                    : isLoadingProjects
-                      ? "Loading projects..."
-                      : "Select a project"}
-                </option>
-                {projectOptions.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-
-              <label
-                className="mb-1 block text-[11px] font-bold"
-                style={{ color: `${INK}B3` }}
-              >
-                Board name
-              </label>
-              <input
-                value={boardName}
-                onChange={(e) => setBoardName(e.target.value)}
-                placeholder="e.g. Sprint Board"
-                className="mb-3 w-full border px-3 py-2 text-xs outline-none"
-                style={{ borderColor: `${INK}33`, color: INK }}
-              />
-
-              <label
-                className="mb-1 block text-[11px] font-bold"
-                style={{ color: `${INK}B3` }}
-              >
-                Description (optional)
-              </label>
-              <textarea
-                value={boardDescription}
-                onChange={(e) => setBoardDescription(e.target.value)}
-                placeholder="What's this board for?"
-                rows={3}
-                className="mb-3 w-full border px-3 py-2 text-xs outline-none"
-                style={{ borderColor: `${INK}33`, color: INK }}
-              />
-
-              <label
-                className="mb-1.5 block text-[11px] font-bold"
-                style={{ color: `${INK}B3` }}
-              >
-                Board type
-              </label>
-              <div className="mb-4 flex gap-2">
-                {(["kanban", "scrum"] as const).map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setBoardType(t)}
-                    className="flex flex-1 items-center justify-center gap-1.5 border py-2 text-xs font-bold capitalize"
-                    style={{
-                      borderColor: boardType === t ? TEAL : `${INK}22`,
-                      backgroundColor: boardType === t ? "#E7F5EF" : "white",
-                      color: boardType === t ? TEAL : `${INK}99`,
-                    }}
-                  >
-                    {t === "scrum" ? (
-                      <Zap size={13} />
-                    ) : (
-                      <LayoutGrid size={13} />
-                    )}
-                    {t}
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={() => setCreateBoardOpen(false)}
-                  className="px-3.5 py-2 text-xs font-bold"
-                  style={{ color: `${INK}B3` }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSubmitCreateBoard}
-                  disabled={
-                    !selectedProjectId || !boardName.trim() || isCreatingBoard
-                  }
-                  className="px-3.5 py-2 text-xs font-bold text-white disabled:opacity-50"
-                  style={{ backgroundColor: INK }}
-                >
-                  {isCreatingBoard ? "Creating..." : "Create Board"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <CreateBoardModal {...createBoardModalProps} />
       </>
     );
   }
@@ -1012,7 +1213,6 @@ export const Board = () => {
       <main className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col space-y-6 p-4 sm:p-6 lg:p-8">
         <DashboardMetricsBanner cards={metricCards} />
 
-        {/* Sprint identity strip — only relevant for scrum boards */}
         {board.type === "scrum" && <SprintBanner boardName={board.name} />}
 
         <div
@@ -1130,7 +1330,6 @@ export const Board = () => {
               </div>
             )}
 
-            {/* Board settings: edit / delete the currently selected board */}
             <div className="relative">
               <button
                 onClick={() => setShowBoardMenu((v) => !v)}
@@ -1167,7 +1366,7 @@ export const Board = () => {
             </div>
           </div>
 
-          <div className="relative">
+          <div className="relative flex items-center gap-2">
             {showAddColumn ? (
               <div
                 className="flex items-center gap-1.5 border bg-white p-1.5"
@@ -1216,6 +1415,15 @@ export const Board = () => {
                 Add Column
               </button>
             )}
+
+            <button
+              onClick={handleOpenCreateBoard}
+              className="flex items-center gap-1.5 border bg-white px-3.5 py-2.5 text-xs font-bold"
+              style={{ borderColor: `${INK}22`, color: INK }}
+            >
+              <LayoutGrid size={13} />
+              Add Board
+            </button>
           </div>
         </div>
 
@@ -1227,10 +1435,15 @@ export const Board = () => {
               tasks={filteredTasks[col] || []}
               boardType={board.type}
               onAddTask={handleOpenAddTask}
-              // WIP limits are a Kanban-specific practice — only surface them
-              // on kanban boards, and only on the "In Progress" column.
+              onOpenTask={handleOpenTask}
               showWipLimit={board.type === "kanban" && col === "In Progress"}
               wipLimit={5}
+              isMenuOpen={openColumnMenu === col}
+              onToggleMenu={() =>
+                setOpenColumnMenu((cur) => (cur === col ? null : col))
+              }
+              onRemoveColumn={handleRemoveColumn}
+              canRemove={columns.length > 1}
             />
           ))}
         </div>
@@ -1337,6 +1550,16 @@ export const Board = () => {
           isSubmitting={isCreatingTask}
         />
       )}
+
+      {selectedTaskId && (
+        <TaskDetailModal
+          taskId={selectedTaskId}
+          onClose={handleCloseTaskDetail}
+          onChanged={handleTaskChanged}
+        />
+      )}
+
+      <CreateBoardModal {...createBoardModalProps} />
     </>
   );
 };

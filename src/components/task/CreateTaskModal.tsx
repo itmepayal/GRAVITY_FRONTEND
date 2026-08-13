@@ -1,4 +1,10 @@
-import { useState, type FormEvent } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  type FormEvent,
+  type ChangeEvent,
+} from "react";
 import {
   X,
   Plus,
@@ -16,6 +22,9 @@ import {
   ListChecks,
   Trash2,
   Activity,
+  Paperclip,
+  UploadCloud,
+  FileText,
 } from "lucide-react";
 import {
   INK,
@@ -33,6 +42,7 @@ import {
 import { useGetAllUsers } from "@/hooks/queries/users/use-get-all-users";
 import { useGetUserWorkspaces } from "@/hooks/queries/workspace/use-get-user-workspaces";
 import { useGetWorkspaceProjects } from "@/hooks/queries/project/use-get-workspace-projects";
+import { useGetProjectSprints } from "@/hooks/queries/project/use-get-project-sprints";
 
 // --- schema-accurate status enum (matches ITask["status"]) ---
 export type TaskStatus =
@@ -70,6 +80,22 @@ export interface NewSubTaskInput {
   completed: boolean;
 }
 
+// --- attachment draft used only inside the modal before submit ---
+export interface NewAttachmentInput {
+  file: File;
+  name: string;
+  size: number;
+}
+
+const MAX_ATTACHMENTS = 6;
+const MAX_ATTACHMENT_MB = 15;
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 // --- mirrors ITask fields the client is allowed to set on create ---
 export interface NewTaskInput {
   title: string;
@@ -96,6 +122,7 @@ export interface NewTaskInput {
   actualHours?: number;
 
   subtasks: NewSubTaskInput[];
+  attachments: NewAttachmentInput[];
 
   isArchived: boolean;
 
@@ -131,6 +158,61 @@ function defaultStatusForColumn(column: string): TaskStatus {
   return "todo";
 }
 
+// A visually distinct card that groups related fields. Cards sit on a soft
+// gray canvas so the eye can immediately tell where one group of fields
+// ends and the next begins, instead of the whole form reading as one block.
+function SectionCard({
+  icon,
+  title,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-[#0F2D29]/10 bg-white p-4 shadow-[0_1px_2px_rgba(15,45,41,0.04)]">
+      <div className="mb-3.5 flex items-center gap-2">
+        <span
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md"
+          style={{ backgroundColor: "#E7F5EF", color: "#0F8A65" }}
+        >
+          {icon}
+        </span>
+        <h3 className="text-[12px] font-bold uppercase tracking-wider text-[#0F2D29]">
+          {title}
+        </h3>
+      </div>
+      <div className="space-y-4">{children}</div>
+    </div>
+  );
+}
+
+function FieldLabel({
+  icon,
+  required,
+  optional,
+  children,
+}: {
+  icon?: React.ReactNode;
+  required?: boolean;
+  optional?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="mb-1.5 flex items-center gap-1.5 text-[13px] font-semibold text-[#0F2D29]">
+      {icon}
+      {children}
+      {required && <span className="text-[#B3261E]">*</span>}
+      {optional && (
+        <span className="text-[11px] font-normal text-[#8FA69E]">
+          (optional)
+        </span>
+      )}
+    </label>
+  );
+}
+
 export const CreateTaskModal = ({
   columns,
   defaultColumn,
@@ -152,7 +234,7 @@ export const CreateTaskModal = ({
   const [estimatedHours, setEstimatedHours] = useState<string>("");
   const [actualHours, setActualHours] = useState<string>("");
 
-  // workspace -> project cascading select
+  // workspace -> project -> sprint cascading selects
   const [workspaceId, setWorkspaceId] = useState("");
   const [projectId, setProjectId] = useState("");
   const [sprintId, setSprintId] = useState("");
@@ -165,10 +247,17 @@ export const CreateTaskModal = ({
   const [subtasks, setSubtasks] = useState<NewSubTaskInput[]>([]);
   const [subtaskDraft, setSubtaskDraft] = useState("");
 
+  // attachments
+  const [attachments, setAttachments] = useState<NewAttachmentInput[]>([]);
+  const [attachmentError, setAttachmentError] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const { data: workspacesRes, isLoading: isLoadingWorkspaces } =
     useGetUserWorkspaces();
   const { data: projectsRes, isLoading: isLoadingProjects } =
     useGetWorkspaceProjects(workspaceId);
+  const { data: sprintsRes, isLoading: isLoadingSprints } =
+    useGetProjectSprints(projectId);
   const { data: usersRes, isLoading: isLoadingUsers } = useGetAllUsers();
 
   const workspaceOptions = unwrapList<any>(workspacesRes).map((ws) => ({
@@ -181,6 +270,12 @@ export const CreateTaskModal = ({
     name: p.name,
   }));
 
+  const sprintOptions = unwrapList<any>(sprintsRes).map((s) => ({
+    id: s._id ?? s.id,
+    name: s.name ?? s.title ?? "Untitled sprint",
+    status: s.status as string | undefined,
+  }));
+
   const userOptions = unwrapList<any>(usersRes).map((u) => ({
     id: u._id ?? u.id,
     name: u.name ?? u.fullName ?? u.email ?? "Unknown",
@@ -188,9 +283,21 @@ export const CreateTaskModal = ({
 
   const selectedUser = userOptions.find((u) => u.id === assigneeId);
 
+  useEffect(() => {
+    if (sprintId && !isLoadingSprints && sprintOptions.length > 0) {
+      const stillExists = sprintOptions.some((s) => s.id === sprintId);
+      if (!stillExists) setSprintId("");
+    }
+  }, [sprintOptions, isLoadingSprints, sprintId]);
+
   const handleWorkspaceChange = (id: string) => {
     setWorkspaceId(id);
     setProjectId("");
+    setSprintId("");
+  };
+
+  const handleProjectChange = (id: string) => {
+    setProjectId(id);
     setSprintId("");
   };
 
@@ -231,6 +338,49 @@ export const CreateTaskModal = ({
     );
   };
 
+  const handleFilesSelected = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setAttachmentError("");
+
+    const incoming = Array.from(files);
+    const tooBig = incoming.filter(
+      (f) => f.size > MAX_ATTACHMENT_MB * 1024 * 1024,
+    );
+    if (tooBig.length > 0) {
+      setAttachmentError(
+        `${tooBig.length > 1 ? "Some files exceed" : "File exceeds"} the ${MAX_ATTACHMENT_MB}MB limit and ${tooBig.length > 1 ? "were" : "was"} skipped.`,
+      );
+    }
+
+    const accepted = incoming.filter(
+      (f) => f.size <= MAX_ATTACHMENT_MB * 1024 * 1024,
+    );
+
+    setAttachments((prev) => {
+      const room = MAX_ATTACHMENTS - prev.length;
+      if (room <= 0) {
+        setAttachmentError(`You can attach up to ${MAX_ATTACHMENTS} files.`);
+        return prev;
+      }
+      const next = accepted.slice(0, room).map((file) => ({
+        file,
+        name: file.name,
+        size: file.size,
+      }));
+      if (accepted.length > room) {
+        setAttachmentError(`You can attach up to ${MAX_ATTACHMENTS} files.`);
+      }
+      return [...prev, ...next];
+    });
+
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
+    setAttachmentError("");
+  };
+
   const isValid =
     title.trim().length >= 2 && !!column && !!projectId && !!workspaceId;
 
@@ -265,6 +415,7 @@ export const CreateTaskModal = ({
       actualHours: actualHours ? Number(actualHours) : undefined,
 
       subtasks,
+      attachments,
 
       isArchived: false,
 
@@ -280,14 +431,15 @@ export const CreateTaskModal = ({
       onClick={() => !isSubmitting && onClose()}
     >
       <div
-        className="w-full max-w-lg overflow-hidden border border-[#0F2D29] bg-white shadow-2xl transition-all"
+        className="flex h-[88vh] max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-[#0F2D29] bg-white shadow-2xl transition-all"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="bg-[#0F2D29] px-6 py-5 text-white">
+        {/* ================= HEADER ================= */}
+        <div className="shrink-0 bg-[#0F2D29] px-7 py-5 text-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div
-                className="flex h-10 w-10 items-center justify-center shadow-sm"
+                className="flex h-10 w-10 items-center justify-center rounded-lg shadow-sm"
                 style={{ backgroundColor: accent }}
               >
                 {boardType === "scrum" ? (
@@ -309,519 +461,670 @@ export const CreateTaskModal = ({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="flex h-8 w-8 items-center justify-center text-[#B7CFC7] transition hover:bg-white/10 hover:text-white disabled:opacity-40"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-[#B7CFC7] transition hover:bg-white/10 hover:text-white disabled:opacity-40"
             >
               <X size={16} />
             </button>
           </div>
         </div>
 
-        <fieldset disabled={isSubmitting} className="disabled:opacity-70">
-          <form
-            onSubmit={submit}
-            className="max-h-[75vh] space-y-4 overflow-y-auto p-6"
+        {/* form wraps BOTH the scrollable field area and the fixed footer,
+            so Enter-to-submit and the submit button keep working */}
+        <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
+          <fieldset
+            disabled={isSubmitting}
+            className="flex min-h-0 flex-1 flex-col disabled:opacity-70"
           >
-            <div>
-              <label
-                htmlFor="task-title"
-                className="mb-1.5 block text-[12px] font-semibold text-[#0F2D29]"
-              >
-                Task Title *
-              </label>
-              <input
-                id="task-title"
-                autoFocus
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. Design the onboarding flow"
-                minLength={2}
-                maxLength={140}
-                required
-                className={inputClass}
-              />
-              {title && title.trim().length < 2 && (
-                <p className="mt-1 text-[11px] text-red-500">
-                  Task title must be at least 2 characters.
-                </p>
-              )}
-            </div>
-
-            <div>
-              <div className="mb-1.5 flex items-center justify-between">
-                <label
-                  htmlFor="task-desc"
-                  className="text-[12px] font-semibold text-[#0F2D29]"
-                >
-                  Description{" "}
-                  <span className="font-normal text-[#8FA69E]">(optional)</span>
-                </label>
-                <span className="text-[10.5px] text-[#8FA69E]">
-                  {description.length}/500
-                </span>
-              </div>
-              <textarea
-                id="task-desc"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                maxLength={500}
-                rows={2}
-                placeholder="What needs to get done?"
-                className={`${inputClass} resize-none`}
-              />
-            </div>
-
-            {/* --- Workspace / Project cascading selects --- */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label
-                  htmlFor="task-workspace"
-                  className="mb-1.5 flex items-center gap-1.5 text-[12px] font-semibold text-[#0F2D29]"
-                >
-                  <Briefcase size={13} className="text-[#0F8A65]" />
-                  Workspace *
-                </label>
-                <select
-                  id="task-workspace"
-                  value={workspaceId}
-                  onChange={(e) => handleWorkspaceChange(e.target.value)}
-                  disabled={isLoadingWorkspaces}
-                  required
-                  className={inputClass}
-                >
-                  <option value="">
-                    {isLoadingWorkspaces ? "Loading..." : "Select workspace"}
-                  </option>
-                  {workspaceOptions.map((ws) => (
-                    <option key={ws.id} value={ws.id}>
-                      {ws.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="task-project"
-                  className="mb-1.5 flex items-center gap-1.5 text-[12px] font-semibold text-[#0F2D29]"
-                >
-                  <FolderKanban size={13} className="text-[#0F8A65]" />
-                  Project *
-                </label>
-                <select
-                  id="task-project"
-                  value={projectId}
-                  onChange={(e) => setProjectId(e.target.value)}
-                  disabled={!workspaceId || isLoadingProjects}
-                  required
-                  className={inputClass}
-                >
-                  <option value="">
-                    {!workspaceId
-                      ? "Select workspace first"
-                      : isLoadingProjects
-                        ? "Loading..."
-                        : "Select project"}
-                  </option>
-                  {projectOptions.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* --- Column / Status --- */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label
-                  htmlFor="task-column"
-                  className="mb-1.5 block text-[12px] font-semibold text-[#0F2D29]"
-                >
-                  Column
-                </label>
-                <select
-                  id="task-column"
-                  value={column}
-                  onChange={(e) => handleColumnChange(e.target.value)}
-                  className={inputClass}
-                >
-                  {columns.map((col) => (
-                    <option key={col} value={col}>
-                      {col}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="task-status"
-                  className="mb-1.5 flex items-center gap-1.5 text-[12px] font-semibold text-[#0F2D29]"
-                >
-                  <Activity size={13} className="text-[#0F8A65]" />
-                  Status
-                </label>
-                <select
-                  id="task-status"
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as TaskStatus)}
-                  className={inputClass}
-                >
-                  {STATUS_ORDER.map((s) => (
-                    <option key={s} value={s}>
-                      {STATUS_META[s].label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* --- Assignee / Sprint --- */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label
-                  htmlFor="task-assignee"
-                  className="mb-1.5 flex items-center gap-1.5 text-[12px] font-semibold text-[#0F2D29]"
-                >
-                  <UserCircle2 size={13} className="text-[#0F8A65]" />
-                  Assignee
-                </label>
-                <select
-                  id="task-assignee"
-                  value={assigneeId}
-                  onChange={(e) => setAssigneeId(e.target.value)}
-                  disabled={isLoadingUsers}
-                  className={inputClass}
-                >
-                  <option value="">
-                    {isLoadingUsers ? "Loading..." : "Unassigned"}
-                  </option>
-                  {userOptions.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="task-sprint"
-                  className="mb-1.5 flex items-center gap-1.5 text-[12px] font-semibold text-[#0F2D29]"
-                >
-                  <Zap size={13} className="text-[#0F8A65]" />
-                  Sprint{" "}
-                  <span className="font-normal text-[#8FA69E]">(optional)</span>
-                </label>
-                <input
-                  id="task-sprint"
-                  value={sprintId}
-                  onChange={(e) => setSprintId(e.target.value)}
-                  placeholder="Sprint ID"
-                  className={inputClass}
-                />
-                {/* Swap this input for a <select> once a
-                    useGetProjectSprints(projectId) hook is available. */}
-              </div>
-            </div>
-
-            {/* --- Watchers (multi-select via toggle chips) --- */}
-            <div>
-              <label className="mb-2 flex items-center gap-1.5 text-[12px] font-semibold text-[#0F2D29]">
-                <Users size={13} className="text-[#0F8A65]" />
-                Watchers{" "}
-                <span className="font-normal text-[#8FA69E]">(optional)</span>
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {isLoadingUsers && (
-                  <span className="text-[11px] text-[#8FA69E]">
-                    Loading users...
-                  </span>
-                )}
-                {userOptions.map((u) => {
-                  const active = watcherIds.includes(u.id);
-                  return (
-                    <button
-                      key={u.id}
-                      type="button"
-                      onClick={() => toggleWatcher(u.id)}
-                      className="flex items-center gap-1.5 border px-2.5 py-1 text-[11px] font-semibold transition"
-                      style={{
-                        borderColor: active ? TEAL : `${INK}22`,
-                        backgroundColor: active ? "#E7F5EF" : "white",
-                        color: active ? TEAL : `${INK}99`,
-                      }}
-                    >
-                      {active && <Check size={11} />}
-                      {u.name}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-2 flex items-center gap-1.5 text-[12px] font-semibold text-[#0F2D29]">
-                <Flag size={13} className="text-[#0F8A65]" />
-                Priority
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {PRIORITY_ORDER.map((p) => {
-                  const meta = PRIORITY_META[p];
-                  const active = priority === p;
-                  return (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setPriority(p)}
-                      className="flex items-center gap-1.5 border px-3 py-1.5 text-[11px] font-bold transition"
-                      style={{
-                        borderColor: active ? meta.color : `${INK}22`,
-                        backgroundColor: active ? meta.bg : "white",
-                        color: active ? meta.color : `${INK}99`,
-                      }}
-                    >
-                      {active && <Check size={11} />}
-                      {meta.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-2 flex items-center gap-1.5 text-[12px] font-semibold text-[#0F2D29]">
-                <TagIcon size={13} className="text-[#0F8A65]" />
-                Tags{" "}
-                <span className="font-normal text-[#8FA69E]">(optional)</span>
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {ALL_TAGS.map((tag) => {
-                  const meta = TAG_COLORS[tag];
-                  const active = tags.includes(tag);
-                  return (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => toggleTag(tag)}
-                      className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide transition"
-                      style={{
-                        color: active ? meta.color : `${INK}66`,
-                        backgroundColor: active ? meta.bg : "#EDEBE3",
-                        outline: active
-                          ? `1.5px solid ${meta.color}55`
-                          : "none",
-                      }}
-                    >
-                      {tag}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* --- Due date / hours --- */}
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <label
-                  htmlFor="task-due"
-                  className="mb-1.5 flex items-center gap-1.5 text-[12px] font-semibold text-[#0F2D29]"
-                >
-                  <CalendarDays size={13} className="text-[#0F8A65]" />
-                  Due date{" "}
-                  <span className="font-normal text-[#8FA69E]">(optional)</span>
-                </label>
-                <input
-                  id="task-due"
-                  type="date"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                  className={inputClass}
-                />
-              </div>
-
-              {boardType === "scrum" && (
-                <div>
-                  <label
-                    htmlFor="task-est-hours"
-                    className="mb-1.5 flex items-center gap-1.5 text-[12px] font-semibold text-[#0F2D29]"
+            <div className="min-h-0 flex-1 overflow-y-auto bg-[#F5F4EF]">
+              <div className="grid grid-cols-1 gap-4 p-6 md:grid-cols-2">
+                {/* ================= LEFT COLUMN ================= */}
+                <div className="space-y-4">
+                  <SectionCard
+                    icon={<ListTodo size={13} />}
+                    title="Task basics"
                   >
-                    <Zap size={13} className="text-[#0F8A65]" />
-                    Est. hours
-                  </label>
-                  <input
-                    id="task-est-hours"
-                    type="number"
-                    min={0}
-                    max={1000}
-                    value={estimatedHours}
-                    onChange={(e) => setEstimatedHours(e.target.value)}
-                    placeholder="e.g. 8"
-                    className={inputClass}
-                  />
-                </div>
-              )}
+                    <div>
+                      <FieldLabel required>Task Title</FieldLabel>
+                      <input
+                        id="task-title"
+                        autoFocus
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="e.g. Design the onboarding flow"
+                        minLength={2}
+                        maxLength={140}
+                        required
+                        className={`${inputClass} rounded-lg`}
+                      />
+                      {title && title.trim().length < 2 && (
+                        <p className="mt-1 text-[11px] text-red-500">
+                          Task title must be at least 2 characters.
+                        </p>
+                      )}
+                    </div>
 
-              <div>
-                <label
-                  htmlFor="task-actual-hours"
-                  className="mb-1.5 block text-[12px] font-semibold text-[#0F2D29]"
-                >
-                  Actual hours{" "}
-                  <span className="font-normal text-[#8FA69E]">(optional)</span>
-                </label>
-                <input
-                  id="task-actual-hours"
-                  type="number"
-                  min={0}
-                  max={1000}
-                  value={actualHours}
-                  onChange={(e) => setActualHours(e.target.value)}
-                  placeholder="e.g. 0"
-                  className={inputClass}
-                />
-              </div>
-            </div>
+                    <div>
+                      <div className="mb-1.5 flex items-center justify-between">
+                        <FieldLabel optional>Description</FieldLabel>
+                        <span className="text-[10.5px] text-[#8FA69E]">
+                          {description.length}/500
+                        </span>
+                      </div>
+                      <textarea
+                        id="task-desc"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        maxLength={500}
+                        rows={3}
+                        placeholder="What needs to get done?"
+                        className={`${inputClass} resize-none rounded-lg`}
+                      />
+                    </div>
+                  </SectionCard>
 
-            {/* --- Subtasks --- */}
-            <div>
-              <label className="mb-2 flex items-center gap-1.5 text-[12px] font-semibold text-[#0F2D29]">
-                <ListChecks size={13} className="text-[#0F8A65]" />
-                Subtasks{" "}
-                <span className="font-normal text-[#8FA69E]">(optional)</span>
-              </label>
+                  <SectionCard icon={<Briefcase size={13} />} title="Location">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <FieldLabel
+                          icon={
+                            <Briefcase size={13} className="text-[#0F8A65]" />
+                          }
+                          required
+                        >
+                          Workspace
+                        </FieldLabel>
+                        <select
+                          id="task-workspace"
+                          value={workspaceId}
+                          onChange={(e) =>
+                            handleWorkspaceChange(e.target.value)
+                          }
+                          disabled={isLoadingWorkspaces}
+                          required
+                          className={`${inputClass} rounded-lg`}
+                        >
+                          <option value="">
+                            {isLoadingWorkspaces
+                              ? "Loading..."
+                              : "Select workspace"}
+                          </option>
+                          {workspaceOptions.map((ws) => (
+                            <option key={ws.id} value={ws.id}>
+                              {ws.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
 
-              <div className="flex gap-2">
-                <input
-                  value={subtaskDraft}
-                  onChange={(e) => setSubtaskDraft(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addSubtask();
-                    }
-                  }}
-                  placeholder="Add a subtask and press Enter"
-                  className={inputClass}
-                />
-                <button
-                  type="button"
-                  onClick={addSubtask}
-                  className="flex shrink-0 items-center justify-center border px-3 text-[#0F2D29]"
-                  style={{ borderColor: `${INK}22` }}
-                >
-                  <Plus size={14} />
-                </button>
-              </div>
+                      <div>
+                        <FieldLabel
+                          icon={
+                            <FolderKanban
+                              size={13}
+                              className="text-[#0F8A65]"
+                            />
+                          }
+                          required
+                        >
+                          Project
+                        </FieldLabel>
+                        <select
+                          id="task-project"
+                          value={projectId}
+                          onChange={(e) => handleProjectChange(e.target.value)}
+                          disabled={!workspaceId || isLoadingProjects}
+                          required
+                          className={`${inputClass} rounded-lg`}
+                        >
+                          <option value="">
+                            {!workspaceId
+                              ? "Select workspace first"
+                              : isLoadingProjects
+                                ? "Loading..."
+                                : "Select project"}
+                          </option>
+                          {projectOptions.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
 
-              {subtasks.length > 0 && (
-                <ul className="mt-2 space-y-1.5">
-                  {subtasks.map((s, i) => (
-                    <li
-                      key={i}
-                      className="flex items-center justify-between border px-2.5 py-1.5 text-[11px]"
-                      style={{ borderColor: `${INK}15` }}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => toggleSubtaskDone(i)}
-                        className="flex items-center gap-2 text-left"
-                        style={{
-                          color: s.completed ? "#0F8A65" : INK,
-                          textDecoration: s.completed ? "line-through" : "none",
-                        }}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <FieldLabel>Column</FieldLabel>
+                        <select
+                          id="task-column"
+                          value={column}
+                          onChange={(e) => handleColumnChange(e.target.value)}
+                          className={`${inputClass} rounded-lg`}
+                        >
+                          {columns.map((col) => (
+                            <option key={col} value={col}>
+                              {col}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <FieldLabel
+                          icon={
+                            <Activity size={13} className="text-[#0F8A65]" />
+                          }
+                        >
+                          Status
+                        </FieldLabel>
+                        <select
+                          id="task-status"
+                          value={status}
+                          onChange={(e) =>
+                            setStatus(e.target.value as TaskStatus)
+                          }
+                          className={`${inputClass} rounded-lg`}
+                        >
+                          {STATUS_ORDER.map((s) => (
+                            <option key={s} value={s}>
+                              {STATUS_META[s].label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <FieldLabel
+                        icon={<Zap size={13} className="text-[#0F8A65]" />}
+                        optional
                       >
-                        <span
-                          className="flex h-4 w-4 items-center justify-center border"
+                        Sprint
+                      </FieldLabel>
+                      <select
+                        id="task-sprint"
+                        value={sprintId}
+                        onChange={(e) => setSprintId(e.target.value)}
+                        disabled={!projectId || isLoadingSprints}
+                        className={`${inputClass} rounded-lg`}
+                      >
+                        <option value="">
+                          {!projectId
+                            ? "Select project first"
+                            : isLoadingSprints
+                              ? "Loading sprints..."
+                              : sprintOptions.length === 0
+                                ? "No sprints in this project"
+                                : "No sprint (backlog)"}
+                        </option>
+                        {sprintOptions.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name}
+                            {s.status ? ` · ${s.status}` : ""}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="mt-1 text-[10.5px] text-[#8FA69E]">
+                        Sprints are scoped to the selected project.
+                      </p>
+                    </div>
+                  </SectionCard>
+
+                  <SectionCard icon={<Users size={13} />} title="People">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <FieldLabel
+                          icon={
+                            <UserCircle2 size={13} className="text-[#0F8A65]" />
+                          }
+                        >
+                          Assignee
+                        </FieldLabel>
+                        <select
+                          id="task-assignee"
+                          value={assigneeId}
+                          onChange={(e) => setAssigneeId(e.target.value)}
+                          disabled={isLoadingUsers}
+                          className={`${inputClass} rounded-lg`}
+                        >
+                          <option value="">
+                            {isLoadingUsers ? "Loading..." : "Unassigned"}
+                          </option>
+                          {userOptions.map((u) => (
+                            <option key={u.id} value={u.id}>
+                              {u.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="flex flex-col justify-end">
+                        <div
+                          className="flex items-center gap-2 rounded-lg border px-2.5 py-2"
                           style={{
-                            borderColor: s.completed ? "#0F8A65" : `${INK}44`,
-                            backgroundColor: s.completed ? "#E7F5EF" : "white",
+                            borderColor: `${INK}15`,
+                            backgroundColor: "#FAFAF7",
                           }}
                         >
-                          {s.completed && <Check size={10} color="#0F8A65" />}
-                        </span>
-                        {s.title}
-                      </button>
+                          <div
+                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-[9px] font-bold"
+                            style={{ backgroundColor: MINT, color: INK }}
+                          >
+                            {selectedUser
+                              ? selectedUser.name
+                                  .trim()
+                                  .slice(0, 3)
+                                  .toUpperCase()
+                              : "—"}
+                          </div>
+                          <span className="truncate text-[12px] font-medium text-[#0F2D29]">
+                            {selectedUser
+                              ? selectedUser.name
+                              : "No one assigned yet"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <FieldLabel
+                        icon={<Users size={13} className="text-[#0F8A65]" />}
+                        optional
+                      >
+                        Watchers
+                      </FieldLabel>
+                      <div className="flex flex-wrap gap-2">
+                        {isLoadingUsers && (
+                          <span className="text-[11px] text-[#8FA69E]">
+                            Loading users...
+                          </span>
+                        )}
+                        {userOptions.map((u) => {
+                          const active = watcherIds.includes(u.id);
+                          return (
+                            <button
+                              key={u.id}
+                              type="button"
+                              onClick={() => toggleWatcher(u.id)}
+                              className="flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition"
+                              style={{
+                                borderColor: active ? TEAL : `${INK}22`,
+                                backgroundColor: active ? "#E7F5EF" : "white",
+                                color: active ? TEAL : `${INK}99`,
+                              }}
+                            >
+                              {active && <Check size={11} />}
+                              {u.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </SectionCard>
+                </div>
+
+                {/* ================= RIGHT COLUMN ================= */}
+                <div className="space-y-4">
+                  <SectionCard
+                    icon={<Flag size={13} />}
+                    title="Priority & tags"
+                  >
+                    <div>
+                      <FieldLabel
+                        icon={<Flag size={13} className="text-[#0F8A65]" />}
+                      >
+                        Priority
+                      </FieldLabel>
+                      <div className="flex flex-wrap gap-2">
+                        {PRIORITY_ORDER.map((p) => {
+                          const meta = PRIORITY_META[p];
+                          const active = priority === p;
+                          return (
+                            <button
+                              key={p}
+                              type="button"
+                              onClick={() => setPriority(p)}
+                              className="flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-bold transition"
+                              style={{
+                                borderColor: active ? meta.color : `${INK}22`,
+                                backgroundColor: active ? meta.bg : "white",
+                                color: active ? meta.color : `${INK}99`,
+                              }}
+                            >
+                              {active && <Check size={11} />}
+                              {meta.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div>
+                      <FieldLabel
+                        icon={<TagIcon size={13} className="text-[#0F8A65]" />}
+                        optional
+                      >
+                        Tags
+                      </FieldLabel>
+                      <div className="flex flex-wrap gap-2">
+                        {ALL_TAGS.map((tag) => {
+                          const meta = TAG_COLORS[tag];
+                          const active = tags.includes(tag);
+                          return (
+                            <button
+                              key={tag}
+                              type="button"
+                              onClick={() => toggleTag(tag)}
+                              className="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide transition"
+                              style={{
+                                color: active ? meta.color : `${INK}66`,
+                                backgroundColor: active ? meta.bg : "#EDEBE3",
+                                outline: active
+                                  ? `1.5px solid ${meta.color}55`
+                                  : "none",
+                              }}
+                            >
+                              {tag}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <FieldLabel
+                          icon={
+                            <CalendarDays
+                              size={13}
+                              className="text-[#0F8A65]"
+                            />
+                          }
+                          optional
+                        >
+                          Due date
+                        </FieldLabel>
+                        <input
+                          id="task-due"
+                          type="date"
+                          value={dueDate}
+                          onChange={(e) => setDueDate(e.target.value)}
+                          className={`${inputClass} rounded-lg`}
+                        />
+                      </div>
+
+                      {boardType === "scrum" && (
+                        <div>
+                          <FieldLabel
+                            icon={<Zap size={13} className="text-[#0F8A65]" />}
+                          >
+                            Est. hours
+                          </FieldLabel>
+                          <input
+                            id="task-est-hours"
+                            type="number"
+                            min={0}
+                            max={1000}
+                            value={estimatedHours}
+                            onChange={(e) => setEstimatedHours(e.target.value)}
+                            placeholder="e.g. 8"
+                            className={`${inputClass} rounded-lg`}
+                          />
+                        </div>
+                      )}
+
+                      <div>
+                        <FieldLabel optional>Actual hours</FieldLabel>
+                        <input
+                          id="task-actual-hours"
+                          type="number"
+                          min={0}
+                          max={1000}
+                          value={actualHours}
+                          onChange={(e) => setActualHours(e.target.value)}
+                          placeholder="e.g. 0"
+                          className={`${inputClass} rounded-lg`}
+                        />
+                      </div>
+                    </div>
+                  </SectionCard>
+
+                  <SectionCard icon={<ListChecks size={13} />} title="Subtasks">
+                    <div className="flex gap-2">
+                      <input
+                        value={subtaskDraft}
+                        onChange={(e) => setSubtaskDraft(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            addSubtask();
+                          }
+                        }}
+                        placeholder="Add a subtask and press Enter"
+                        className={`${inputClass} rounded-lg`}
+                      />
                       <button
                         type="button"
-                        onClick={() => removeSubtask(i)}
-                        style={{ color: "#B3261E" }}
+                        onClick={addSubtask}
+                        className="flex shrink-0 items-center justify-center rounded-lg border px-3 text-[#0F2D29] transition hover:bg-[#0F2D29]/5"
+                        style={{ borderColor: `${INK}22` }}
                       >
-                        <Trash2 size={12} />
+                        <Plus size={14} />
                       </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+                    </div>
 
-            <div
-              className="flex items-center gap-2.5 border p-3"
-              style={{ borderColor: `${INK}12`, backgroundColor: accentSoft }}
-            >
-              <div
-                className="flex h-7 w-7 shrink-0 items-center justify-center text-[9px] font-bold"
-                style={{ backgroundColor: MINT, color: INK }}
-              >
-                {selectedUser
-                  ? selectedUser.name.trim().slice(0, 3).toUpperCase()
-                  : "—"}
+                    {subtasks.length > 0 && (
+                      <ul className="space-y-1.5">
+                        {subtasks.map((s, i) => (
+                          <li
+                            key={i}
+                            className="flex items-center justify-between rounded-lg border px-2.5 py-1.5 text-[11px]"
+                            style={{ borderColor: `${INK}15` }}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => toggleSubtaskDone(i)}
+                              className="flex items-center gap-2 text-left"
+                              style={{
+                                color: s.completed ? "#0F8A65" : INK,
+                                textDecoration: s.completed
+                                  ? "line-through"
+                                  : "none",
+                              }}
+                            >
+                              <span
+                                className="flex h-4 w-4 items-center justify-center rounded border"
+                                style={{
+                                  borderColor: s.completed
+                                    ? "#0F8A65"
+                                    : `${INK}44`,
+                                  backgroundColor: s.completed
+                                    ? "#E7F5EF"
+                                    : "white",
+                                }}
+                              >
+                                {s.completed && (
+                                  <Check size={10} color="#0F8A65" />
+                                )}
+                              </span>
+                              {s.title}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => removeSubtask(i)}
+                              className="rounded p-0.5 transition hover:bg-red-50"
+                              style={{ color: "#B3261E" }}
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </SectionCard>
+
+                  <SectionCard
+                    icon={<Paperclip size={13} />}
+                    title="Attachments"
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      className="hidden"
+                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                        handleFilesSelected(e.target.files)
+                      }
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={attachments.length >= MAX_ATTACHMENTS}
+                      className="flex w-full flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed px-4 py-5 text-center transition hover:bg-[#0F8A65]/5 disabled:cursor-not-allowed disabled:opacity-50"
+                      style={{ borderColor: `${INK}2A` }}
+                    >
+                      <UploadCloud size={18} className="text-[#0F8A65]" />
+                      <span className="text-[11.5px] font-semibold text-[#0F2D29]">
+                        Click to add files
+                      </span>
+                      <span className="text-[10.5px] text-[#8FA69E]">
+                        Up to {MAX_ATTACHMENTS} files · {MAX_ATTACHMENT_MB}MB
+                        each
+                      </span>
+                    </button>
+
+                    {attachmentError && (
+                      <p className="text-[11px] text-red-500">
+                        {attachmentError}
+                      </p>
+                    )}
+
+                    {attachments.length > 0 && (
+                      <ul className="space-y-1.5">
+                        {attachments.map((a, i) => (
+                          <li
+                            key={`${a.name}-${i}`}
+                            className="flex items-center justify-between gap-2 rounded-lg border px-2.5 py-1.5 text-[11px]"
+                            style={{ borderColor: `${INK}15` }}
+                          >
+                            <div className="flex min-w-0 items-center gap-2">
+                              <span
+                                className="flex h-6 w-6 shrink-0 items-center justify-center rounded"
+                                style={{ backgroundColor: MINT }}
+                              >
+                                <FileText size={12} style={{ color: INK }} />
+                              </span>
+                              <div className="min-w-0">
+                                <p
+                                  className="truncate font-medium"
+                                  style={{ color: INK }}
+                                  title={a.name}
+                                >
+                                  {a.name}
+                                </p>
+                                <p className="text-[10px] text-[#8FA69E]">
+                                  {formatFileSize(a.size)}
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeAttachment(i)}
+                              className="shrink-0 rounded p-0.5 transition hover:bg-red-50"
+                              style={{ color: "#B3261E" }}
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </SectionCard>
+                </div>
               </div>
-              <p
-                className="text-[11px] font-medium"
-                style={{ color: `${INK}99` }}
-              >
-                This task will be added to{" "}
-                <span className="font-bold" style={{ color: accent }}>
-                  {column || defaultColumn}
-                </span>{" "}
-                as{" "}
-                <span className="font-bold" style={{ color: accent }}>
-                  {STATUS_META[status].label}
-                </span>
-                {selectedUser && (
-                  <>
-                    {" "}
-                    · assigned to{" "}
-                    <span className="font-bold" style={{ color: accent }}>
-                      {selectedUser.name}
-                    </span>
-                  </>
-                )}
-              </p>
             </div>
 
-            <div className="flex justify-end gap-2.5 border-t border-[#0F2D29]/8 pt-3">
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={isSubmitting}
-                className="rounded-xl px-4 py-2 text-[13px] font-medium text-[#5B6E68] transition hover:bg-[#0F2D29]/5 disabled:opacity-40"
+            {/* ================= FOOTER (fixed, full width, inside form) ================= */}
+            <div className="shrink-0 space-y-3 border-t border-[#0F2D29]/10 bg-white px-7 py-4 shadow-[0_-2px_6px_rgba(15,45,41,0.04)]">
+              <div
+                className="flex items-center gap-2.5 rounded-lg border p-3"
+                style={{ borderColor: `${INK}12`, backgroundColor: accentSoft }}
               >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={!isValid || isSubmitting}
-                className="inline-flex items-center gap-1.5 rounded-xl px-5 py-2 text-[13px] font-medium text-white shadow-sm transition disabled:opacity-40"
-                style={{ backgroundColor: INK }}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 size={15} className="animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  <>
-                    <Plus size={15} />
-                    Create task
-                  </>
-                )}
-              </button>
+                <div
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-[9px] font-bold"
+                  style={{ backgroundColor: MINT, color: INK }}
+                >
+                  {selectedUser
+                    ? selectedUser.name.trim().slice(0, 3).toUpperCase()
+                    : "—"}
+                </div>
+                <p
+                  className="text-[11px] font-medium"
+                  style={{ color: `${INK}99` }}
+                >
+                  This task will be added to{" "}
+                  <span className="font-bold" style={{ color: accent }}>
+                    {column || defaultColumn}
+                  </span>{" "}
+                  as{" "}
+                  <span className="font-bold" style={{ color: accent }}>
+                    {STATUS_META[status].label}
+                  </span>
+                  {selectedUser && (
+                    <>
+                      {" "}
+                      · assigned to{" "}
+                      <span className="font-bold" style={{ color: accent }}>
+                        {selectedUser.name}
+                      </span>
+                    </>
+                  )}
+                  {attachments.length > 0 && (
+                    <>
+                      {" "}
+                      ·{" "}
+                      <span className="font-bold" style={{ color: accent }}>
+                        {attachments.length} file
+                        {attachments.length > 1 ? "s" : ""}
+                      </span>{" "}
+                      attached
+                    </>
+                  )}
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  disabled={isSubmitting}
+                  className="rounded-xl px-4 py-2 text-[13px] font-medium text-[#5B6E68] transition hover:bg-[#0F2D29]/5 disabled:opacity-40"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!isValid || isSubmitting}
+                  className="inline-flex items-center gap-1.5 rounded-xl px-5 py-2 text-[13px] font-medium text-white shadow-sm transition disabled:opacity-40"
+                  style={{ backgroundColor: INK }}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 size={15} className="animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Plus size={15} />
+                      Create task
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
-          </form>
-        </fieldset>
+          </fieldset>
+        </form>
       </div>
     </div>
   );

@@ -12,16 +12,12 @@ import type {
 export const createTask = async (
   data: CreateTaskData | FormData,
 ): Promise<TaskResponse> => {
-  console.log(data);
   const response = await api.post<TaskResponse>("/tasks", data, {
     headers:
       data instanceof FormData
-        ? {
-            "Content-Type": "multipart/form-data",
-          }
-        : undefined,
+        ? { "Content-Type": undefined }
+        : { "Content-Type": "application/json" },
   });
-
   return response.data;
 };
 
@@ -48,10 +44,8 @@ export const updateTask = async (
   const response = await api.patch<TaskResponse>(`/tasks/${taskId}`, data, {
     headers:
       data instanceof FormData
-        ? {
-            "Content-Type": "multipart/form-data",
-          }
-        : undefined,
+        ? { "Content-Type": undefined }
+        : { "Content-Type": "application/json" },
   });
 
   return response.data;
