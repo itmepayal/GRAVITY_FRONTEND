@@ -20,6 +20,9 @@ import {
   Copy,
   CheckCircle2,
   XCircle,
+  Plus,
+  Eye,
+  Wand2,
 } from "lucide-react";
 import {
   INK,
@@ -38,12 +41,25 @@ import { useGetTaskById } from "@/hooks/queries/task/use-get-task-by-id";
 import { useUpdateTask } from "@/hooks/mutations/task/use-update-task";
 import { useDeleteTask } from "@/hooks/mutations/task/use-delete-task";
 import { useGetAllUsers } from "@/hooks/queries/users/use-get-all-users";
+import { useAddSubTask } from "@/hooks/mutations/task/use-add-subtask";
+import { useUpdateSubTask } from "@/hooks/mutations/task/use-update-subtask";
+import { useDeleteSubTask } from "@/hooks/mutations/task/use-delete-subtask";
+import { useAddWatcher } from "@/hooks/mutations/task/use-add-watcher";
+import { useRemoveWatcher } from "@/hooks/mutations/task/use-remove-watcher";
+import { useArchiveTask } from "@/hooks/mutations/task/use-archive-task";
+import { useAssignTask } from "@/hooks/mutations/task/use-assign-task";
+import { useMoveTask } from "@/hooks/mutations/task/use-move-task";
 
 // NOTE: the three task hooks above (useGetTaskById / useUpdateTask /
 // useDeleteTask) are assumed to follow the same naming/path convention as
 // your board hooks (use-get-board-by-id, use-update-board, use-delete-board).
 // If your actual hooks live somewhere else or are named differently, just
 // fix these three import paths — everything else is hook-agnostic.
+//
+// The five hooks imported above (useAddWatcher, useRemoveWatcher,
+// useArchiveTask, useAssignTask, useMoveTask) are the ones you supplied.
+// Paths assumed as @/hooks/mutations/task/use-<kebab-name> — adjust if
+// yours differ.
 
 interface ApiRef {
   id?: string;
@@ -208,6 +224,27 @@ export const TaskDetailModal = ({
   const { mutate: updateTaskMutate, isPending: isUpdating } = useUpdateTask();
   const { mutate: deleteTaskMutate, isPending: isDeleting } = useDeleteTask();
 
+  // --- Subtask-specific mutations (dedicated endpoints, same as
+  // TaskDetailDrawer) so add/update/delete don't require resending the
+  // entire task payload. ---
+  const { mutate: addSubTaskMutate, isPending: isAddingSubtask } =
+    useAddSubTask();
+  const { mutate: updateSubTaskMutate, isPending: isTogglingSubtask } =
+    useUpdateSubTask();
+  const { mutate: deleteSubTaskMutate, isPending: isDeletingSubtask } =
+    useDeleteSubTask();
+
+  // --- Dedicated single-purpose mutations -------------------------------
+  const { mutate: archiveTaskMutate, isPending: isArchivingTask } =
+    useArchiveTask();
+  const { mutate: assignTaskMutate, isPending: isAssigningTask } =
+    useAssignTask();
+  const { mutate: moveTaskMutate, isPending: isMovingTask } = useMoveTask();
+  const { mutate: addWatcherMutate, isPending: isAddingWatcher } =
+    useAddWatcher();
+  const { mutate: removeWatcherMutate, isPending: isRemovingWatcher } =
+    useRemoveWatcher();
+
   const [isEditing, setIsEditing] = useState(false);
 
   const [title, setTitle] = useState("");
@@ -219,6 +256,10 @@ export const TaskDetailModal = ({
   const [estimatedHours, setEstimatedHours] = useState<string>("");
   const [actualHours, setActualHours] = useState<string>("");
   const [assigneeId, setAssigneeId] = useState("");
+
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
+  const [newWatcherId, setNewWatcherId] = useState("");
+  const [quickAssignId, setQuickAssignId] = useState("");
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
@@ -283,24 +324,116 @@ export const TaskDetailModal = ({
     );
   };
 
+  // --- Archive / unarchive ----------------------------------------------
+  // useArchiveTask only archives (its mutationFn takes just a taskId, no
+  // direction flag), so it's used for the forward action. There's no
+  // dedicated "unarchive" hook among the ones you gave me, so restoring a
+  // task falls back to the generic update mutation with isArchived: false.
+  // Swap that branch for a real useUnarchiveTask() if/when you add one.
   const handleToggleArchive = () => {
     if (!task) return;
-    updateTaskMutate(
-      { taskId: taskDbId, data: { isArchived: !task.isArchived } },
+    if (task.isArchived) {
+      updateTaskMutate(
+        { taskId: taskDbId, data: { isArchived: false } },
+        { onSuccess: () => onChanged() },
+      );
+      return;
+    }
+    archiveTaskMutate(taskDbId, { onSuccess: () => onChanged() });
+  };
+
+  // --- Quick assign (outside the edit form) ------------------------------
+  const handleQuickAssign = (userId: string) => {
+    if (!userId || !task) return;
+    assignTaskMutate(
+      { taskId: taskDbId, assigneeId: userId },
+      {
+        onSuccess: () => {
+          setQuickAssignId("");
+          onChanged();
+        },
+      },
+    );
+  };
+
+  // --- Move task (used to fix the status/column desync warning) ---------
+  const handleSyncColumn = () => {
+    if (!task) return;
+    const correctColumn = STATUS_TO_COLUMN[task.status];
+    if (!correctColumn) return;
+    moveTaskMutate(
+      {
+        taskId: taskDbId,
+        data: { column: correctColumn, status: task.status },
+      },
       { onSuccess: () => onChanged() },
     );
   };
 
-  const handleToggleSubtask = (index: number) => {
-    if (!task?.subtasks) return;
-    const nextSubtasks = task.subtasks.map((s, i) =>
-      i === index ? { ...s, completed: !s.completed } : s,
+  // --- Watchers -----------------------------------------------------------
+  const watcherIds = new Set(
+    (task?.watchers ?? []).map((w) => refId(w)).filter(Boolean) as string[],
+  );
+  const watcherCandidates = userOptions.filter((u) => !watcherIds.has(u.id));
+
+  const handleAddWatcher = (userId: string) => {
+    if (!userId) return;
+    addWatcherMutate(
+      { taskId: taskDbId, userId },
+      {
+        onSuccess: () => {
+          setNewWatcherId("");
+          onChanged();
+        },
+      },
     );
-    updateTaskMutate(
-      { taskId: taskDbId, data: { subtasks: nextSubtasks } },
+  };
+
+  const handleRemoveWatcher = (userId: string | undefined) => {
+    if (!userId) return;
+    removeWatcherMutate(
+      { taskId: taskDbId, userId },
       { onSuccess: () => onChanged() },
     );
   };
+
+  // --- Subtask handlers -----------------------------------------------
+
+  const handleToggleSubtask = (
+    subtaskId: string | undefined,
+    completed: boolean,
+  ) => {
+    if (!subtaskId) return;
+    updateSubTaskMutate(
+      { taskId: taskDbId, subtaskId, data: { completed: !completed } },
+      { onSuccess: () => onChanged() },
+    );
+  };
+
+  const handleAddSubtask = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSubtaskTitle.trim()) return;
+
+    addSubTaskMutate(
+      { taskId: taskDbId, data: { title: newSubtaskTitle.trim() } },
+      {
+        onSuccess: () => {
+          setNewSubtaskTitle("");
+          onChanged();
+        },
+      },
+    );
+  };
+
+  const handleDeleteSubtask = (subtaskId: string | undefined) => {
+    if (!subtaskId) return;
+    deleteSubTaskMutate(
+      { taskId: taskDbId, subtaskId },
+      { onSuccess: () => onChanged() },
+    );
+  };
+
+  // ----------------------------------------------------------------------
 
   const handleDelete = () => {
     if (!task) return;
@@ -347,13 +480,15 @@ export const TaskDetailModal = ({
     ? avatarStyle(assigneeLabel)
     : { bg: MINT, fg: INK };
 
+  const isArchiveBusy = isUpdating || isArchivingTask;
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F2D29]/40 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex justify-end bg-[#0F2D29]/40 backdrop-blur-xs transition-opacity duration-300 animate-in fade-in"
       onClick={() => !isUpdating && !isDeleting && onClose()}
     >
       <div
-        className="flex h-[85vh] max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-[#0F2D29] bg-white shadow-2xl"
+        className="flex h-full w-full max-w-2xl sm:max-w-3xl flex-col overflow-hidden bg-white shadow-2xl transition-all duration-300 animate-in slide-in-from-right"
         onClick={(e) => e.stopPropagation()}
       >
         {/* HEADER */}
@@ -380,11 +515,13 @@ export const TaskDetailModal = ({
                 <>
                   <button
                     onClick={handleToggleArchive}
-                    disabled={isUpdating}
+                    disabled={isArchiveBusy}
                     title={task.isArchived ? "Unarchive" : "Archive"}
                     className="flex h-8 w-8 items-center justify-center rounded-lg text-[#B7CFC7] transition hover:bg-white/10 hover:text-white disabled:opacity-40"
                   >
-                    {task.isArchived ? (
+                    {isArchiveBusy ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : task.isArchived ? (
                       <ArchiveRestore size={15} />
                     ) : (
                       <Archive size={15} />
@@ -463,14 +600,34 @@ export const TaskDetailModal = ({
                   </span>
                   {STATUS_TO_COLUMN[task.status] &&
                     STATUS_TO_COLUMN[task.status] !== task.column && (
-                      <p
-                        className="mt-1.5 flex items-center gap-1 text-[10px] font-semibold"
-                        style={{ color: "#B3261E" }}
-                        title={`Status says "${STATUS_TO_COLUMN[task.status]}" but the card is sitting in the "${task.column}" column. Edit and save to move it.`}
-                      >
-                        <AlertCircle size={10} />
-                        Out of sync with "{task.column}" column
-                      </p>
+                      <div className="mt-1.5 flex items-center justify-between gap-2">
+                        <p
+                          className="flex items-center gap-1 text-[10px] font-semibold"
+                          style={{ color: "#B3261E" }}
+                          title={`Status says "${STATUS_TO_COLUMN[task.status]}" but the card is sitting in the "${task.column}" column.`}
+                        >
+                          <AlertCircle size={10} />
+                          Out of sync with "{task.column}"
+                        </p>
+                        <button
+                          type="button"
+                          onClick={handleSyncColumn}
+                          disabled={isMovingTask}
+                          title={`Move card to "${STATUS_TO_COLUMN[task.status]}" column`}
+                          className="inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide transition hover:bg-[#FBEAE9] disabled:opacity-40"
+                          style={{
+                            color: "#B3261E",
+                            backgroundColor: "#FBEAE955",
+                          }}
+                        >
+                          {isMovingTask ? (
+                            <Loader2 size={9} className="animate-spin" />
+                          ) : (
+                            <Wand2 size={9} />
+                          )}
+                          Fix
+                        </button>
+                      </div>
                     )}
                 </div>
                 <div className="rounded-xl border border-[#0F2D29]/10 bg-white p-3">
@@ -532,6 +689,32 @@ export const TaskDetailModal = ({
                       {assigneeLabel || "Unassigned"}
                     </span>
                   </div>
+                  {/* Quick assign — reassigns immediately via useAssignTask,
+                      no need to enter the edit form. */}
+                  <div className="mt-2 flex items-center gap-1.5">
+                    <select
+                      value={quickAssignId}
+                      onChange={(e) => {
+                        setQuickAssignId(e.target.value);
+                        handleQuickAssign(e.target.value);
+                      }}
+                      disabled={isAssigningTask}
+                      className="w-full rounded border border-[#0F2D29]/15 bg-white px-1.5 py-1 text-[10.5px] font-medium text-[#5B6E68] disabled:opacity-50"
+                    >
+                      <option value="">Reassign to...</option>
+                      {userOptions.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.name}
+                        </option>
+                      ))}
+                    </select>
+                    {isAssigningTask && (
+                      <Loader2
+                        size={12}
+                        className="shrink-0 animate-spin text-[#0F8A65]"
+                      />
+                    )}
+                  </div>
                 </div>
                 <div className="rounded-xl border border-[#0F2D29]/10 bg-white p-3">
                   <p className="mb-1 flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-wide text-[#8FA69E]">
@@ -575,43 +758,104 @@ export const TaskDetailModal = ({
                 </div>
               )}
 
-              {task.subtasks && task.subtasks.length > 0 && (
-                <div className="rounded-xl border border-[#0F2D29]/10 bg-white p-4">
-                  <p className="mb-2.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-[#8FA69E]">
-                    <ListChecks size={12} /> Subtasks
-                  </p>
-                  <ul className="space-y-1.5">
-                    {task.subtasks.map((s, i) => (
-                      <li key={s.id ?? s._id ?? i}>
-                        <button
-                          onClick={() => handleToggleSubtask(i)}
-                          disabled={isUpdating}
-                          className="flex w-full items-center gap-2 text-left text-[12px]"
-                          style={{
-                            color: s.completed ? "#0F8A65" : INK,
-                            textDecoration: s.completed
-                              ? "line-through"
-                              : "none",
-                          }}
+              {/* Subtasks — now with add + delete, not just toggle. The
+                  section always renders (even with 0 subtasks) so the
+                  add-subtask form is always reachable from here. */}
+              <div className="rounded-xl border border-[#0F2D29]/10 bg-white p-4">
+                <p className="mb-2.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-[#8FA69E]">
+                  <ListChecks size={12} /> Subtasks
+                  {task.subtasks && task.subtasks.length > 0 && (
+                    <span>
+                      ({task.subtasks.filter((s) => s.completed).length}/
+                      {task.subtasks.length})
+                    </span>
+                  )}
+                </p>
+
+                {task.subtasks && task.subtasks.length > 0 ? (
+                  <ul className="mb-3 space-y-1.5">
+                    {task.subtasks.map((s, i) => {
+                      const stId = s.id ?? s._id;
+                      return (
+                        <li
+                          key={stId ?? i}
+                          className="flex items-center gap-2 group"
                         >
-                          <span
-                            className="flex h-4 w-4 items-center justify-center border"
+                          <button
+                            onClick={() =>
+                              handleToggleSubtask(stId, s.completed)
+                            }
+                            disabled={isTogglingSubtask}
+                            className="flex flex-1 items-center gap-2 text-left text-[12px] disabled:opacity-50"
                             style={{
-                              borderColor: s.completed ? "#0F8A65" : `${INK}44`,
-                              backgroundColor: s.completed
-                                ? "#E7F5EF"
-                                : "white",
+                              color: s.completed ? "#0F8A65" : INK,
+                              textDecoration: s.completed
+                                ? "line-through"
+                                : "none",
                             }}
                           >
-                            {s.completed && <Check size={10} color="#0F8A65" />}
-                          </span>
-                          {s.title}
-                        </button>
-                      </li>
-                    ))}
+                            <span
+                              className="flex h-4 w-4 shrink-0 items-center justify-center border"
+                              style={{
+                                borderColor: s.completed
+                                  ? "#0F8A65"
+                                  : `${INK}44`,
+                                backgroundColor: s.completed
+                                  ? "#E7F5EF"
+                                  : "white",
+                              }}
+                            >
+                              {s.completed && (
+                                <Check size={10} color="#0F8A65" />
+                              )}
+                            </span>
+                            {s.title}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteSubtask(stId)}
+                            disabled={isDeletingSubtask}
+                            aria-label={`Delete subtask ${s.title}`}
+                            className="shrink-0 p-0.5 text-[#8FA69E] opacity-0 transition group-hover:opacity-100 hover:text-red-600 disabled:opacity-40"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </li>
+                      );
+                    })}
                   </ul>
-                </div>
-              )}
+                ) : (
+                  <p className="mb-3 text-[11px] font-medium text-[#8FA69E]">
+                    No subtasks yet.
+                  </p>
+                )}
+
+                <form
+                  onSubmit={handleAddSubtask}
+                  className="flex items-center gap-2"
+                >
+                  <input
+                    value={newSubtaskTitle}
+                    onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                    placeholder="Add a subtask..."
+                    disabled={isAddingSubtask}
+                    className={`${inputClass} flex-1 text-[12px] disabled:opacity-60`}
+                  />
+                  <button
+                    type="submit"
+                    disabled={isAddingSubtask || !newSubtaskTitle.trim()}
+                    className="inline-flex shrink-0 items-center gap-1 px-3 py-2 text-[11px] font-bold text-white disabled:opacity-40"
+                    style={{ backgroundColor: INK }}
+                  >
+                    {isAddingSubtask ? (
+                      <Loader2 size={12} className="animate-spin" />
+                    ) : (
+                      <Plus size={12} />
+                    )}
+                    Add
+                  </button>
+                </form>
+              </div>
 
               {/* Organization — workspace / project / board / sprint this
                   task belongs to. Renders whichever of these the API
@@ -667,22 +911,29 @@ export const TaskDetailModal = ({
               )}
 
               {/* Watchers — people following this task, separate from the
-                  single assignee shown above. */}
-              {task.watchers && task.watchers.length > 0 && (
-                <div className="rounded-xl border border-[#0F2D29]/10 bg-white p-4">
-                  <p className="mb-2.5 flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wide text-[#8FA69E]">
-                    <UserCircle2 size={11} /> Watchers ({task.watchers.length})
-                  </p>
-                  <div className="flex flex-wrap gap-2">
+                  single assignee shown above. Add via useAddWatcher,
+                  remove via useRemoveWatcher. Section always renders so the
+                  add-watcher control is always reachable. */}
+              <div className="rounded-xl border border-[#0F2D29]/10 bg-white p-4">
+                <p className="mb-2.5 flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wide text-[#8FA69E]">
+                  <Eye size={11} /> Watchers
+                  {task.watchers && task.watchers.length > 0 && (
+                    <span>({task.watchers.length})</span>
+                  )}
+                </p>
+
+                {task.watchers && task.watchers.length > 0 ? (
+                  <div className="mb-3 flex flex-wrap gap-2">
                     {task.watchers.map((w, i) => {
                       const label = refLabel(w) ?? "—";
+                      const id = refId(w);
                       const palette = avatarStyle(label);
                       return (
                         <span
-                          key={refId(w) ?? i}
-                          className="flex items-center gap-1.5 border py-1 pl-1 pr-2.5"
+                          key={id ?? i}
+                          className="group flex items-center gap-1.5 border py-1 pl-1 pr-2"
                           style={{ borderColor: `${INK}15` }}
-                          title={refId(w)}
+                          title={id}
                         >
                           <span
                             className="flex h-5 w-5 items-center justify-center text-[9px] font-bold"
@@ -699,12 +950,59 @@ export const TaskDetailModal = ({
                           >
                             {label}
                           </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveWatcher(id)}
+                            disabled={isRemovingWatcher}
+                            aria-label={`Remove watcher ${label}`}
+                            className="ml-0.5 shrink-0 text-[#8FA69E] opacity-0 transition group-hover:opacity-100 hover:text-red-600 disabled:opacity-40"
+                          >
+                            <X size={11} />
+                          </button>
                         </span>
                       );
                     })}
                   </div>
+                ) : (
+                  <p className="mb-3 text-[11px] font-medium text-[#8FA69E]">
+                    No watchers yet.
+                  </p>
+                )}
+
+                <div className="flex items-center gap-2">
+                  <select
+                    value={newWatcherId}
+                    onChange={(e) => setNewWatcherId(e.target.value)}
+                    disabled={isAddingWatcher || watcherCandidates.length === 0}
+                    className={`${inputClass} flex-1 text-[12px] disabled:opacity-60`}
+                  >
+                    <option value="">
+                      {watcherCandidates.length === 0
+                        ? "Everyone is already watching"
+                        : "Add a watcher..."}
+                    </option>
+                    {watcherCandidates.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => handleAddWatcher(newWatcherId)}
+                    disabled={isAddingWatcher || !newWatcherId}
+                    className="inline-flex shrink-0 items-center gap-1 px-3 py-2 text-[11px] font-bold text-white disabled:opacity-40"
+                    style={{ backgroundColor: INK }}
+                  >
+                    {isAddingWatcher ? (
+                      <Loader2 size={12} className="animate-spin" />
+                    ) : (
+                      <Plus size={12} />
+                    )}
+                    Add
+                  </button>
                 </div>
-              )}
+              </div>
 
               {/* Attachments — the section always renders, even when empty,
                   so it's obvious whether a task genuinely has none vs.
@@ -981,13 +1279,9 @@ export const TaskDetailModal = ({
         </div>
       </div>
 
-      {/* DELETE CONFIRMATION MODAL — user must type the exact task title
-          into the input before the Delete button unlocks. Rendered on top
-          of the detail modal (higher z-index), and stops propagation so
-          clicks inside it don't bubble up and close the parent modal. */}
       {showDeleteConfirm && task && (
         <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-[#0A211D]/70 p-4 backdrop-blur-md"
+          className="fixed inset-0 z-60 flex items-center justify-center bg-[#0A211D]/70 p-4 backdrop-blur-md"
           onClick={closeDeleteConfirm}
         >
           <div
@@ -1000,7 +1294,6 @@ export const TaskDetailModal = ({
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Danger accent bar */}
             <div
               className="h-1 w-full"
               style={{
@@ -1009,7 +1302,7 @@ export const TaskDetailModal = ({
             />
 
             <div className="p-6">
-              {/* Header */}
+              {" "}
               <div className="mb-4 flex items-start gap-3">
                 <span
                   className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
@@ -1041,7 +1334,6 @@ export const TaskDetailModal = ({
                   <X size={14} />
                 </button>
               </div>
-
               {/* Task preview — lets the person visually double-check this
                   is really the task they mean to remove. */}
               <div
@@ -1092,7 +1384,6 @@ export const TaskDetailModal = ({
                   )}
                 </div>
               </div>
-
               {/* Type-to-confirm */}
               <label className="mb-1.5 flex items-center justify-between text-[11px] font-bold text-[#5B6E68]">
                 <span>
@@ -1117,7 +1408,6 @@ export const TaskDetailModal = ({
                   to confirm
                 </span>
               </label>
-
               <div className="relative mb-1.5">
                 <input
                   autoFocus
@@ -1151,7 +1441,6 @@ export const TaskDetailModal = ({
                   </span>
                 )}
               </div>
-
               <p
                 className="mb-5 h-4 text-[11px] font-semibold"
                 style={{ color: isDeleteConfirmed ? "#0F8A65" : "#B3261E" }}
@@ -1162,7 +1451,6 @@ export const TaskDetailModal = ({
                     : "Doesn't match the task title yet."
                   : ""}
               </p>
-
               {/* Actions */}
               <div className="flex justify-end gap-2">
                 <button

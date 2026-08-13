@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import {
   type ITask,
-  type ISubTask,
   type IComment,
   type TaskStatus,
   STATUS_META,
@@ -28,6 +27,9 @@ import {
 } from "@/types/task";
 import { TaskAvatar } from "./TaskAvatar";
 import { PriorityBadge, StatusBadge } from "./TaskBadges";
+import { useAddSubTask } from "@/hooks/mutations/task/use-add-subtask";
+import { useUpdateSubTask } from "@/hooks/mutations/task/use-update-subtask";
+import { useDeleteSubTask } from "@/hooks/mutations/task/use-delete-subtask";
 
 export interface TaskDetailDrawerProps {
   task: ITask;
@@ -51,32 +53,40 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   const [newSubtaskText, setNewSubtaskText] = useState("");
   const [loggedHours, setLoggedHours] = useState(task.actualHours.toString());
 
+  const { mutate: addSubTaskMutate, isPending: isAddingSubtask } = useAddSubTask();
+  const { mutate: updateSubTaskMutate } = useUpdateSubTask();
+  const { mutate: deleteSubTaskMutate } = useDeleteSubTask();
+
   const subtaskDone = task.subtasks.filter((s) => s.completed).length;
   const daysRemaining = getDaysRemaining(task.dueDate);
   const isOverdue =
     daysRemaining !== null && daysRemaining < 0 && task.status !== "completed";
 
   const handleToggleSubtask = (stId: string) => {
-    const updatedSubtasks = task.subtasks.map((st) =>
-      st.id === stId ? { ...st, completed: !st.completed } : st
-    );
-    onUpdateTask({ ...task, subtasks: updatedSubtasks, updatedAt: new Date().toISOString() });
+    const subtask = task.subtasks.find((s) => s.id === stId);
+    if (!subtask) return;
+
+    updateSubTaskMutate({
+      taskId: task.id,
+      subtaskId: stId,
+      data: { completed: !subtask.completed },
+    });
   };
 
   const handleAddSubtask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSubtaskText.trim()) return;
-    const newSt: ISubTask = {
-      id: `st_${Date.now()}`,
-      title: newSubtaskText.trim(),
-      completed: false,
-    };
-    onUpdateTask({
-      ...task,
-      subtasks: [...task.subtasks, newSt],
-      updatedAt: new Date().toISOString(),
-    });
-    setNewSubtaskText("");
+
+    addSubTaskMutate(
+      { taskId: task.id, data: { title: newSubtaskText.trim() } },
+      {
+        onSuccess: () => setNewSubtaskText(""),
+      }
+    );
+  };
+
+  const handleDeleteSubtask = (stId: string) => {
+    deleteSubTaskMutate({ taskId: task.id, subtaskId: stId });
   };
 
   const handleAddComment = (e: React.FormEvent) => {
@@ -116,9 +126,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="flex h-full w-full max-w-2xl flex-col bg-white shadow-2xl animate-in slide-in-from-right duration-200 sm:max-w-xl">
-        {/* Header */}
         <div className="border-b border-[#0F2D29]/10 px-6 py-5 sm:px-7">
-          {/* Breadcrumb */}
           <div className="mb-2 flex items-center gap-1.5 text-[11px] font-bold text-[#5B6E68]">
             <span>{task.workspace.name}</span>
             <span>/</span>
@@ -163,19 +171,17 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex shrink-0 items-center gap-2 border-b-2 px-3.5 py-2.5 text-[12.5px] font-bold transition-all whitespace-nowrap ${
-                    isSel
-                      ? "border-[#0F2D29] text-[#0F2D29] bg-[#0F2D29]/5"
-                      : "border-transparent text-[#5B6E68] hover:text-[#0F2D29] hover:bg-[#0F2D29]/3"
-                  }`}
+                  className={`flex shrink-0 items-center gap-2 border-b-2 px-3.5 py-2.5 text-[12.5px] font-bold transition-all whitespace-nowrap ${isSel
+                    ? "border-[#0F2D29] text-[#0F2D29] bg-[#0F2D29]/5"
+                    : "border-transparent text-[#5B6E68] hover:text-[#0F2D29] hover:bg-[#0F2D29]/3"
+                    }`}
                 >
                   <Icon size={14} className={isSel ? "text-[#0F2D29]" : "text-[#8FA69E]"} />
                   <span>{tab.label}</span>
                   {tab.count !== undefined && (
                     <span
-                      className={`ml-0.5 px-1.5 py-0.2 text-[10.5px] font-extrabold ${
-                        isSel ? "bg-[#0F2D29] text-white" : "bg-[#0F2D29]/10 text-[#0F2D29]"
-                      }`}
+                      className={`ml-0.5 px-1.5 py-0.2 text-[10.5px] font-extrabold ${isSel ? "bg-[#0F2D29] text-white" : "bg-[#0F2D29]/10 text-[#0F2D29]"
+                        }`}
                     >
                       {tab.count}
                     </span>
@@ -289,11 +295,10 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                           updatedAt: new Date().toISOString(),
                         })
                       }
-                      className={`px-3 py-1.5 text-[11.5px] font-bold transition ${
-                        task.status === st
-                          ? "bg-[#0F2D29] text-white"
-                          : "border border-[#0F2D29]/15 text-[#5B6E68] hover:bg-[#0F2D29]/5"
-                      }`}
+                      className={`px-3 py-1.5 text-[11.5px] font-bold transition ${task.status === st
+                        ? "bg-[#0F2D29] text-white"
+                        : "border border-[#0F2D29]/15 text-[#5B6E68] hover:bg-[#0F2D29]/5"
+                        }`}
                     >
                       {STATUS_META[st].label}
                     </button>
@@ -325,20 +330,33 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
               {/* List */}
               <div className="space-y-2">
                 {task.subtasks.map((st) => (
-                  <button
+                  <div
                     key={st.id}
-                    onClick={() => handleToggleSubtask(st.id)}
-                    className="flex w-full items-center gap-3 border border-[#0F2D29]/8 bg-white p-3 text-left transition hover:border-[#0F2D29]/30 hover:bg-[#0F2D29]/3"
+                    className="flex w-full items-center gap-3 border border-[#0F2D29]/8 bg-white p-3 transition hover:border-[#0F2D29]/30 hover:bg-[#0F2D29]/3"
                   >
-                    {st.completed ? (
-                      <CheckSquare size={18} className="shrink-0 text-[#0F2D29]" />
-                    ) : (
-                      <Square size={18} className="shrink-0 text-[#8FA69E]" />
-                    )}
-                    <span className={`text-[13px] font-semibold ${st.completed ? "line-through text-[#8FA69E]" : "text-[#0F2D29]"}`}>
-                      {st.title}
-                    </span>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleSubtask(st.id)}
+                      className="flex flex-1 items-center gap-3 text-left"
+                    >
+                      {st.completed ? (
+                        <CheckSquare size={18} className="shrink-0 text-[#0F2D29]" />
+                      ) : (
+                        <Square size={18} className="shrink-0 text-[#8FA69E]" />
+                      )}
+                      <span className={`text-[13px] font-semibold ${st.completed ? "line-through text-[#8FA69E]" : "text-[#0F2D29]"}`}>
+                        {st.title}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteSubtask(st.id)}
+                      className="shrink-0 text-[#8FA69E] hover:text-red-600"
+                      aria-label={`Delete subtask ${st.title}`}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 ))}
               </div>
 
@@ -348,13 +366,15 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                   value={newSubtaskText}
                   onChange={(e) => setNewSubtaskText(e.target.value)}
                   placeholder="Add a new subtask..."
-                  className="flex-1 border border-[#0F2D29]/15 bg-[#0F2D29]/3 px-3.5 py-2 text-[12.5px] font-semibold text-[#0F2D29] outline-none focus:border-[#0F2D29] focus:bg-white"
+                  disabled={isAddingSubtask}
+                  className="flex-1 border border-[#0F2D29]/15 bg-[#0F2D29]/3 px-3.5 py-2 text-[12.5px] font-semibold text-[#0F2D29] outline-none focus:border-[#0F2D29] focus:bg-white disabled:opacity-60"
                 />
                 <button
                   type="submit"
-                  className="bg-[#0F2D29] px-4 py-2 text-[12px] font-bold text-white hover:bg-[#081E1B]"
+                  disabled={isAddingSubtask}
+                  className="bg-[#0F2D29] px-4 py-2 text-[12px] font-bold text-white hover:bg-[#081E1B] disabled:opacity-60"
                 >
-                  Add
+                  {isAddingSubtask ? "Adding..." : "Add"}
                 </button>
               </form>
             </div>
@@ -480,7 +500,6 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
           )}
         </div>
 
-        {/* Drawer Footer Actions */}
         <div className="flex items-center justify-between border-t border-[#0F2D29]/10 px-6 py-4 sm:px-7">
           <button
             onClick={() => {

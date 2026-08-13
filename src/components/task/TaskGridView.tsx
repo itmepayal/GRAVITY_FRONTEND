@@ -11,7 +11,7 @@ export const TaskGridView: React.FC<TaskGridViewProps> = ({ tasks, onOpenTask })
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {tasks.length === 0 ? (
-        <div className="col-span-full border border-[#0F2D29]/12 bg-white p-12 text-center text-[#8FA69E]">
+        <div className="col-span-full rounded-2xl border border-[#0F2D29]/12 bg-white p-12 text-center text-[#8FA69E] font-medium shadow-xs">
           No matching tasks found for your selection.
         </div>
       ) : (

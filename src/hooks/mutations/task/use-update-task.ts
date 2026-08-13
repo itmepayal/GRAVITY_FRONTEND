@@ -17,12 +17,12 @@ export const useUpdateTask = () => {
   >({
     mutationFn: ({ taskId, data }) => updateTask(taskId, data),
 
-    onSuccess: (updatedTask) => {
-      toast.success("Task updated successfully");
-      queryClient.setQueryData(["task", updatedTask.id], updatedTask);
-      queryClient.invalidateQueries({
-        queryKey: ["tasks"],
-      });
+    onSuccess: (response, variables) => {
+      toast.success(response?.message || "Task updated successfully");
+      queryClient.invalidateQueries({ queryKey: ["task", variables.taskId] });
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["board-tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["my-tasks"] });
     },
     onError: (error: any) => {
       toast.error(error?.response?.data?.message || "Failed to update task");

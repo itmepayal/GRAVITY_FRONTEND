@@ -60,7 +60,7 @@ export const TaskFilterBar: React.FC<TaskFilterBarProps> = ({
   onOpenCreateModal,
 }) => {
   return (
-    <div className="border border-[#0F2D29]/12 bg-white p-4 shadow-[0_2px_12px_rgba(15,45,41,0.04)] space-y-4">
+    <div className="rounded-2xl border border-[#0F2D29]/12 bg-white p-4 shadow-xs space-y-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         {/* Search Input */}
         <div className="relative flex-1">
@@ -69,12 +69,12 @@ export const TaskFilterBar: React.FC<TaskFilterBarProps> = ({
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search tasks by title, tags, description..."
-            className="w-full border border-[#0F2D29]/15 bg-[#0F2D29]/3 pl-10 pr-4 py-2.5 text-[13px] font-medium text-[#0F2D29] outline-none placeholder:text-[#8FA69E] focus:border-[#0F2D29] focus:bg-white"
+            className="w-full rounded-xl border border-[#0F2D29]/15 bg-[#0F2D29]/3 pl-10 pr-9 py-2.5 text-[13px] font-medium text-[#0F2D29] outline-none placeholder:text-[#8FA69E] transition-all focus:border-[#0F2D29] focus:bg-white focus:ring-2 focus:ring-[#0F2D29]/10"
           />
           {searchQuery && (
             <button
               onClick={() => onSearchChange("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8FA69E] hover:text-[#0F2D29]"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-0.5 text-[#8FA69E] hover:text-[#0F2D29] hover:bg-gray-100 transition-colors"
             >
               <X size={14} />
             </button>
@@ -82,29 +82,29 @@ export const TaskFilterBar: React.FC<TaskFilterBarProps> = ({
         </div>
 
         {/* View Switcher & Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2.5">
           {/* View Buttons */}
-          <div className="flex items-center border border-[#0F2D29]/12 bg-[#0F2D29]/5 p-1">
+          <div className="flex items-center rounded-xl border border-[#0F2D29]/12 bg-[#0F2D29]/4 p-1 shadow-2xs">
             <button
               onClick={() => onViewModeChange("kanban")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-bold transition ${
-                viewMode === "kanban" ? "bg-[#0F2D29] text-white" : "text-[#5B6E68] hover:text-[#0F2D29]"
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-bold transition-all duration-150 ${
+                viewMode === "kanban" ? "bg-[#0F2D29] text-white shadow-2xs" : "text-[#5B6E68] hover:text-[#0F2D29]"
               }`}
             >
               <Kanban size={14} /> Kanban
             </button>
             <button
               onClick={() => onViewModeChange("table")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-bold transition ${
-                viewMode === "table" ? "bg-[#0F2D29] text-white" : "text-[#5B6E68] hover:text-[#0F2D29]"
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-bold transition-all duration-150 ${
+                viewMode === "table" ? "bg-[#0F2D29] text-white shadow-2xs" : "text-[#5B6E68] hover:text-[#0F2D29]"
               }`}
             >
               <LayoutList size={14} /> Table
             </button>
             <button
               onClick={() => onViewModeChange("grid")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-bold transition ${
-                viewMode === "grid" ? "bg-[#0F2D29] text-white" : "text-[#5B6E68] hover:text-[#0F2D29]"
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-bold transition-all duration-150 ${
+                viewMode === "grid" ? "bg-[#0F2D29] text-white shadow-2xs" : "text-[#5B6E68] hover:text-[#0F2D29]"
               }`}
             >
               <LayoutGrid size={14} /> Grid
@@ -114,7 +114,7 @@ export const TaskFilterBar: React.FC<TaskFilterBarProps> = ({
           {/* Create Task Button */}
           <button
             onClick={() => onOpenCreateModal("To Do")}
-            className="flex items-center gap-2 bg-[#0F2D29] px-4 py-2.5 text-[13px] font-bold text-white shadow-xs hover:bg-[#081E1B] transition"
+            className="flex items-center gap-2 rounded-xl bg-[#0F2D29] px-4 py-2.5 text-[13px] font-bold text-white shadow-xs hover:bg-[#19403B] hover:-translate-y-0.5 transition-all duration-150 active:translate-y-0"
           >
             <Plus size={16} strokeWidth={2.5} /> New Task
           </button>
@@ -128,12 +128,12 @@ export const TaskFilterBar: React.FC<TaskFilterBarProps> = ({
           <select
             value={selectedWorkspaceId}
             onChange={(e) => onWorkspaceChange(e.target.value)}
-            className="w-full appearance-none border border-[#0F2D29]/15 bg-white px-3 py-2 text-[12px] font-bold text-[#0F2D29] outline-none focus:border-[#0F2D29]"
+            className="w-full appearance-none rounded-xl border border-[#0F2D29]/15 bg-white px-3 py-2 text-[12px] font-bold text-[#0F2D29] outline-none transition-all focus:border-[#0F2D29] focus:ring-2 focus:ring-[#0F2D29]/10"
           >
             <option value="all">All Workspaces</option>
             {workspaces.map((ws) => (
               <option key={ws.id} value={ws.id}>
-                {ws.icon} {ws.name}
+                {ws.name}
               </option>
             ))}
           </select>
@@ -145,7 +145,7 @@ export const TaskFilterBar: React.FC<TaskFilterBarProps> = ({
           <select
             value={selectedProjectId}
             onChange={(e) => onProjectChange(e.target.value)}
-            className="w-full appearance-none border border-[#0F2D29]/15 bg-white px-3 py-2 text-[12px] font-bold text-[#0F2D29] outline-none focus:border-[#0F2D29]"
+            className="w-full appearance-none rounded-xl border border-[#0F2D29]/15 bg-white px-3 py-2 text-[12px] font-bold text-[#0F2D29] outline-none transition-all focus:border-[#0F2D29] focus:ring-2 focus:ring-[#0F2D29]/10"
           >
             <option value="all">All Projects</option>
             {projects.map((p) => (
@@ -162,7 +162,7 @@ export const TaskFilterBar: React.FC<TaskFilterBarProps> = ({
           <select
             value={selectedBoardId}
             onChange={(e) => onBoardChange(e.target.value)}
-            className="w-full appearance-none border border-[#0F2D29]/15 bg-white px-3 py-2 text-[12px] font-bold text-[#0F2D29] outline-none focus:border-[#0F2D29]"
+            className="w-full appearance-none rounded-xl border border-[#0F2D29]/15 bg-white px-3 py-2 text-[12px] font-bold text-[#0F2D29] outline-none transition-all focus:border-[#0F2D29] focus:ring-2 focus:ring-[#0F2D29]/10"
           >
             <option value="all">All Boards</option>
             {boards.map((b) => (
@@ -179,7 +179,7 @@ export const TaskFilterBar: React.FC<TaskFilterBarProps> = ({
           <select
             value={selectedStatus}
             onChange={(e) => onStatusChange(e.target.value)}
-            className="w-full appearance-none border border-[#0F2D29]/15 bg-white px-3 py-2 text-[12px] font-bold text-[#0F2D29] outline-none focus:border-[#0F2D29]"
+            className="w-full appearance-none rounded-xl border border-[#0F2D29]/15 bg-white px-3 py-2 text-[12px] font-bold text-[#0F2D29] outline-none transition-all focus:border-[#0F2D29] focus:ring-2 focus:ring-[#0F2D29]/10"
           >
             <option value="all">All Statuses</option>
             {(Object.keys(STATUS_META) as TaskStatus[]).map((st) => (
@@ -196,7 +196,7 @@ export const TaskFilterBar: React.FC<TaskFilterBarProps> = ({
           <select
             value={selectedPriority}
             onChange={(e) => onPriorityChange(e.target.value)}
-            className="w-full appearance-none border border-[#0F2D29]/15 bg-white px-3 py-2 text-[12px] font-bold text-[#0F2D29] outline-none focus:border-[#0F2D29]"
+            className="w-full appearance-none rounded-xl border border-[#0F2D29]/15 bg-white px-3 py-2 text-[12px] font-bold text-[#0F2D29] outline-none transition-all focus:border-[#0F2D29] focus:ring-2 focus:ring-[#0F2D29]/10"
           >
             <option value="all">All Priorities</option>
             {(Object.keys(PRIORITY_META) as TaskPriority[]).map((pr) => (

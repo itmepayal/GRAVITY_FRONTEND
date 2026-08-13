@@ -229,9 +229,10 @@ export const PRIORITY_META: Record<
 };
 
 export const initials = (name?: string) => {
-  if (!name) return "?";
+  if (!name || name === "undefined" || name === "null") return "?";
   const cleaned = name.replace(/\([^)]*\)/g, "").trim();
-  const parts = cleaned.split(/\s+/).filter(Boolean);
+  if (!cleaned || cleaned === "undefined") return "?";
+  const parts = cleaned.split(/\s+/).filter((p) => Boolean(p) && p !== "undefined" && p !== "null");
   if (parts.length === 0) return "?";
   if (parts.length === 1) return parts[0][0].toUpperCase();
   return (parts[0][0] + parts[1][0]).toUpperCase();

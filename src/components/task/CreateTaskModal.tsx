@@ -25,6 +25,10 @@ import {
   Paperclip,
   UploadCloud,
   FileText,
+  MessageSquare,
+  Archive,
+  KanbanSquare,
+  Info,
 } from "lucide-react";
 import {
   INK,
@@ -42,9 +46,11 @@ import {
 import { useGetAllUsers } from "@/hooks/queries/users/use-get-all-users";
 import { useGetUserWorkspaces } from "@/hooks/queries/workspace/use-get-user-workspaces";
 import { useGetWorkspaceProjects } from "@/hooks/queries/project/use-get-workspace-projects";
+import { useGetProjectBoards } from "@/hooks/queries/project/use-get-project-boards";
 import { useGetProjectSprints } from "@/hooks/queries/project/use-get-project-sprints";
+import { useCreateTask } from "@/hooks/mutations/task/use-create-task";
+import type { TaskResponse } from "@/types/task";
 
-// --- schema-accurate status enum (matches ITask["status"]) ---
 export type TaskStatus =
   | "todo"
   | "in_progress"
@@ -64,7 +70,6 @@ export const STATUS_META: Record<
   completed: { label: "Completed", color: "#2563EB", bg: "#EAF1FE" },
   blocked: { label: "Blocked", color: "#B3261E", bg: "#FBEAE9" },
 };
-
 export const STATUS_ORDER: TaskStatus[] = [
   "todo",
   "in_progress",
@@ -74,13 +79,11 @@ export const STATUS_ORDER: TaskStatus[] = [
   "blocked",
 ];
 
-// --- subtask draft used only inside the modal before submit ---
 export interface NewSubTaskInput {
   title: string;
   completed: boolean;
 }
 
-// --- attachment draft used only inside the modal before submit ---
 export interface NewAttachmentInput {
   file: File;
   name: string;
@@ -96,7 +99,6 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-// --- mirrors ITask fields the client is allowed to set on create ---
 export interface NewTaskInput {
   title: string;
   description?: string;
@@ -108,8 +110,8 @@ export interface NewTaskInput {
 
   column: string;
 
-  assignee?: string; // user id
-  watchers: string[]; // user ids
+  assignee?: string;
+  watchers: string[];
 
   status: TaskStatus;
   priority: Priority;
@@ -117,6 +119,7 @@ export interface NewTaskInput {
   tags: TagName[];
 
   dueDate: string | null;
+  completedAt: string | null;
 
   estimatedHours?: number;
   actualHours?: number;
@@ -124,20 +127,37 @@ export interface NewTaskInput {
   subtasks: NewSubTaskInput[];
   attachments: NewAttachmentInput[];
 
+  initialComment?: string;
+
   isArchived: boolean;
 
-  // display-only, not part of schema, kept for the UI avatar badge
   assigneeLabel: string;
+}
+
+// 🔧 Serializes the task input into FormData the way the backend expects:
+// a single "data" field carrying the JSON payload, plus raw files under
+// "attachments". Matches createTaskController's `JSON.parse(req.body.data)`.
+function buildTaskFormData(input: NewTaskInput): FormData {
+  const formData = new FormData();
+
+  const { attachments, ...rest } = input;
+  formData.append("data", JSON.stringify(rest));
+
+  attachments.forEach((a) => {
+    formData.append("attachments", a.file, a.name);
+  });
+
+  return formData;
 }
 
 interface CreateTaskModalProps {
   columns: string[];
   defaultColumn: string;
   boardType: BoardType;
-  boardId: string;
+  defaultBoardId?: string; // 🔧 renamed from boardId — now just a preselect hint
   onClose: () => void;
-  onCreated: (task: NewTaskInput) => void;
-  isSubmitting?: boolean;
+
+  onCreated?: (task: TaskResponse) => void;
 }
 
 function unwrapList<T>(res: any): T[] {
@@ -146,8 +166,6 @@ function unwrapList<T>(res: any): T[] {
   return [];
 }
 
-// Column name -> default status, so switching column pre-fills a sensible
-// workflow state without forcing the user to set both manually every time.
 function defaultStatusForColumn(column: string): TaskStatus {
   const key = column.trim().toLowerCase();
   if (key.includes("progress")) return "in_progress";
@@ -158,35 +176,19 @@ function defaultStatusForColumn(column: string): TaskStatus {
   return "todo";
 }
 
-// A visually distinct card that groups related fields. Cards sit on a soft
-// gray canvas so the eye can immediately tell where one group of fields
-// ends and the next begins, instead of the whole form reading as one block.
-function SectionCard({
-  icon,
-  title,
-  children,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-xl border border-[#0F2D29]/10 bg-white p-4 shadow-[0_1px_2px_rgba(15,45,41,0.04)]">
-      <div className="mb-3.5 flex items-center gap-2">
-        <span
-          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md"
-          style={{ backgroundColor: "#E7F5EF", color: "#0F8A65" }}
-        >
-          {icon}
-        </span>
-        <h3 className="text-[12px] font-bold uppercase tracking-wider text-[#0F2D29]">
-          {title}
-        </h3>
-      </div>
-      <div className="space-y-4">{children}</div>
-    </div>
-  );
-}
+const SECTIONS = [
+  { id: "basics", label: "Basics", icon: ListTodo },
+  { id: "context", label: "Location & Sprint", icon: Briefcase },
+  { id: "people", label: "People", icon: Users },
+  { id: "priority", label: "Priority & Tags", icon: Flag },
+  { id: "schedule", label: "Schedule & Hours", icon: CalendarDays },
+  { id: "subtasks", label: "Subtasks", icon: ListChecks },
+  { id: "attachments", label: "Attachments", icon: Paperclip },
+  { id: "comments", label: "Comments", icon: MessageSquare },
+  { id: "advanced", label: "Advanced", icon: Archive },
+] as const;
+
+type SectionId = (typeof SECTIONS)[number]["id"];
 
 function FieldLabel({
   icon,
@@ -213,15 +215,43 @@ function FieldLabel({
   );
 }
 
+function SectionHeading({
+  icon,
+  title,
+  hint,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  hint?: string;
+}) {
+  return (
+    <div className="mb-4 flex items-start gap-2.5 border-b border-[#0F2D29]/10 pb-3">
+      <span
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
+        style={{ backgroundColor: "#E7F5EF", color: "#0F8A65" }}
+      >
+        {icon}
+      </span>
+      <div>
+        <h3 className="text-[13px] font-bold uppercase tracking-wider text-[#0F2D29]">
+          {title}
+        </h3>
+        {hint && <p className="mt-0.5 text-[11.5px] text-[#8FA69E]">{hint}</p>}
+      </div>
+    </div>
+  );
+}
+
 export const CreateTaskModal = ({
-  columns,
-  defaultColumn,
-  boardType,
-  boardId,
+  columns = [],
+  defaultColumn = "",
+  boardType = "kanban" as BoardType,
+  defaultBoardId = "",
   onClose,
   onCreated,
-  isSubmitting = false,
 }: CreateTaskModalProps) => {
+  const [activeSection, setActiveSection] = useState<SectionId>("basics");
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [column, setColumn] = useState(defaultColumn || columns[0] || "");
@@ -231,12 +261,16 @@ export const CreateTaskModal = ({
   const [priority, setPriority] = useState<Priority>("medium");
   const [tags, setTags] = useState<TagName[]>([]);
   const [dueDate, setDueDate] = useState("");
+  const [completedAt, setCompletedAt] = useState("");
   const [estimatedHours, setEstimatedHours] = useState<string>("");
   const [actualHours, setActualHours] = useState<string>("");
+  const [isArchived, setIsArchived] = useState(false);
+  const [initialComment, setInitialComment] = useState("");
 
-  // workspace -> project -> sprint cascading selects
+  // workspace -> project -> board / sprint cascading selects
   const [workspaceId, setWorkspaceId] = useState("");
   const [projectId, setProjectId] = useState("");
+  const [boardId, setBoardId] = useState(defaultBoardId); // 🔧 now state, not a fixed prop
   const [sprintId, setSprintId] = useState("");
 
   // assignee + watchers (multi)
@@ -256,9 +290,15 @@ export const CreateTaskModal = ({
     useGetUserWorkspaces();
   const { data: projectsRes, isLoading: isLoadingProjects } =
     useGetWorkspaceProjects(workspaceId);
+  const { data: boardsRes, isLoading: isLoadingBoards } =
+    useGetProjectBoards(projectId); // 🔧 new
   const { data: sprintsRes, isLoading: isLoadingSprints } =
     useGetProjectSprints(projectId);
   const { data: usersRes, isLoading: isLoadingUsers } = useGetAllUsers();
+
+  // The actual create-task network call. isPending drives every disabled/
+  // loading state in the form below — there's no separate isSubmitting prop.
+  const { mutate: createTaskMutate, isPending: isSubmitting } = useCreateTask();
 
   const workspaceOptions = unwrapList<any>(workspacesRes).map((ws) => ({
     id: ws._id ?? ws.id,
@@ -269,6 +309,11 @@ export const CreateTaskModal = ({
     id: p._id ?? p.id,
     name: p.name,
   }));
+
+  const boardOptions = unwrapList<any>(boardsRes).map((b) => ({
+    id: b._id ?? b.id,
+    name: b.name,
+  })); // 🔧 new
 
   const sprintOptions = unwrapList<any>(sprintsRes).map((s) => ({
     id: s._id ?? s.id,
@@ -282,6 +327,16 @@ export const CreateTaskModal = ({
   }));
 
   const selectedUser = userOptions.find((u) => u.id === assigneeId);
+  const selectedBoard = boardOptions.find((b) => b.id === boardId); // 🔧 new
+
+  // 🔧 If the project changes and the currently selected board no longer
+  // belongs to it, clear it instead of silently sending a stale id.
+  useEffect(() => {
+    if (boardId && !isLoadingBoards && boardOptions.length > 0) {
+      const stillExists = boardOptions.some((b) => b.id === boardId);
+      if (!stillExists) setBoardId("");
+    }
+  }, [boardOptions, isLoadingBoards, boardId]);
 
   useEffect(() => {
     if (sprintId && !isLoadingSprints && sprintOptions.length > 0) {
@@ -290,15 +345,30 @@ export const CreateTaskModal = ({
     }
   }, [sprintOptions, isLoadingSprints, sprintId]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isSubmitting) onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isSubmitting, onClose]);
+
   const handleWorkspaceChange = (id: string) => {
     setWorkspaceId(id);
     setProjectId("");
+    setBoardId(""); // 🔧 reset downstream
     setSprintId("");
   };
 
   const handleProjectChange = (id: string) => {
     setProjectId(id);
+    setBoardId(""); // 🔧 reset downstream — board options depend on project
     setSprintId("");
+  };
+
+  const handleBoardChange = (id: string) => {
+    setBoardId(id);
+    setSprintId(""); // reset sprint since it may be board-scoped
   };
 
   const handleColumnChange = (col: string) => {
@@ -382,17 +452,33 @@ export const CreateTaskModal = ({
   };
 
   const isValid =
-    title.trim().length >= 2 && !!column && !!projectId && !!workspaceId;
+    title.trim().length >= 2 &&
+    !!column &&
+    !!projectId &&
+    !!workspaceId &&
+    !!boardId; // 🔧 board is now required from the dropdown
+
+  const sectionHasContent: Record<SectionId, boolean> = {
+    basics: title.trim().length > 0 || description.trim().length > 0,
+    context: !!workspaceId || !!projectId || !!boardId || !!sprintId,
+    people: !!assigneeId || watcherIds.length > 0,
+    priority: priority !== "medium" || tags.length > 0,
+    schedule: !!dueDate || !!completedAt || !!estimatedHours || !!actualHours,
+    subtasks: subtasks.length > 0,
+    attachments: attachments.length > 0,
+    comments: initialComment.trim().length > 0,
+    advanced: isArchived,
+  };
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (!isValid || isSubmitting) return;
 
-    onCreated({
+    const input: NewTaskInput = {
       title: title.trim(),
       description: description.trim() || undefined,
 
-      board: boardId,
+      board: boardId, // 🔧 real ObjectId from the dropdown, not a slug
       project: projectId,
       workspace: workspaceId,
       sprint: sprintId || undefined,
@@ -407,6 +493,7 @@ export const CreateTaskModal = ({
       tags,
 
       dueDate: dueDate || null,
+      completedAt: completedAt || null,
 
       estimatedHours:
         boardType === "scrum" && estimatedHours
@@ -417,23 +504,44 @@ export const CreateTaskModal = ({
       subtasks,
       attachments,
 
-      isArchived: false,
+      initialComment: initialComment.trim() || undefined,
+
+      isArchived,
 
       assigneeLabel: selectedUser
         ? selectedUser.name.trim().slice(0, 3).toUpperCase()
         : "—",
+    };
+
+    const formData = buildTaskFormData(input);
+
+    createTaskMutate(formData, {
+      onSuccess: (task) => {
+        onCreated?.(task);
+        onClose();
+      },
+      // useCreateTask already shows an error toast on failure — the modal
+      // just stays open with the user's input intact so they can retry.
     });
   };
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F2D29]/40 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex justify-end bg-[#0F2D29]/40 backdrop-blur-xs transition-opacity duration-300 animate-in fade-in"
       onClick={() => !isSubmitting && onClose()}
     >
       <div
-        className="flex h-[88vh] max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-[#0F2D29] bg-white shadow-2xl transition-all"
+        className="flex h-full w-full max-w-2xl sm:max-w-3xl flex-col overflow-hidden bg-white shadow-2xl transition-all duration-300 animate-in slide-in-from-right"
         onClick={(e) => e.stopPropagation()}
       >
+        <style>{`
+          @keyframes ctmSectionIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          .ctm-section-enter { animation: ctmSectionIn 0.18s ease-out; }
+        `}</style>
+
         {/* ================= HEADER ================= */}
         <div className="shrink-0 bg-[#0F2D29] px-7 py-5 text-white">
           <div className="flex items-center justify-between">
@@ -468,21 +576,55 @@ export const CreateTaskModal = ({
           </div>
         </div>
 
-        {/* form wraps BOTH the scrollable field area and the fixed footer,
-            so Enter-to-submit and the submit button keep working */}
+        {/* form wraps the sidebar + scrollable content + fixed footer, so
+            Enter-to-submit and the submit button keep working */}
         <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
           <fieldset
             disabled={isSubmitting}
             className="flex min-h-0 flex-1 flex-col disabled:opacity-70"
           >
-            <div className="min-h-0 flex-1 overflow-y-auto bg-[#F5F4EF]">
-              <div className="grid grid-cols-1 gap-4 p-6 md:grid-cols-2">
-                {/* ================= LEFT COLUMN ================= */}
-                <div className="space-y-4">
-                  <SectionCard
-                    icon={<ListTodo size={13} />}
-                    title="Task basics"
-                  >
+            <div className="flex min-h-0 flex-1 flex-col bg-[#F5F4EF] md:flex-row">
+              {/* ================= LEFT SIDEBAR — one entry per section of the Task model ================= */}
+              <div className="shrink-0 border-b border-[#0F2D29]/10 bg-white md:w-56 md:border-b-0 md:border-r">
+                <nav className="flex gap-1 overflow-x-auto p-2 md:flex-col md:overflow-visible md:p-3">
+                  {SECTIONS.map((section) => {
+                    const Icon = section.icon;
+                    const active = activeSection === section.id;
+                    const filled = sectionHasContent[section.id];
+                    return (
+                      <button
+                        type="button"
+                        key={section.id}
+                        onClick={() => setActiveSection(section.id)}
+                        className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2.5 text-left text-[12.5px] font-semibold transition"
+                        style={{
+                          backgroundColor: active ? accentSoft : "transparent",
+                          color: active ? accent : "#5B6E68",
+                        }}
+                      >
+                        <Icon size={14} />
+                        {section.label}
+                        {filled && !active && (
+                          <span
+                            className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full"
+                            style={{ backgroundColor: "#0F8A65" }}
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
+                </nav>
+              </div>
+
+              {/* ================= RIGHT CONTENT — fields for the active section ================= */}
+              <div className="min-h-0 flex-1 overflow-y-auto p-6">
+                {activeSection === "basics" && (
+                  <div className="space-y-4">
+                    <SectionHeading
+                      icon={<ListTodo size={14} />}
+                      title="Basics"
+                      hint="ITask.title, ITask.description"
+                    />
                     <div>
                       <FieldLabel required>Task Title</FieldLabel>
                       <input
@@ -515,14 +657,22 @@ export const CreateTaskModal = ({
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
                         maxLength={500}
-                        rows={3}
+                        rows={6}
                         placeholder="What needs to get done?"
                         className={`${inputClass} resize-none rounded-lg`}
                       />
                     </div>
-                  </SectionCard>
+                  </div>
+                )}
 
-                  <SectionCard icon={<Briefcase size={13} />} title="Location">
+                {activeSection === "context" && (
+                  <div className="space-y-4">
+                    <SectionHeading
+                      icon={<Briefcase size={14} />}
+                      title="Location & Sprint"
+                      hint="ITask.board, ITask.workspace, ITask.project, ITask.sprint, ITask.column, ITask.status"
+                    />
+
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <FieldLabel
@@ -592,6 +742,44 @@ export const CreateTaskModal = ({
                       </div>
                     </div>
 
+                    {/* 🔧 Board — now a real dropdown scoped to the project */}
+                    <div>
+                      <FieldLabel
+                        icon={
+                          <KanbanSquare size={13} className="text-[#0F8A65]" />
+                        }
+                        required
+                      >
+                        Board
+                      </FieldLabel>
+                      <select
+                        id="task-board"
+                        value={boardId}
+                        onChange={(e) => handleBoardChange(e.target.value)}
+                        disabled={!projectId || isLoadingBoards}
+                        required
+                        className={`${inputClass} rounded-lg`}
+                      >
+                        <option value="">
+                          {!projectId
+                            ? "Select project first"
+                            : isLoadingBoards
+                              ? "Loading boards..."
+                              : boardOptions.length === 0
+                                ? "No boards in this project"
+                                : "Select board"}
+                        </option>
+                        {boardOptions.map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {b.name}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="mt-1 text-[10.5px] text-[#8FA69E]">
+                        Boards are scoped to the selected project.
+                      </p>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <FieldLabel>Column</FieldLabel>
@@ -601,7 +789,10 @@ export const CreateTaskModal = ({
                           onChange={(e) => handleColumnChange(e.target.value)}
                           className={`${inputClass} rounded-lg`}
                         >
-                          {columns.map((col) => (
+                          {(columns ?? []).length === 0 && (
+                            <option value="">No columns on this board</option>
+                          )}
+                          {(columns ?? []).map((col) => (
                             <option key={col} value={col}>
                               {col}
                             </option>
@@ -625,9 +816,9 @@ export const CreateTaskModal = ({
                           }
                           className={`${inputClass} rounded-lg`}
                         >
-                          {STATUS_ORDER.map((s) => (
+                          {(STATUS_ORDER ?? []).map((s) => (
                             <option key={s} value={s}>
-                              {STATUS_META[s].label}
+                              {STATUS_META[s]?.label ?? s}
                             </option>
                           ))}
                         </select>
@@ -668,9 +859,17 @@ export const CreateTaskModal = ({
                         Sprints are scoped to the selected project.
                       </p>
                     </div>
-                  </SectionCard>
+                  </div>
+                )}
 
-                  <SectionCard icon={<Users size={13} />} title="People">
+                {activeSection === "people" && (
+                  <div className="space-y-4">
+                    <SectionHeading
+                      icon={<Users size={14} />}
+                      title="People"
+                      hint="ITask.assignee, ITask.watchers, ITask.createdBy"
+                    />
+
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <FieldLabel
@@ -760,15 +959,38 @@ export const CreateTaskModal = ({
                         })}
                       </div>
                     </div>
-                  </SectionCard>
-                </div>
 
-                {/* ================= RIGHT COLUMN ================= */}
-                <div className="space-y-4">
-                  <SectionCard
-                    icon={<Flag size={13} />}
-                    title="Priority & tags"
-                  >
+                    <div>
+                      <FieldLabel
+                        icon={
+                          <UserCircle2 size={13} className="text-[#0F8A65]" />
+                        }
+                      >
+                        Created by
+                      </FieldLabel>
+                      <div
+                        className="flex items-center gap-2 rounded-lg border px-3 py-2.5 text-[12px] font-medium"
+                        style={{
+                          borderColor: `${INK}15`,
+                          backgroundColor: "#FAFAF7",
+                          color: `${INK}99`,
+                        }}
+                      >
+                        <Info size={13} />
+                        Set automatically to you when the task is created.
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeSection === "priority" && (
+                  <div className="space-y-4">
+                    <SectionHeading
+                      icon={<Flag size={14} />}
+                      title="Priority & Tags"
+                      hint="ITask.priority, ITask.tags"
+                    />
+
                     <div>
                       <FieldLabel
                         icon={<Flag size={13} className="text-[#0F8A65]" />}
@@ -776,8 +998,9 @@ export const CreateTaskModal = ({
                         Priority
                       </FieldLabel>
                       <div className="flex flex-wrap gap-2">
-                        {PRIORITY_ORDER.map((p) => {
-                          const meta = PRIORITY_META[p];
+                        {(PRIORITY_ORDER ?? []).map((p) => {
+                          const meta = PRIORITY_META?.[p];
+                          if (!meta) return null;
                           const active = priority === p;
                           return (
                             <button
@@ -807,8 +1030,9 @@ export const CreateTaskModal = ({
                         Tags
                       </FieldLabel>
                       <div className="flex flex-wrap gap-2">
-                        {ALL_TAGS.map((tag) => {
-                          const meta = TAG_COLORS[tag];
+                        {(ALL_TAGS ?? []).map((tag) => {
+                          const meta = TAG_COLORS?.[tag];
+                          if (!meta) return null;
                           const active = tags.includes(tag);
                           return (
                             <button
@@ -830,8 +1054,18 @@ export const CreateTaskModal = ({
                         })}
                       </div>
                     </div>
+                  </div>
+                )}
 
-                    <div className="space-y-4">
+                {activeSection === "schedule" && (
+                  <div className="space-y-4">
+                    <SectionHeading
+                      icon={<CalendarDays size={14} />}
+                      title="Schedule & Hours"
+                      hint="ITask.dueDate, ITask.completedAt, ITask.estimatedHours, ITask.actualHours"
+                    />
+
+                    <div className="grid grid-cols-2 gap-3">
                       <div>
                         <FieldLabel
                           icon={
@@ -853,6 +1087,28 @@ export const CreateTaskModal = ({
                         />
                       </div>
 
+                      <div>
+                        <FieldLabel
+                          icon={<Check size={13} className="text-[#0F8A65]" />}
+                          optional
+                        >
+                          Completed date
+                        </FieldLabel>
+                        <input
+                          id="task-completed-at"
+                          type="date"
+                          value={completedAt}
+                          onChange={(e) => setCompletedAt(e.target.value)}
+                          className={`${inputClass} rounded-lg`}
+                        />
+                        <p className="mt-1 text-[10.5px] text-[#8FA69E]">
+                          Usually left blank — set once the task is marked
+                          Completed.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
                       {boardType === "scrum" && (
                         <div>
                           <FieldLabel
@@ -887,9 +1143,17 @@ export const CreateTaskModal = ({
                         />
                       </div>
                     </div>
-                  </SectionCard>
+                  </div>
+                )}
 
-                  <SectionCard icon={<ListChecks size={13} />} title="Subtasks">
+                {activeSection === "subtasks" && (
+                  <div className="space-y-4">
+                    <SectionHeading
+                      icon={<ListChecks size={14} />}
+                      title="Subtasks"
+                      hint="ITask.subtasks"
+                    />
+
                     <div className="flex gap-2">
                       <input
                         value={subtaskDraft}
@@ -913,7 +1177,12 @@ export const CreateTaskModal = ({
                       </button>
                     </div>
 
-                    {subtasks.length > 0 && (
+                    {subtasks.length === 0 ? (
+                      <p className="text-[11.5px] text-[#8FA69E]">
+                        No subtasks yet. Break this task down into smaller
+                        steps.
+                      </p>
+                    ) : (
                       <ul className="space-y-1.5">
                         {subtasks.map((s, i) => (
                           <li
@@ -961,12 +1230,17 @@ export const CreateTaskModal = ({
                         ))}
                       </ul>
                     )}
-                  </SectionCard>
+                  </div>
+                )}
 
-                  <SectionCard
-                    icon={<Paperclip size={13} />}
-                    title="Attachments"
-                  >
+                {activeSection === "attachments" && (
+                  <div className="space-y-4">
+                    <SectionHeading
+                      icon={<Paperclip size={14} />}
+                      title="Attachments"
+                      hint="ITask.attachments"
+                    />
+
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -981,7 +1255,7 @@ export const CreateTaskModal = ({
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
                       disabled={attachments.length >= MAX_ATTACHMENTS}
-                      className="flex w-full flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed px-4 py-5 text-center transition hover:bg-[#0F8A65]/5 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="flex w-full flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed px-4 py-6 text-center transition hover:bg-[#0F8A65]/5 disabled:cursor-not-allowed disabled:opacity-50"
                       style={{ borderColor: `${INK}2A` }}
                     >
                       <UploadCloud size={18} className="text-[#0F8A65]" />
@@ -1040,8 +1314,110 @@ export const CreateTaskModal = ({
                         ))}
                       </ul>
                     )}
-                  </SectionCard>
-                </div>
+                  </div>
+                )}
+
+                {activeSection === "comments" && (
+                  <div className="space-y-4">
+                    <SectionHeading
+                      icon={<MessageSquare size={14} />}
+                      title="Comments"
+                      hint="ITask.comments"
+                    />
+
+                    <div>
+                      <FieldLabel
+                        icon={
+                          <MessageSquare size={13} className="text-[#0F8A65]" />
+                        }
+                        optional
+                      >
+                        Opening comment
+                      </FieldLabel>
+                      <textarea
+                        value={initialComment}
+                        onChange={(e) => setInitialComment(e.target.value)}
+                        maxLength={500}
+                        rows={5}
+                        placeholder="Leave context for whoever picks this up..."
+                        className={`${inputClass} resize-none rounded-lg`}
+                      />
+                      <p className="mt-1 text-[10.5px] text-[#8FA69E]">
+                        Posted as you, right after the task is created. Further
+                        comments can be added from the task detail view.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {activeSection === "advanced" && (
+                  <div className="space-y-4">
+                    <SectionHeading
+                      icon={<Archive size={14} />}
+                      title="Advanced"
+                      hint="ITask.isArchived, ITask.createdAt, ITask.updatedAt"
+                    />
+
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => setIsArchived((v) => !v)}
+                        className="flex w-full items-center justify-between rounded-lg border px-3.5 py-3 text-left transition"
+                        style={{
+                          borderColor: isArchived ? "#B3261E33" : `${INK}15`,
+                          backgroundColor: isArchived ? "#FBEAE9" : "#FAFAF7",
+                        }}
+                      >
+                        <span className="flex items-center gap-2">
+                          <Archive
+                            size={14}
+                            style={{
+                              color: isArchived ? "#B3261E" : "#5B6E68",
+                            }}
+                          />
+                          <span
+                            className="text-[12.5px] font-semibold"
+                            style={{ color: isArchived ? "#B3261E" : INK }}
+                          >
+                            Create as archived
+                          </span>
+                        </span>
+                        <span
+                          className="flex h-5 w-9 shrink-0 items-center rounded-full px-0.5 transition"
+                          style={{
+                            backgroundColor: isArchived ? "#B3261E" : "#D6D2C4",
+                            justifyContent: isArchived
+                              ? "flex-end"
+                              : "flex-start",
+                          }}
+                        >
+                          <span className="h-4 w-4 rounded-full bg-white shadow" />
+                        </span>
+                      </button>
+                      <p className="mt-1 text-[10.5px] text-[#8FA69E]">
+                        Archived tasks stay out of active boards and reports.
+                        Almost always left off for a brand new task.
+                      </p>
+                    </div>
+
+                    <div
+                      className="flex items-start gap-2 rounded-lg border px-3.5 py-3 text-[11.5px]"
+                      style={{
+                        borderColor: `${INK}15`,
+                        backgroundColor: "#FAFAF7",
+                        color: `${INK}88`,
+                      }}
+                    >
+                      <Info size={14} className="mt-0.5 shrink-0" />
+                      <span>
+                        <strong style={{ color: INK }}>createdAt</strong> and{" "}
+                        <strong style={{ color: INK }}>updatedAt</strong> are
+                        stamped automatically by the database the moment this
+                        task is saved — there's nothing to fill in here.
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1067,6 +1443,14 @@ export const CreateTaskModal = ({
                   <span className="font-bold" style={{ color: accent }}>
                     {column || defaultColumn}
                   </span>{" "}
+                  {selectedBoard && (
+                    <>
+                      on{" "}
+                      <span className="font-bold" style={{ color: accent }}>
+                        {selectedBoard.name}
+                      </span>{" "}
+                    </>
+                  )}
                   as{" "}
                   <span className="font-bold" style={{ color: accent }}>
                     {STATUS_META[status].label}
@@ -1089,6 +1473,15 @@ export const CreateTaskModal = ({
                         {attachments.length > 1 ? "s" : ""}
                       </span>{" "}
                       attached
+                    </>
+                  )}
+                  {isArchived && (
+                    <>
+                      {" "}
+                      ·{" "}
+                      <span className="font-bold" style={{ color: "#B3261E" }}>
+                        archived
+                      </span>
                     </>
                   )}
                 </p>

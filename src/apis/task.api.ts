@@ -9,6 +9,11 @@ import type {
   CommentData,
 } from "@/types/task";
 
+export const getMyTasks = async (): Promise<TasksResponse> => {
+  const response = await api.get<TasksResponse>("/tasks");
+  return response.data;
+};
+
 export const createTask = async (
   data: CreateTaskData | FormData,
 ): Promise<TaskResponse> => {

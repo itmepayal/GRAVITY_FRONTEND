@@ -9,16 +9,14 @@ import { useGetBoardTasks } from "@/hooks/queries/board/use-get-board-tasks";
 import { useCreateBoard } from "@/hooks/mutations/project/use-create-board";
 import { useUpdateBoard } from "@/hooks/mutations/board/use-update-board";
 import { useDeleteBoard } from "@/hooks/mutations/board/use-delete-board";
-import { useCreateTask } from "@/hooks/mutations/task/use-create-task";
 import { useGetUserWorkspaces } from "@/hooks/queries/workspace/use-get-user-workspaces";
 import { useGetWorkspaceProjects } from "@/hooks/queries/project/use-get-workspace-projects";
 import {
   CreateTaskModal,
-  type NewTaskInput,
   type TaskStatus,
 } from "@/components/task/CreateTaskModal";
 import { TaskDetailModal } from "@/components/task/TaskDetailModal";
-import type { CreateTaskData } from "@/types/task";
+import type { TaskResponse } from "@/types/task";
 import {
   INK,
   MINT,
@@ -184,43 +182,6 @@ function groupTasksByColumn(
   return grouped;
 }
 
-function buildCreateTaskPayload(input: NewTaskInput): FormData {
-  const fields: CreateTaskData = {
-    board: input.board,
-    project: input.project,
-    workspace: input.workspace,
-    sprint: input.sprint,
-    title: input.title,
-    description: input.description,
-    column: input.column,
-    status: input.status,
-    priority: input.priority,
-    tags: input.tags,
-    assignee: input.assignee,
-    watchers: input.watchers,
-    dueDate: input.dueDate ?? undefined,
-    estimatedHours: input.estimatedHours,
-    actualHours: input.actualHours,
-    subtasks: input.subtasks,
-    isArchived: input.isArchived,
-  };
-
-  const cleanFields = Object.fromEntries(
-    Object.entries(fields).filter(
-      ([, value]) => value !== undefined && value !== null,
-    ),
-  );
-
-  const formData = new FormData();
-  formData.append("data", JSON.stringify(cleanFields));
-
-  (input.attachments || []).forEach((a) =>
-    formData.append("attachments", a.file, a.name),
-  );
-
-  return formData;
-}
-
 function TaskCard({
   task,
   boardType,
@@ -236,8 +197,8 @@ function TaskCard({
   return (
     <div
       onClick={() => onOpen(task.id)}
-      className="cursor-pointer border border-l-[3px] bg-white p-3.5 transition-shadow hover:shadow-md"
-      style={{ borderColor: `${INK}22`, borderLeftColor: theme.accent }}
+      className="cursor-pointer rounded-xl border border-l-4 bg-white p-3.5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+      style={{ borderColor: `${INK}1A`, borderLeftColor: theme.accent }}
     >
       {task.tags?.length > 0 && (
         <div className="mb-2.5 flex flex-wrap gap-1.5">
@@ -246,7 +207,7 @@ function TaskCard({
             return (
               <span
                 key={tag}
-                className="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+                className="rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide border border-[#0F2D29]/10"
                 style={{ color: meta.color, backgroundColor: meta.bg }}
               >
                 {tag}
@@ -257,16 +218,16 @@ function TaskCard({
       )}
 
       <p
-        className="mb-3.5 text-sm font-bold leading-snug"
+        className="mb-3 text-[13.5px] sm:text-sm font-bold leading-snug tracking-tight line-clamp-2 break-words"
         style={{ color: INK }}
       >
         {task.title}
       </p>
 
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <span
-            className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+            className="flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider"
             style={{ color: priority.color, backgroundColor: priority.bg }}
           >
             <Flag size={10} />
@@ -275,7 +236,7 @@ function TaskCard({
 
           {boardType === "scrum" && typeof task.storyPoints === "number" && (
             <span
-              className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-bold"
+              className="flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold"
               style={{ color: theme.accent, backgroundColor: theme.accentSoft }}
             >
               {task.storyPoints} SP
@@ -294,7 +255,7 @@ function TaskCard({
         </div>
 
         <div
-          className="flex h-6 w-6 shrink-0 items-center justify-center text-[9px] font-bold"
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[9px] font-bold shadow-2xs border border-white"
           style={{ backgroundColor: MINT, color: INK }}
         >
           {task.assignee}
@@ -776,11 +737,11 @@ export const Board = () => {
   };
 
   const handleSubmitEditBoard = () => {
-    const boardId = getBoardId(board);
-    if (!boardId || !editBoardName.trim()) return;
+    const boardIdForEdit = getBoardId(board);
+    if (!boardIdForEdit || !editBoardName.trim()) return;
     updateBoardMutate(
       {
-        boardId,
+        boardId: boardIdForEdit,
         data: {
           name: editBoardName.trim(),
           description: editBoardDescription.trim() || undefined,
@@ -797,16 +758,18 @@ export const Board = () => {
   };
 
   const handleDeleteBoard = () => {
-    const boardId = getBoardId(board);
-    if (!boardId || !board) return;
+    const boardIdForDelete = getBoardId(board);
+    if (!boardIdForDelete || !board) return;
     const confirmed = window.confirm(
       `Delete "${board.name}"? This can't be undone.`,
     );
     if (!confirmed) return;
     setShowBoardMenu(false);
-    deleteBoardMutate(boardId, {
+    deleteBoardMutate(boardIdForDelete, {
       onSuccess: async () => {
-        const remaining = allBoards.filter((b) => (b.id ?? b._id) !== boardId);
+        const remaining = allBoards.filter(
+          (b) => (b.id ?? b._id) !== boardIdForDelete,
+        );
         setSelectedBoardId(remaining[0]?.id ?? remaining[0]?._id ?? "");
         await refetchAllBoards();
       },
@@ -883,78 +846,33 @@ export const Board = () => {
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [taskModalColumn, setTaskModalColumn] = useState("");
 
-  const { mutate: createTaskMutate, isPending: isCreatingTask } =
-    useCreateTask();
-
   const handleOpenAddTask = (columnName: string) => {
     setTaskModalColumn(columnName);
     setTaskModalOpen(true);
   };
 
-  const handleCreateTask = (input: NewTaskInput) => {
-    const boardId = getBoardId(board);
-    if (!boardId || !board) return;
+  // 🔧 CreateTaskModal now owns the create-task mutation internally and
+  // calls onCreated with the task the server actually created. This
+  // handler's only job is to fold that task into local board state — it
+  // must NOT re-submit the create request itself.
+  const handleTaskCreated = (task: TaskResponse) => {
+    const createdTask = unwrapObject<ApiTask>(task);
+    if (!createdTask) {
+      // Fall back to a full refetch if the response shape is unexpected.
+      refetchBoardTasks();
+      setTaskModalOpen(false);
+      return;
+    }
 
-    const normalizedInput: NewTaskInput = {
-      ...input,
-      board: boardId,
-      project: input.project || getProjectId(board) || "",
-      workspace: input.workspace || board.workspace || "",
-    };
-
-    const optimisticId = `t${Date.now()}`;
-    const optimisticTask: Task = {
-      id: optimisticId,
-      title: normalizedInput.title,
-      priority: normalizedInput.priority,
-      tags: normalizedInput.tags,
-      assignee: normalizedInput.assigneeLabel,
-      comments: 0,
-      attachments: 0,
-      due: normalizedInput.dueDate,
-      storyPoints: normalizedInput.estimatedHours,
-    };
+    const col = createdTask.column || taskModalColumn || columns[0] || "";
 
     setTasks((prev) => ({
       ...prev,
-      [normalizedInput.column]: [
-        ...(prev[normalizedInput.column] || []),
-        optimisticTask,
-      ],
+      [col]: [...(prev[col] || []), mapApiTask(createdTask)],
     }));
 
-    createTaskMutate(buildCreateTaskPayload(normalizedInput), {
-      onSuccess: (created: any) => {
-        const createdTask = unwrapObject<ApiTask>(created);
-        if (createdTask) {
-          setTasks((prev) => ({
-            ...prev,
-            [normalizedInput.column]: (prev[normalizedInput.column] || []).map(
-              (t) =>
-                t.id === optimisticId
-                  ? mapApiTask({
-                      ...createdTask,
-                      assigneeLabel:
-                        createdTask.assigneeLabel ||
-                        normalizedInput.assigneeLabel,
-                    })
-                  : t,
-            ),
-          }));
-        }
-
-        refetchBoardTasks();
-        setTaskModalOpen(false);
-      },
-      onError: () => {
-        setTasks((prev) => ({
-          ...prev,
-          [normalizedInput.column]: (prev[normalizedInput.column] || []).filter(
-            (t) => t.id !== optimisticId,
-          ),
-        }));
-      },
-    });
+    refetchBoardTasks();
+    setTaskModalOpen(false);
   };
 
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -1544,10 +1462,9 @@ export const Board = () => {
           columns={columns}
           defaultColumn={taskModalColumn || columns[0] || ""}
           boardType={board.type}
-          boardId={boardId}
+          defaultBoardId={boardId}
           onClose={() => setTaskModalOpen(false)}
-          onCreated={handleCreateTask}
-          isSubmitting={isCreatingTask}
+          onCreated={handleTaskCreated}
         />
       )}
 
