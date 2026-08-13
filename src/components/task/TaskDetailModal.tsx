@@ -36,7 +36,7 @@ import {
   type Priority,
   type TagName,
 } from "@/pages/dashboard/board/type";
-import { STATUS_META, STATUS_ORDER, type TaskStatus } from "./CreateTaskModal";
+import { STATUS_ORDER } from "./CreateTaskModal";
 import { useGetTaskById } from "@/hooks/queries/task/use-get-task-by-id";
 import { useUpdateTask } from "@/hooks/mutations/task/use-update-task";
 import { useDeleteTask } from "@/hooks/mutations/task/use-delete-task";
@@ -49,6 +49,7 @@ import { useRemoveWatcher } from "@/hooks/mutations/task/use-remove-watcher";
 import { useArchiveTask } from "@/hooks/mutations/task/use-archive-task";
 import { useAssignTask } from "@/hooks/mutations/task/use-assign-task";
 import { useMoveTask } from "@/hooks/mutations/task/use-move-task";
+import { STATUS_META, type TaskStatus } from "@/types/task";
 
 // NOTE: the three task hooks above (useGetTaskById / useUpdateTask /
 // useDeleteTask) are assumed to follow the same naming/path convention as

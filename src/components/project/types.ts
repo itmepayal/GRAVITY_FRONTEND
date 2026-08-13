@@ -117,7 +117,10 @@ export const normalizeUser = (raw: any): RefUser => {
 
 export const normalizeProjectMember = (raw: any): ProjectMember => ({
   user: normalizeUser(raw?.user ?? raw),
-  role: typeof raw?.role === "object" ? raw?.role?.name ?? "member" : raw?.role ?? "member",
+  role:
+    typeof raw?.role === "object"
+      ? (raw?.role?.name ?? "member")
+      : (raw?.role ?? "member"),
   joinedAt: raw?.joinedAt ?? raw?.createdAt ?? new Date().toISOString(),
 });
 
@@ -125,11 +128,18 @@ export const normalizeProjectData = (raw: any): Project => ({
   id: raw._id ?? raw.id,
   name: raw.name ?? "Untitled Project",
   description: raw.description ?? "",
-  workspace: typeof raw.workspace === "object" ? raw.workspace?._id ?? raw.workspace?.id : raw.workspace ?? "",
-  workspaceName: typeof raw.workspace === "object" ? raw.workspace?.name : undefined,
+  workspace:
+    typeof raw.workspace === "object"
+      ? (raw.workspace?._id ?? raw.workspace?.id)
+      : (raw.workspace ?? ""),
+  workspaceName:
+    typeof raw.workspace === "object" ? raw.workspace?.name : undefined,
   owner: normalizeUser(raw.owner),
   members: (raw.members ?? []).map(normalizeProjectMember),
-  tasksCount: raw.tasksCount ?? raw.taskCount ?? (Array.isArray(raw.tasks) ? raw.tasks.length : 0),
+  tasksCount:
+    raw.tasksCount ??
+    raw.taskCount ??
+    (Array.isArray(raw.tasks) ? raw.tasks.length : 0),
   completedTasksCount: raw.completedTasksCount ?? raw.completedTaskCount ?? 0,
   color: raw.color || "#0F2D29",
   status: (raw.status as ProjectStatus) || "planning",

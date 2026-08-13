@@ -51,7 +51,7 @@ import { useGetProjectSprints } from "@/hooks/queries/project/use-get-project-sp
 import { useCreateTask } from "@/hooks/mutations/task/use-create-task";
 import type { TaskResponse } from "@/types/task";
 
-export type TaskStatus =
+type TaskStatus =
   | "todo"
   | "in_progress"
   | "in_review"
@@ -59,7 +59,7 @@ export type TaskStatus =
   | "completed"
   | "blocked";
 
-export const STATUS_META: Record<
+const STATUS_META: Record<
   TaskStatus,
   { label: string; color: string; bg: string }
 > = {
