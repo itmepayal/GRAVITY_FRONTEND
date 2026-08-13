@@ -11,12 +11,9 @@ import { useUpdateBoard } from "@/hooks/mutations/board/use-update-board";
 import { useDeleteBoard } from "@/hooks/mutations/board/use-delete-board";
 import { useGetUserWorkspaces } from "@/hooks/queries/workspace/use-get-user-workspaces";
 import { useGetWorkspaceProjects } from "@/hooks/queries/project/use-get-workspace-projects";
-import {
-  CreateTaskModal,
-  type TaskStatus,
-} from "@/components/task/CreateTaskModal";
+import { CreateTaskModal } from "@/components/task/CreateTaskModal";
 import { TaskDetailModal } from "@/components/task/TaskDetailModal";
-import type { TaskResponse } from "@/types/task";
+import type { TaskResponse, TaskStatus } from "@/types/task";
 import {
   INK,
   MINT,
@@ -218,7 +215,7 @@ function TaskCard({
       )}
 
       <p
-        className="mb-3 text-[13.5px] sm:text-sm font-bold leading-snug tracking-tight line-clamp-2 break-words"
+        className="mb-3 text-[13.5px] sm:text-sm font-bold leading-snug tracking-tight line-clamp-2 wrap-break-word"
         style={{ color: INK }}
       >
         {task.title}
