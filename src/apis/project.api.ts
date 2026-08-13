@@ -60,6 +60,7 @@ export const createSprint = async (
     endDate: string;
   },
 ) => {
+  console.log(data);
   const response = await api.post(`/projects/${projectId}/sprints`, data);
   return response.data;
 };
