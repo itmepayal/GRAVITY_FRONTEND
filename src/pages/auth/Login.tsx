@@ -18,6 +18,7 @@ import { useGoogleLogin } from "@/hooks/mutations/auth/use-google-login.ts";
 import { useVerifyTwoFA } from "@/hooks/mutations/auth/use-verify-2fa";
 import { OrbitCard } from "@/components/auth/login/OrbitCard";
 import { TwoFACard } from "@/components/auth/login/TwoFACard";
+import { Link } from "react-router-dom";
 
 const Login = () => {
   const { mutate, isPending } = useLogin();
@@ -26,6 +27,7 @@ const Login = () => {
 
   const [requiresTwoFA, setRequiresTwoFA] = useState(false);
   const [twoFAEmail, setTwoFAEmail] = useState("");
+  const [showGoogleOverlay, setShowGoogleOverlay] = useState(false);
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -79,6 +81,7 @@ const Login = () => {
   const handleGoogleSuccess = (credentialResponse: CredentialResponse) => {
     if (!credentialResponse.credential) {
       toast.error("Google sign-in failed. Please try again.");
+      setShowGoogleOverlay(false);
       return;
     }
     googleMutate(credentialResponse.credential);
@@ -86,6 +89,7 @@ const Login = () => {
 
   const handleGoogleError = () => {
     toast.error("Google sign-in failed. Please try again.");
+    setShowGoogleOverlay(false);
   };
 
   const isBusy = isPending || isGooglePending;
@@ -134,12 +138,12 @@ const Login = () => {
           label="Password"
           htmlFor="password"
           action={
-            <a
-              href="/forgot-password"
+            <Link
+              to="/forgot-password"
               className="text-[#0F8A65] text-[12px] hover:text-[#0F8A65]/80 transition-colors"
             >
               Forgot Password?
-            </a>
+            </Link>
           }
         >
           <BasePasswordInput
@@ -199,27 +203,30 @@ const Login = () => {
               )
             }
             label={isGooglePending ? "Signing in…" : "Google"}
+            onClick={() => setShowGoogleOverlay(true)}
             className="w-full"
           />
-          <div className="absolute inset-0 opacity-0 [&>div]:h-full [&>div]:w-full [&_iframe]:h-full! [&_iframe]:w-full! overflow-hidden">
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={handleGoogleError}
-              width="100%"
-              text="continue_with"
-            />
-          </div>
+          {showGoogleOverlay && (
+            <div className="absolute inset-0 opacity-0 [&>div]:h-full [&>div]:w-full [&_iframe]:h-full! [&_iframe]:w-full! overflow-hidden">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                width="100%"
+                text="continue_with"
+                useOneTap={false}
+              />
+            </div>
+          )}
         </div>
       </div>
-
       <p className="text-[#5B6E68] text-[13px]">
         New to Gravity?{" "}
-        <a
-          href="/register"
-          className="text-[#0F8A65] font-medium hover:text-[#0F8A65]/80 transition-colors"
+        <Link
+          to="/register"
+          className="text-[#0F8A65] font-medium hover:text-[#0F8A65]/80 transition-colors cursor-pointer"
         >
           Create an account
-        </a>
+        </Link>
       </p>
     </AuthLayout>
   );
