@@ -39,12 +39,22 @@ interface WorkspaceDetailProps {
   onDeleted: () => void;
   onAddMember: (memberData: { userId: string; role: string }) => void;
   onRemoveMember: (memberId: string, memberLabel: string) => void;
-  onUpdateMemberRole: (memberId: string, newRole: string, memberLabel: string) => void;
+  onUpdateMemberRole: (
+    memberId: string,
+    newRole: string,
+    memberLabel: string,
+  ) => void;
   isUpdatingMemberRole?: boolean;
-  addActivity: (action: string, target: string, iconType: ActivityItem["iconType"]) => void;
+  addActivity: (
+    action: string,
+    target: string,
+    iconType: ActivityItem["iconType"],
+  ) => void;
   users: { id: string; name: string; email: string; avatar: string | null }[];
   isLoadingUsers?: boolean;
   addToast: (type: "success" | "info" | "warning", msg: string) => void;
+  /** Opens the Add Project modal (lives in the parent Workspaces page) */
+  onOpenAddProject?: () => void;
 }
 
 export const WorkspaceDetail = ({
@@ -63,14 +73,26 @@ export const WorkspaceDetail = ({
   addToast,
   users,
   isLoadingUsers,
+  onOpenAddProject,
 }: WorkspaceDetailProps) => {
   const [tab, setTab] = useState<Tab>("projects");
   const [editing, setEditing] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const canManage = workspace.role === "owner" || workspace.role === "admin";
-  const isOwner = workspace.role === "owner";
-  const RoleIcon = ROLE_META[workspace.role].icon;
+
+  // ✅ Normalize the role coming from the backend.
+  // Backend (workspace.service.ts -> getWorkspaceRoleForUser) returns
+  // capitalized names like "Owner" / "Admin" / "Member" / "Viewer"
+  // (these come straight from the Role collection's `name` field),
+  // but ROLE_META is keyed with lowercase strings. Without this
+  // normalization, ROLE_META[workspace.role] is undefined and
+  // `.icon` on it crashes the component.
+  const normalizedRole = (workspace.role || "member").toLowerCase();
+  const roleMeta = ROLE_META[normalizedRole];
+
+  const canManage = normalizedRole === "owner" || normalizedRole === "admin";
+  const isOwner = normalizedRole === "owner";
+  const RoleIcon = roleMeta?.icon ?? Users;
 
   const handleSaveWorkspaceEdit = (patch: Partial<Workspace>) => {
     onUpdated(patch);
@@ -116,31 +138,31 @@ export const WorkspaceDetail = ({
     icon: typeof FolderKanban;
     count?: number;
   }[] = [
-      {
-        id: "projects",
-        label: "Projects",
-        icon: FolderKanban,
-        count: workspace.projects.length,
-      },
-      {
-        id: "members",
-        label: "Members",
-        icon: Users,
-        count: workspace.members.length,
-      },
-      {
-        id: "roles",
-        label: "Roles & Permissions",
-        icon: Shield,
-        count: workspace.roles.length,
-      },
-      {
-        id: "activity",
-        label: "Activity Log",
-        icon: Activity,
-        count: workspace.activityLog?.length || 0,
-      },
-    ];
+    {
+      id: "projects",
+      label: "Projects",
+      icon: FolderKanban,
+      count: workspace.projects.length,
+    },
+    {
+      id: "members",
+      label: "Members",
+      icon: Users,
+      count: workspace.members.length,
+    },
+    {
+      id: "roles",
+      label: "Roles & Permissions",
+      icon: Shield,
+      count: workspace.roles.length,
+    },
+    {
+      id: "activity",
+      label: "Activity Log",
+      icon: Activity,
+      count: workspace.activityLog?.length || 0,
+    },
+  ];
 
   return (
     <div className="overflow-hidden border border-[#0F2D29]/12 bg-white shadow-2xs transition-shadow">
@@ -157,8 +179,9 @@ export const WorkspaceDetail = ({
         {(isRefreshing || isDeleting) && (
           <div className="absolute inset-x-0 top-0 h-0.5 overflow-hidden bg-[#0F2D29]/5">
             <div
-              className={`h-full w-1/3 animate-[loading-bar_1.1s_ease-in-out_infinite] ${isDeleting ? "bg-red-500" : "bg-[#0F8A65]"
-                }`}
+              className={`h-full w-1/3 animate-[loading-bar_1.1s_ease-in-out_infinite] ${
+                isDeleting ? "bg-red-500" : "bg-[#0F8A65]"
+              }`}
             />
           </div>
         )}
@@ -203,17 +226,19 @@ export const WorkspaceDetail = ({
                   )}
 
                   <span
-                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ring-black/5 ${ROLE_META[workspace.role].badge
-                      }`}
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ring-black/5 ${
+                      roleMeta?.badge ?? "bg-[#0F2D29]/5 text-[#5B6E68]"
+                    }`}
                   >
                     <RoleIcon size={11} />
-                    {ROLE_META[workspace.role].label}
+                    {roleMeta?.label ?? workspace.role}
                   </span>
                   <span
-                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${workspace.isPrivate
-                      ? "border-amber-200 bg-amber-50 text-amber-700"
-                      : "border-emerald-200 bg-emerald-50 text-emerald-700"
-                      }`}
+                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${
+                      workspace.isPrivate
+                        ? "border-amber-200 bg-amber-50 text-amber-700"
+                        : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    }`}
                   >
                     {workspace.isPrivate ? (
                       <Lock size={11} />
@@ -310,19 +335,21 @@ export const WorkspaceDetail = ({
               key={id}
               onClick={() => setTab(id)}
               aria-current={tab === id ? "page" : undefined}
-              className={`inline-flex shrink-0 items-center gap-2 px-4 py-2 text-[12.5px] font-bold font-['Goldman',sans-serif] transition-all duration-150 ${tab === id
-                ? "bg-[#0F2D29] text-white shadow-2xs"
-                : "text-[#5B6E68] hover:bg-[#0F2D29]/10 hover:text-[#0F2D29]"
-                }`}
+              className={`inline-flex shrink-0 items-center gap-2 px-4 py-2 text-[12.5px] font-bold font-['Goldman',sans-serif] transition-all duration-150 ${
+                tab === id
+                  ? "bg-[#0F2D29] text-white shadow-2xs"
+                  : "text-[#5B6E68] hover:bg-[#0F2D29]/10 hover:text-[#0F2D29]"
+              }`}
             >
               <Icon size={15} />
               <span>{label}</span>
               {typeof count === "number" && (
                 <span
-                  className={`min-w-4.5 px-1.5 py-0.5 text-center text-[10.5px] font-bold tabular-nums ${tab === id
-                    ? "bg-white/20 text-white"
-                    : "bg-[#0F2D29]/10 text-[#0F2D29]"
-                    }`}
+                  className={`min-w-4.5 px-1.5 py-0.5 text-center text-[10.5px] font-bold tabular-nums ${
+                    tab === id
+                      ? "bg-white/20 text-white"
+                      : "bg-[#0F2D29]/10 text-[#0F2D29]"
+                  }`}
                 >
                   {count}
                 </span>
@@ -340,6 +367,7 @@ export const WorkspaceDetail = ({
             onChange={(projects) => onUpdated({ projects })}
             addActivity={addActivity}
             addToast={addToast}
+            onOpenAddProject={onOpenAddProject}
           />
         )}
 

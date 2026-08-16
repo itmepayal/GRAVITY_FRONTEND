@@ -12,9 +12,11 @@ export const WorkspaceListItem = ({
   active,
   onSelect,
 }: WorkspaceListItemProps) => {
-  const roleMeta = ROLE_META[ws.role] ?? {
+  const normalizedRole = (ws.role || "member").toLowerCase();
+  const roleMeta = ROLE_META[normalizedRole] ?? {
     icon: Building2,
     badge: "bg-[#0F2D29]/8 text-[#5B6E68]",
+    label: ws.role || "Member",
   };
   const RoleIcon = roleMeta.icon;
 
@@ -59,7 +61,7 @@ export const WorkspaceListItem = ({
               }`}
             >
               <RoleIcon size={9} />
-              {ws.role || "member"}
+              {ws.role || "Member"}
             </span>
           </div>
 

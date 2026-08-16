@@ -213,7 +213,7 @@ export const AddMemberModal = ({
             >
               {(["admin", "member", "viewer"] as Role[]).map((r) => (
                 <option key={r} value={r}>
-                  {ROLE_META[r].label}
+                  {ROLE_META[r]?.label ?? r}
                 </option>
               ))}
             </select>

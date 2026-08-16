@@ -1,9 +1,11 @@
 import { useState, useMemo } from "react";
 import { Filter, UserPlus, Trash2 } from "lucide-react";
-import { type Member, type Role, ROLE_META, formatDate } from "./types";
+import { type Member, ROLE_META, formatDate } from "./types";
 import { PanelToolbar, PanelEmpty, NoResults } from "./SharedHelpers";
 import { DeleteMemberModal } from "./DeleteMemberModal";
 import { AddMemberModal, Avatar, type UserOption } from "./AddMemberModal";
+
+type RoleName = "owner" | "admin" | "member" | "viewer";
 
 interface MembersPanelProps {
   members: Member[];
@@ -25,6 +27,11 @@ interface MembersPanelProps {
   addToast: (type: "success" | "info" | "warning", msg: string) => void;
 }
 
+const getRoleName = (member: Member): RoleName => {
+  const name = (member as any).role?.name?.toLowerCase();
+  return (name as RoleName) ?? "member";
+};
+
 export const MembersPanel = ({
   members,
   canManage,
@@ -38,7 +45,7 @@ export const MembersPanel = ({
   isLoadingUsers = false,
 }: MembersPanelProps) => {
   const [query, setQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState<"all" | Role>("all");
+  const [roleFilter, setRoleFilter] = useState<"all" | RoleName>("all");
   const [showAddModal, setShowAddModal] = useState(false);
   const [deletingMember, setDeletingMember] = useState<Member | null>(null);
 
@@ -52,18 +59,18 @@ export const MembersPanel = ({
       const matchQuery =
         m.user.name.toLowerCase().includes(query.toLowerCase()) ||
         m.user.email.toLowerCase().includes(query.toLowerCase());
-      const matchRole = roleFilter === "all" || m.role === roleFilter;
+      const matchRole = roleFilter === "all" || getRoleName(m) === roleFilter;
       return matchQuery && matchRole;
     });
   }, [members, query, roleFilter]);
 
-  const handleAddSubmit = (userId: string, role: Role) => {
+  const handleAddSubmit = (userId: string, role: RoleName) => {
     onAddMember({ userId, role });
     setShowAddModal(false);
   };
 
-  const handleRoleChange = (member: Member, newRole: Role) => {
-    if (member.role === newRole) return;
+  const handleRoleChange = (member: Member, newRole: RoleName) => {
+    if (getRoleName(member) === newRole) return;
     onUpdateMemberRole(member.user.id, newRole, member.user.name);
   };
 
@@ -91,7 +98,7 @@ export const MembersPanel = ({
           <span>Role:</span>
           <select
             value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value as "all" | Role)}
+            onChange={(e) => setRoleFilter(e.target.value as "all" | RoleName)}
             className="bg-transparent font-bold text-[#0F2D29] outline-none"
           >
             <option value="all">All ({members.length})</option>
@@ -131,7 +138,8 @@ export const MembersPanel = ({
             </thead>
             <tbody className="divide-y divide-[#0F2D29]/8">
               {filtered.map((m) => {
-                const isOwner = m.role === "owner";
+                const roleName = getRoleName(m);
+                const isOwner = roleName === "owner";
                 return (
                   <tr
                     key={m.user.id}
@@ -157,10 +165,10 @@ export const MembersPanel = ({
                     <td className="py-3 px-4">
                       {canManage && !isOwner ? (
                         <select
-                          value={m.role}
+                          value={roleName}
                           disabled={isUpdatingMemberRole}
                           onChange={(e) =>
-                            handleRoleChange(m, e.target.value as Role)
+                            handleRoleChange(m, e.target.value as RoleName)
                           }
                           className="border border-[#0F2D29]/15 bg-white px-2 py-1 text-[11.5px] font-bold text-[#0F2D29] outline-none"
                         >
@@ -170,7 +178,7 @@ export const MembersPanel = ({
                         </select>
                       ) : (
                         <span className="border border-[#0F2D29]/15 bg-[#0F2D29]/5 px-2.5 py-1 text-[11px] font-bold uppercase text-[#0F2D29]">
-                          {ROLE_META[m.role].label}
+                          {ROLE_META[roleName]?.label ?? roleName}
                         </span>
                       )}
                     </td>

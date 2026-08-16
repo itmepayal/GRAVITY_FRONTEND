@@ -14,6 +14,10 @@ export const useCreateProject = () => {
       data: {
         name: string;
         description?: string;
+        status?: string;
+        color?: string;
+        startDate?: string;
+        dueDate?: string;
       };
     }) => createProject(workspaceId, data),
 

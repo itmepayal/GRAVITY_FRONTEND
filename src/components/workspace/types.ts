@@ -5,12 +5,22 @@ import {
   Clock,
   AlertCircle,
   CheckCircle2,
+  XCircle,
+  Archive,
+  PauseCircle,
+  type LucideIcon,
 } from "lucide-react";
 
 export type Role = "owner" | "admin" | "member";
 export type Tab = "projects" | "members" | "roles" | "activity";
 export type ProjectView = "grid" | "list";
-export type ProjectStatus = "in-progress" | "planning" | "completed";
+export type ProjectStatus =
+  | "planning"
+  | "active"
+  | "on_hold"
+  | "completed"
+  | "cancelled"
+  | "archived";
 
 export interface Project {
   _id: string;
@@ -220,22 +230,46 @@ export const ROLE_META: Record<
 
 export const PROJECT_STATUS_META: Record<
   ProjectStatus,
-  { badge: string; label: string; icon: typeof Clock }
+  {
+    badge: string;
+    label: string;
+    icon: LucideIcon;
+  }
 > = {
-  "in-progress": {
-    badge: "bg-amber-50 text-amber-700 border-amber-200",
-    label: "In Progress",
-    icon: Clock,
-  },
   planning: {
     badge: "bg-blue-50 text-blue-700 border-blue-200",
     label: "Planning",
     icon: AlertCircle,
   },
+
+  active: {
+    badge: "bg-amber-50 text-amber-700 border-amber-200",
+    label: "Active",
+    icon: Clock,
+  },
+
+  on_hold: {
+    badge: "bg-orange-50 text-orange-700 border-orange-200",
+    label: "On Hold",
+    icon: PauseCircle,
+  },
+
   completed: {
     badge: "bg-emerald-50 text-emerald-700 border-emerald-200",
     label: "Completed",
     icon: CheckCircle2,
+  },
+
+  cancelled: {
+    badge: "bg-red-50 text-red-700 border-red-200",
+    label: "Cancelled",
+    icon: XCircle,
+  },
+
+  archived: {
+    badge: "bg-gray-50 text-gray-700 border-gray-200",
+    label: "Archived",
+    icon: Archive,
   },
 };
 

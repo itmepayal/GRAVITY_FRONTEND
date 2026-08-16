@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Topbar } from "@/components/layout/Topbar";
 import { useDashboardContext } from "@/components/layout/DashboardLayout";
 import {
@@ -12,7 +13,12 @@ import {
   CreateWorkspaceModal,
   EmptyPanel,
 } from "@/components/workspace";
+import {
+  AddProjectModal,
+  type AddProjectFormValues,
+} from "@/components/workspace/AddProjectModal";
 import { useWorkspacesState } from "@/hooks/useWorkspacesState";
+import { useCreateProject } from "@/hooks/mutations/project/use-create-project";
 import { CheckCircle2, Sparkles, AlertCircle, Loader2 } from "lucide-react";
 
 export const Workspaces = () => {
@@ -61,6 +67,38 @@ export const Workspaces = () => {
     handleRemoveMember,
     addToast,
   } = useWorkspacesState();
+
+  // --- Add Project modal ---
+  const [showAddProject, setShowAddProject] = useState(false);
+  const { mutate: createProject, isPending: isCreatingProject } =
+    useCreateProject();
+
+  const handleCreateProject = (values: AddProjectFormValues) => {
+    if (!activeWorkspace?._id) {
+      toast.warning("Select a workspace first");
+      return;
+    }
+
+    createProject(
+      {
+        workspaceId: activeWorkspace._id,
+        data: {
+          name: values.name,
+          description: values.description || undefined,
+          status: values.status,
+          color: values.color,
+          startDate: values.startDate || undefined,
+          dueDate: values.dueDate || undefined,
+        },
+      },
+      {
+        onSuccess: () => {
+          setShowAddProject(false);
+        },
+      },
+    );
+  };
+  // --- end Add Project modal ---
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -177,7 +215,8 @@ export const Workspaces = () => {
                         isFetchingActiveWorkspace || isUpdatingWorkspace
                       }
                       isDeleting={
-                        isDeletingWorkspace && deletingId === activeWorkspace._id
+                        isDeletingWorkspace &&
+                        deletingId === activeWorkspace._id
                       }
                       onUpdated={(patch) =>
                         patchWorkspace(activeWorkspace._id, patch)
@@ -198,7 +237,12 @@ export const Workspaces = () => {
                       users={users}
                       isLoadingUsers={isLoadingUsers}
                       addActivity={(action, target, iconType) =>
-                        addActivity(activeWorkspace._id, action, target, iconType)
+                        addActivity(
+                          activeWorkspace._id,
+                          action,
+                          target,
+                          iconType,
+                        )
                       }
                       addToast={addToast}
                       onUpdateMemberRole={(memberId, newRole, memberLabel) =>
@@ -210,6 +254,7 @@ export const Workspaces = () => {
                         )
                       }
                       isUpdatingMemberRole={isUpdatingMemberRole}
+                      onOpenAddProject={() => setShowAddProject(true)}
                     />
                   ) : (
                     <WorkspaceGoalsPanel
@@ -240,6 +285,14 @@ export const Workspaces = () => {
               },
             });
           }}
+        />
+      )}
+
+      {showAddProject && (
+        <AddProjectModal
+          onClose={() => setShowAddProject(false)}
+          isSubmitting={isCreatingProject}
+          onSubmit={handleCreateProject}
         />
       )}
 

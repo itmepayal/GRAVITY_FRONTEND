@@ -1,16 +1,11 @@
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, ArrowUpRight, Loader2 } from "lucide-react";
-import {
-  type Project,
-  type ProjectStatus,
-  type ProjectView,
-  PROJECT_STATUS_META,
-} from "./types";
+import { type Project, type ProjectView, PROJECT_STATUS_META } from "./types";
 import { SharedHelpers } from "./SharedHelpers";
 import { ProjectDetailModal } from "./ProjectDetailModal";
 import { DeleteProjectModal } from "./DeleteProjectModal";
-import { AddProjectModal } from "./AddProjectModal";
+import { AddProjectModal, type AddProjectFormValues } from "./AddProjectModal";
 import { useCreateProject } from "@/hooks/mutations/project/use-create-project";
 import { useDeleteProject } from "@/hooks/mutations/project/use-delete-project";
 import { useGetWorkspaceProjects } from "@/hooks/queries/project/use-get-workspace-projects";
@@ -33,6 +28,7 @@ interface ProjectsPanelProps {
   onChange: (projects: Project[]) => void;
   addActivity: (action: string, target: string, iconType: "project") => void;
   addToast: (type: "success" | "info" | "warning", msg: string) => void;
+  onOpenAddProject?: () => void;
 }
 
 export const ProjectsPanel = ({
@@ -41,6 +37,7 @@ export const ProjectsPanel = ({
   onChange,
   addActivity,
   addToast,
+  onOpenAddProject,
 }: ProjectsPanelProps) => {
   const queryClient = useQueryClient();
 
@@ -77,16 +74,35 @@ export const ProjectsPanel = ({
       p.description?.toLowerCase().includes(search.toLowerCase()),
   );
 
-  const handleCreateSubmit = (
-    name: string,
-    description: string,
-    status: ProjectStatus,
-  ) => {
-    // Built as a variable (not an inline object literal) so TS's excess-property
-    // check doesn't reject `status` if the mutation's declared payload type
-    // only lists `name`/`description`. If your `useCreateProject` hook's type
-    // actually supports `status`, feel free to inline this again.
-    const payload = { name, description, status };
+  const handleOpenAddProject = () => {
+    if (onOpenAddProject) {
+      onOpenAddProject();
+    } else {
+      setShowForm(true);
+    }
+  };
+
+  const toISO = (d: string): string | undefined => {
+    if (!d) return undefined;
+    const date = new Date(d);
+    if (isNaN(date.getTime())) return undefined;
+    return date.toISOString();
+  };
+
+  const handleCreateSubmit = (values: AddProjectFormValues) => {
+    const { name, description, status, color, startDate, dueDate } = values;
+
+    const isoStart = toISO(startDate);
+    const isoDue = toISO(dueDate);
+
+    const payload = {
+      name,
+      ...(description ? { description } : {}),
+      ...(status ? { status } : {}),
+      ...(color ? { color } : {}),
+      ...(isoStart ? { startDate: isoStart } : {}),
+      ...(isoDue ? { dueDate: isoDue } : {}),
+    };
 
     createProjectMutation(
       {
@@ -149,7 +165,7 @@ export const ProjectsPanel = ({
           canManage ? (
             <button
               type="button"
-              onClick={() => setShowForm(true)}
+              onClick={handleOpenAddProject}
               className="inline-flex items-center gap-1.5 bg-[#0F2D29] px-3.5 py-2 text-[12.5px] font-bold font-['Goldman',sans-serif] text-white shadow-2xs hover:bg-[#081E1B] transition"
             >
               <Plus size={15} strokeWidth={2.5} />
@@ -185,7 +201,7 @@ export const ProjectsPanel = ({
             canManage ? (
               <button
                 type="button"
-                onClick={() => setShowForm(true)}
+                onClick={handleOpenAddProject}
                 className="mt-4 bg-[#0F2D29] text-white px-4 py-2 text-[12.5px] font-bold font-['Goldman',sans-serif]"
               >
                 Create Project

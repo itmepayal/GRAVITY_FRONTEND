@@ -86,6 +86,10 @@ export const createProject = async (
   data: {
     name: string;
     description?: string;
+    status?: string;
+    color?: string;
+    startDate?: string;
+    dueDate?: string;
   },
 ) => {
   const response = await api.post(`/workspaces/${workspaceId}/projects`, data);
