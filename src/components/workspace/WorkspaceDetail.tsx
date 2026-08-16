@@ -16,6 +16,7 @@ import {
   type Tab,
   type Project,
   type ActivityItem,
+  type Role,
   ROLE_META,
   initials,
   formatDate,
@@ -53,7 +54,6 @@ interface WorkspaceDetailProps {
   users: { id: string; name: string; email: string; avatar: string | null }[];
   isLoadingUsers?: boolean;
   addToast: (type: "success" | "info" | "warning", msg: string) => void;
-  /** Opens the Add Project modal (lives in the parent Workspaces page) */
   onOpenAddProject?: () => void;
 }
 
@@ -80,14 +80,7 @@ export const WorkspaceDetail = ({
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
-  // ✅ Normalize the role coming from the backend.
-  // Backend (workspace.service.ts -> getWorkspaceRoleForUser) returns
-  // capitalized names like "Owner" / "Admin" / "Member" / "Viewer"
-  // (these come straight from the Role collection's `name` field),
-  // but ROLE_META is keyed with lowercase strings. Without this
-  // normalization, ROLE_META[workspace.role] is undefined and
-  // `.icon` on it crashes the component.
-  const normalizedRole = (workspace.role || "member").toLowerCase();
+  const normalizedRole = (workspace.role || "member").toLowerCase() as Role;
   const roleMeta = ROLE_META[normalizedRole];
 
   const canManage = normalizedRole === "owner" || normalizedRole === "admin";

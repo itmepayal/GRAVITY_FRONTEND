@@ -1,5 +1,11 @@
 import { ChevronRight, Lock, Globe, Building2 } from "lucide-react";
-import { type Workspace, type Member, ROLE_META, initials } from "./types";
+import {
+  type Workspace,
+  type Member,
+  type Role,
+  ROLE_META,
+  initials,
+} from "./types";
 
 interface WorkspaceListItemProps {
   workspace: Workspace;
@@ -12,7 +18,7 @@ export const WorkspaceListItem = ({
   active,
   onSelect,
 }: WorkspaceListItemProps) => {
-  const normalizedRole = (ws.role || "member").toLowerCase();
+  const normalizedRole = (ws.role || "member").toLowerCase() as Role;
   const roleMeta = ROLE_META[normalizedRole] ?? {
     icon: Building2,
     badge: "bg-[#0F2D29]/8 text-[#5B6E68]",

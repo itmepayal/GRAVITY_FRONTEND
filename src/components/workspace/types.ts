@@ -9,9 +9,10 @@ import {
   Archive,
   PauseCircle,
   type LucideIcon,
+  Eye,
 } from "lucide-react";
 
-export type Role = "owner" | "admin" | "member";
+export type Role = "owner" | "admin" | "member" | "viewer";
 export type Tab = "projects" | "members" | "roles" | "activity";
 export type ProjectView = "grid" | "list";
 export type ProjectStatus =
@@ -225,6 +226,12 @@ export const ROLE_META: Record<
       "bg-[#9AA6A1]/12 text-[#5B6E68] ring-[#9AA6A1]/20 border border-[#9AA6A1]/20",
     icon: Users,
     label: "Member",
+  },
+  viewer: {
+    badge:
+      "bg-[#C4B5FD]/12 text-[#6D5BD0] ring-[#C4B5FD]/25 border border-[#C4B5FD]/20",
+    icon: Eye,
+    label: "Viewer",
   },
 };
 

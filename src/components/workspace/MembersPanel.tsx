@@ -1,11 +1,9 @@
 import { useState, useMemo } from "react";
 import { Filter, UserPlus, Trash2 } from "lucide-react";
-import { type Member, ROLE_META, formatDate } from "./types";
+import { type Member, type Role, ROLE_META, formatDate } from "./types";
 import { PanelToolbar, PanelEmpty, NoResults } from "./SharedHelpers";
 import { DeleteMemberModal } from "./DeleteMemberModal";
 import { AddMemberModal, Avatar, type UserOption } from "./AddMemberModal";
-
-type RoleName = "owner" | "admin" | "member" | "viewer";
 
 interface MembersPanelProps {
   members: Member[];
@@ -27,10 +25,9 @@ interface MembersPanelProps {
   addToast: (type: "success" | "info" | "warning", msg: string) => void;
 }
 
-const getRoleName = (member: Member): RoleName => {
-  const name = (member as any).role?.name?.toLowerCase();
-  return (name as RoleName) ?? "member";
-};
+// member.role is already a plain string ("owner" | "admin" | "member"),
+// no nested object, so no need to reach into `.name`
+const getRoleName = (member: Member): Role => member.role ?? "member";
 
 export const MembersPanel = ({
   members,
@@ -45,7 +42,7 @@ export const MembersPanel = ({
   isLoadingUsers = false,
 }: MembersPanelProps) => {
   const [query, setQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState<"all" | RoleName>("all");
+  const [roleFilter, setRoleFilter] = useState<"all" | Role>("all");
   const [showAddModal, setShowAddModal] = useState(false);
   const [deletingMember, setDeletingMember] = useState<Member | null>(null);
 
@@ -64,12 +61,12 @@ export const MembersPanel = ({
     });
   }, [members, query, roleFilter]);
 
-  const handleAddSubmit = (userId: string, role: RoleName) => {
+  const handleAddSubmit = (userId: string, role: Role) => {
     onAddMember({ userId, role });
     setShowAddModal(false);
   };
 
-  const handleRoleChange = (member: Member, newRole: RoleName) => {
+  const handleRoleChange = (member: Member, newRole: Role) => {
     if (getRoleName(member) === newRole) return;
     onUpdateMemberRole(member.user.id, newRole, member.user.name);
   };
@@ -98,14 +95,13 @@ export const MembersPanel = ({
           <span>Role:</span>
           <select
             value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value as "all" | RoleName)}
+            onChange={(e) => setRoleFilter(e.target.value as "all" | Role)}
             className="bg-transparent font-bold text-[#0F2D29] outline-none"
           >
             <option value="all">All ({members.length})</option>
             <option value="owner">Owner</option>
             <option value="admin">Admin</option>
             <option value="member">Member</option>
-            <option value="viewer">Viewer</option>
           </select>
         </div>
       </PanelToolbar>
@@ -168,13 +164,12 @@ export const MembersPanel = ({
                           value={roleName}
                           disabled={isUpdatingMemberRole}
                           onChange={(e) =>
-                            handleRoleChange(m, e.target.value as RoleName)
+                            handleRoleChange(m, e.target.value as Role)
                           }
                           className="border border-[#0F2D29]/15 bg-white px-2 py-1 text-[11.5px] font-bold text-[#0F2D29] outline-none"
                         >
                           <option value="admin">Admin</option>
                           <option value="member">Member</option>
-                          <option value="viewer">Viewer</option>
                         </select>
                       ) : (
                         <span className="border border-[#0F2D29]/15 bg-[#0F2D29]/5 px-2.5 py-1 text-[11px] font-bold uppercase text-[#0F2D29]">
