@@ -7,14 +7,18 @@ import {
 } from "@/components/project/types";
 import type { ProjectViewMode } from "@/components/project/ProjectFilterBar";
 import { useGetUserWorkspaces } from "@/hooks/queries/workspace/use-get-user-workspaces";
+import { useGetWorkspaceById } from "@/hooks/queries/workspace/use-get-workspace-by-id";
+import { useGetWorkspaceRoles } from "@/hooks/queries/workspace/use-get-workspace-roles";
 import { useGetWorkspaceProjects } from "@/hooks/queries/project/use-get-workspace-projects";
 import { useCreateProject } from "@/hooks/mutations/project/use-create-project";
 import { useUpdateProject } from "@/hooks/mutations/project/use-update-project";
 import { useDeleteProject } from "@/hooks/mutations/project/use-delete-project";
 import { type Toast, nextId } from "@/components/workspace";
+import { useAuthStore } from "@/store/auth.store";
 
 export function useProjectsState() {
   const queryClient = useQueryClient();
+  const currentUser = useAuthStore((s) => s.user);
 
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<"all" | ProjectStatus>(
@@ -24,11 +28,12 @@ export function useProjectsState() {
   const [viewMode, setViewMode] = useState<ProjectViewMode>("grid");
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
+    null,
+  );
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  // Fetch workspaces
   const { data: workspacesResponse, isLoading: isLoadingWorkspaces } =
     useGetUserWorkspaces();
   const workspaces = useMemo(() => {
@@ -41,14 +46,11 @@ export function useProjectsState() {
     }));
   }, [workspacesResponse]);
 
-  // Set default workspace if available
   useEffect(() => {
     if (workspaces.length > 0 && selectedWorkspaceId === "all") {
-      // Keep "all" or set first workspace
     }
   }, [workspaces]);
 
-  // Fetch Projects for selected workspace (or primary workspace)
   const targetWorkspaceId =
     selectedWorkspaceId !== "all"
       ? selectedWorkspaceId
@@ -63,7 +65,63 @@ export function useProjectsState() {
     return raw.map(normalizeProjectData);
   }, [projectsResponse]);
 
-  // Filtered Projects
+  const selectedProject = useMemo(
+    () => projects.find((p) => p.id === selectedProjectId) ?? null,
+    [projects, selectedProjectId],
+  );
+
+  const { data: workspaceDetailResponse } = useGetWorkspaceById(
+    targetWorkspaceId || undefined,
+  );
+  const { data: workspaceRolesResponse } = useGetWorkspaceRoles(
+    targetWorkspaceId || undefined,
+  );
+
+  const workspaceDetail = useMemo(() => {
+    const raw = workspaceDetailResponse?.data ?? workspaceDetailResponse;
+    return raw ?? null;
+  }, [workspaceDetailResponse]);
+
+  const availableUsers = useMemo(() => {
+    const members = workspaceDetail?.members ?? [];
+    return members
+      .map((m: any) => {
+        const u = m.user ?? {};
+        return {
+          id: u._id ?? u.id,
+          name: u.name ?? "Unknown",
+          email: u.email ?? "",
+          avatar: u.avatar ?? "",
+        };
+      })
+      .filter((u: any) => Boolean(u.id));
+  }, [workspaceDetail]);
+
+  const workspaceRoles = useMemo(() => {
+    const raw = Array.isArray(workspaceRolesResponse)
+      ? workspaceRolesResponse
+      : (workspaceRolesResponse?.data ?? []);
+    return raw.map((r: any) => ({
+      id: r._id ?? r.id,
+      name: r.name,
+    }));
+  }, [workspaceRolesResponse]);
+
+  const canManageSelectedProject = useMemo(() => {
+    if (!selectedProject || !currentUser?.id) return false;
+    if (selectedProject.owner?.id === currentUser.id) return true;
+
+    const member = selectedProject.members.find(
+      (m) => m.user.id === currentUser.id,
+    );
+    const roleName =
+      typeof member?.role === "string"
+        ? member.role
+        : (member?.role as any)?.name;
+
+    return roleName === "Admin" || roleName === "Owner";
+  }, [selectedProject, currentUser]);
+
   const filteredProjects = useMemo(() => {
     return projects.filter((p) => {
       const matchSearch =
@@ -77,7 +135,6 @@ export function useProjectsState() {
     });
   }, [projects, searchQuery, selectedStatus]);
 
-  // Metrics
   const metrics = useMemo(() => {
     const totalProjects = projects.length;
     const activeProjects = projects.filter(
@@ -96,7 +153,6 @@ export function useProjectsState() {
     };
   }, [projects]);
 
-  // Toast Helper
   const addToast = (type: "success" | "info" | "warning", message: string) => {
     const id = nextId("tst");
     setToasts((prev) => [...prev, { id, type, message }]);
@@ -148,13 +204,11 @@ export function useProjectsState() {
     const project = projects.find((p) => p.id === projectId) ?? editingProject;
     const workspaceId = (project as any)?.workspaceId ?? targetWorkspaceId;
 
-    const { status, ...updateData } = data;
-
     updateProjectMutation(
       {
         workspaceId,
         projectId,
-        data: updateData,
+        data,
       },
       {
         onSuccess: () => {
@@ -177,7 +231,7 @@ export function useProjectsState() {
       {
         onSuccess: () => {
           addToast("info", "Project deleted successfully!");
-          setSelectedProject(null);
+          setSelectedProjectId(null);
           queryClient.invalidateQueries({ queryKey: ["workspace-projects"] });
         },
         onError: (err: any) => {
@@ -200,7 +254,11 @@ export function useProjectsState() {
     createModalOpen,
     setCreateModalOpen,
     selectedProject,
-    setSelectedProject,
+    setSelectedProject: (project: Project | string | null) => {
+      if (project === null) return setSelectedProjectId(null);
+      setSelectedProjectId(typeof project === "string" ? project : project.id);
+    },
+
     editingProject,
     setEditingProject,
     toasts,
@@ -214,5 +272,9 @@ export function useProjectsState() {
     handleCreateProject,
     handleUpdateProject,
     handleDeleteProject,
+    currentUserId: currentUser?.id,
+    canManageSelectedProject,
+    availableUsers,
+    workspaceRoles,
   };
 }

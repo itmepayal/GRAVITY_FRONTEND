@@ -1,15 +1,15 @@
 import { useState, useMemo } from "react";
-import { Filter, UserPlus, Trash2 } from "lucide-react";
+import { Filter, Trash2 } from "lucide-react";
 import { type Member, type Role, ROLE_META, formatDate } from "./types";
 import { PanelToolbar, PanelEmpty, NoResults } from "./SharedHelpers";
 import { DeleteMemberModal } from "./DeleteMemberModal";
-import { AddMemberModal, Avatar, type UserOption } from "./AddMemberModal";
+import { Avatar, type UserOption } from "./AddMemberModal";
 
 interface MembersPanelProps {
   members: Member[];
   canManage: boolean;
   onChange?: (members: Member[]) => void;
-  onAddMember: (memberData: { userId: string; role: string }) => void;
+  onAddMember?: (memberData: { userId: string; role: string }) => void;
   isAddingMember?: boolean;
   onRemoveMember: (memberId: string, memberLabel: string) => void;
   isRemovingMember?: boolean;
@@ -19,37 +19,30 @@ interface MembersPanelProps {
     memberLabel: string,
   ) => void;
   isUpdatingMemberRole?: boolean;
-  users: UserOption[];
+  users?: UserOption[];
   isLoadingUsers?: boolean;
-  addActivity: (action: string, target: string, iconType: "member") => void;
-  addToast: (type: "success" | "info" | "warning", msg: string) => void;
+  addActivity?: (action: string, target: string, iconType: "member") => void;
+  addToast?: (type: "success" | "info" | "warning", msg: string) => void;
 }
 
-// member.role is already a plain string ("owner" | "admin" | "member"),
-// no nested object, so no need to reach into `.name`
-const getRoleName = (member: Member): Role => member.role ?? "member";
+const getRoleName = (member: Member): Role => {
+  const role = member.role;
+  if (!role) return "member";
+  const raw = typeof role === "object" ? (role as any).name : role;
+  return (typeof raw === "string" ? raw.toLowerCase() : "member") as Role;
+};
 
 export const MembersPanel = ({
   members,
   canManage,
-  onAddMember,
-  isAddingMember = false,
   onRemoveMember,
   isRemovingMember = false,
   onUpdateMemberRole,
   isUpdatingMemberRole = false,
-  users,
-  isLoadingUsers = false,
 }: MembersPanelProps) => {
   const [query, setQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<"all" | Role>("all");
-  const [showAddModal, setShowAddModal] = useState(false);
   const [deletingMember, setDeletingMember] = useState<Member | null>(null);
-
-  const existingUserIds = useMemo(
-    () => new Set(members.map((m) => m.user.id)),
-    [members],
-  );
 
   const filtered = useMemo(() => {
     return members.filter((m) => {
@@ -60,11 +53,6 @@ export const MembersPanel = ({
       return matchQuery && matchRole;
     });
   }, [members, query, roleFilter]);
-
-  const handleAddSubmit = (userId: string, role: Role) => {
-    onAddMember({ userId, role });
-    setShowAddModal(false);
-  };
 
   const handleRoleChange = (member: Member, newRole: Role) => {
     if (getRoleName(member) === newRole) return;
@@ -77,18 +65,6 @@ export const MembersPanel = ({
         searchQuery={query}
         onSearchChange={setQuery}
         searchPlaceholder="Filter members by name or email…"
-        action={
-          canManage ? (
-            <button
-              type="button"
-              onClick={() => setShowAddModal(true)}
-              className="inline-flex items-center gap-1.5 bg-[#0F2D29] px-3.5 py-2 text-[12.5px] font-bold font-['Goldman',sans-serif] text-white shadow-2xs hover:bg-[#081E1B] transition"
-            >
-              <UserPlus size={14} strokeWidth={2.5} />
-              Add Teammate
-            </button>
-          ) : undefined
-        }
       >
         <div className="flex items-center gap-1.5 border border-[#0F2D29]/15 bg-white px-2.5 py-1 text-[12px] font-semibold text-[#5B6E68]">
           <Filter size={13} className="text-[#0F2D29]" />
@@ -109,7 +85,7 @@ export const MembersPanel = ({
       {members.length === 0 ? (
         <PanelEmpty
           title="No teammates in workspace"
-          description="Add members to start collaborating."
+          description="Invite members to start collaborating."
         />
       ) : filtered.length === 0 ? (
         <NoResults />
@@ -201,17 +177,6 @@ export const MembersPanel = ({
             </tbody>
           </table>
         </div>
-      )}
-
-      {showAddModal && (
-        <AddMemberModal
-          users={users}
-          isLoadingUsers={isLoadingUsers}
-          existingMemberUserIds={existingUserIds}
-          onClose={() => setShowAddModal(false)}
-          onAdd={handleAddSubmit}
-          isAdding={isAddingMember}
-        />
       )}
 
       {deletingMember && (

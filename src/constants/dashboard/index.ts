@@ -1,7 +1,7 @@
 import {
   LayoutDashboard,
   ListTodo,
-  // Users,
+  Users,
   Settings,
   type LucideIcon,
   // Bell,
@@ -76,19 +76,19 @@ export const DASHBOARD_NAV: NavSection[] = [
       // { label: "Time Tracking", path: "/dashboard/time-tracking", icon: Clock },
     ],
   },
-  // {
-  //   label: "Team & Access",
-  //   items: [
-  //     { label: "Members", path: "/dashboard/members", icon: Users },
-  //     { label: "Teams", path: "/dashboard/teams", icon: UsersRound },
-  //     {
-  //       label: "Roles & Permissions",
-  //       path: "/dashboard/roles",
-  //       icon: ShieldCheck,
-  //     },
-  //     { label: "Activity Log", path: "/dashboard/activity", icon: TrendingUp },
-  //   ],
-  // },
+  {
+    label: "Team & Access",
+    items: [
+      { label: "Members", path: "/dashboard/members", icon: Users },
+      // { label: "Teams", path: "/dashboard/teams", icon: UsersRound },
+      // {
+      //   label: "Roles & Permissions",
+      //   path: "/dashboard/roles",
+      //   icon: ShieldCheck,
+      // },
+      // { label: "Activity Log", path: "/dashboard/activity", icon: TrendingUp },
+    ],
+  },
   // {
   //   label: "Communication & Docs",
   //   items: [

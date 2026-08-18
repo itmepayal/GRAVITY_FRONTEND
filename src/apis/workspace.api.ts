@@ -46,8 +46,8 @@ export const addWorkspaceMember = async ({
 }: {
   workspaceId: string;
   data: {
-    userId: string;
-    role: string;
+    email: string;
+    roleId: string;
   };
 }) => {
   const response = await api.post(`/workspaces/${workspaceId}/members`, data);
@@ -58,7 +58,7 @@ export const updateWorkspaceMemberRole = async (
   workspaceId: string,
   userId: string,
   data: {
-    role: string;
+    roleId: string;
   },
 ) => {
   const response = await api.patch(

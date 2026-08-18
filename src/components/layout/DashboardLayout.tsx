@@ -1,18 +1,47 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NavLink, Outlet, useOutletContext } from "react-router-dom";
 import { X } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { DASHBOARD_NAV } from "@/constants/dashboard";
 import { GravityMark } from "@/components/common/logo";
+import { useWorkspaceStore } from "@/store/workspace.store";
+import { useGetUserWorkspaces } from "@/hooks/queries/workspace/use-get-user-workspaces";
 
 type DashboardContext = {
   openMobileNav: () => void;
+  currentWorkspaceId: string;
 };
 
 export const useDashboardContext = () => useOutletContext<DashboardContext>();
 
 export const DashboardLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspaceStore();
+  const { data: workspacesResponse, isLoading: isLoadingWorkspaces } =
+    useGetUserWorkspaces();
+
+  useEffect(() => {
+    if (isLoadingWorkspaces) return;
+
+    const raw = Array.isArray(workspacesResponse)
+      ? workspacesResponse
+      : (workspacesResponse?.data ?? []);
+
+    if (raw.length === 0) return;
+
+    const isValidSelection = raw.some(
+      (w: any) => (w.id ?? w._id) === currentWorkspaceId,
+    );
+
+    if (!currentWorkspaceId || !isValidSelection) {
+      setCurrentWorkspaceId(raw[0].id ?? raw[0]._id);
+    }
+  }, [
+    workspacesResponse,
+    isLoadingWorkspaces,
+    currentWorkspaceId,
+    setCurrentWorkspaceId,
+  ]);
 
   return (
     <div className="flex min-h-screen bg-[#F8F7F3]">
@@ -77,13 +106,20 @@ export const DashboardLayout = () => {
       )}
 
       <div className="flex-1 min-w-0 flex flex-col">
-        <Outlet
-          context={
-            {
-              openMobileNav: () => setMobileOpen(true),
-            } satisfies DashboardContext
-          }
-        />
+        {isLoadingWorkspaces && !currentWorkspaceId ? (
+          <div className="flex-1 flex items-center justify-center text-[#5B6E68] text-sm">
+            Loading workspace...
+          </div>
+        ) : (
+          <Outlet
+            context={
+              {
+                openMobileNav: () => setMobileOpen(true),
+                currentWorkspaceId: currentWorkspaceId ?? "",
+              } satisfies DashboardContext
+            }
+          />
+        )}
       </div>
     </div>
   );

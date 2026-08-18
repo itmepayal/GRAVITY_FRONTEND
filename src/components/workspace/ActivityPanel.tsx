@@ -29,7 +29,7 @@ export const ActivityPanel = ({ activityLog }: ActivityPanelProps) => {
       <ul className="relative border-l border-[#0F2D29]/10 ml-3 space-y-5">
         {activityLog.map((act) => (
           <li key={act.id} className="relative pl-6">
-            <span className="absolute -left-[9px] top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#8FE3C4] ring-4 ring-white" />
+            <span className="absolute -left-2.25 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#8FE3C4] ring-4 ring-white" />
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
               <p className="text-[13px] text-[#0F2D29]">
                 <span className="font-bold">{act.user}</span>{" "}

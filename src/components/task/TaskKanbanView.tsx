@@ -53,8 +53,10 @@ export const TaskKanbanView: React.FC<TaskKanbanViewProps> = ({
             {/* Column Header */}
             <div className="mb-3 flex items-center justify-between pb-2 border-b border-[#0F2D29]/10">
               <div className="flex items-center gap-2">
-                <h3 className="text-[14px] font-bold text-[#0F2D29] tracking-tight">{colName}</h3>
-                <span className="flex h-5 min-w-[20px] px-1.5 items-center justify-center rounded-full bg-[#0F2D29] text-[11px] font-bold text-white shadow-2xs">
+                <h3 className="text-[14px] font-bold text-[#0F2D29] tracking-tight">
+                  {colName}
+                </h3>
+                <span className="flex h-5 min-w-5 px-1.5 items-center justify-center rounded-full bg-[#0F2D29] text-[11px] font-bold text-white shadow-2xs">
                   {colTasks.length}
                 </span>
               </div>

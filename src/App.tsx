@@ -8,7 +8,6 @@ import ForgotPassword from "@/pages/auth/ForgotPassword";
 import VerifyEmail from "@/pages/auth/VerifyEmail";
 import ResetPassword from "@/pages/auth/ResetPassword";
 
-import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import Dashboard from "@/pages/dashboard/Dashboard";
 import MyTasks from "@/pages/dashboard/tasks/MyTasks";
 import Members from "@/pages/dashboard/members/Members";
@@ -16,16 +15,20 @@ import Archived from "@/pages/dashboard/archived/Archived";
 import Settings from "@/pages/dashboard/settings/Settings";
 import Workspaces from "@/pages/dashboard/workspaces/Workspaces";
 import Projects from "./pages/dashboard/projects/Projects";
-
-import { ProtectedRoute } from "@/routes/ProtectedRoute";
-import { PublicRoute } from "@/routes/PublicRoute";
 import Board from "./pages/dashboard/board/Board";
 import Sprints from "./pages/dashboard/sprint/Sprints";
+import InvitePage from "@/pages/dashboard/invite/Invite";
+
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { ProtectedRoute } from "@/routes/ProtectedRoute";
+import { PublicRoute } from "@/routes/PublicRoute";
 
 function App() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
+
+      <Route path="/invite/:token" element={<InvitePage />} />
 
       <Route element={<PublicRoute />}>
         <Route path="/login" element={<Login />} />
@@ -38,7 +41,6 @@ function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<DashboardLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
-          Board
           <Route path="/dashboard/workspaces" element={<Workspaces />} />
           <Route path="/dashboard/projects" element={<Projects />} />
           <Route path="/dashboard/boards" element={<Board />} />

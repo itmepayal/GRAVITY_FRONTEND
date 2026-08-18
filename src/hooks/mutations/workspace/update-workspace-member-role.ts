@@ -14,13 +14,16 @@ export const useUpdateWorkspaceMemberRole = () => {
       workspaceId: string;
       userId: string;
       data: {
-        role: string;
+        roleId: string;
       };
     }) => updateWorkspaceMemberRole(workspaceId, userId, data),
 
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       toast.success("Member role updated successfully");
 
+      queryClient.invalidateQueries({
+        queryKey: ["workspace", variables.workspaceId],
+      });
       queryClient.invalidateQueries({
         queryKey: ["workspaces"],
       });

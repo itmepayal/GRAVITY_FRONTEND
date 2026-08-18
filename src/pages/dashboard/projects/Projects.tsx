@@ -43,6 +43,10 @@ export const Projects = () => {
     handleCreateProject,
     handleUpdateProject,
     handleDeleteProject,
+    currentUserId,
+    canManageSelectedProject,
+    availableUsers,
+    workspaceRoles,
   } = useProjectsState();
 
   const [createBoardOpen, setCreateBoardOpen] = useState(false);
@@ -72,7 +76,6 @@ export const Projects = () => {
       },
     );
   };
-  // ---------------------------------------------------------------------
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -146,6 +149,9 @@ export const Projects = () => {
                 projects={projects}
                 onSelectProject={(proj) => setSelectedProject(proj)}
                 onOpenCreate={() => setCreateModalOpen(true)}
+                onDropProjectToColumn={(id, status) =>
+                  handleUpdateProject(id, { status })
+                }
               />
             )}
           </>
@@ -160,6 +166,10 @@ export const Projects = () => {
           onDelete={(id) => handleDeleteProject(id)}
           onUpdateStatus={(id, status) => handleUpdateProject(id, { status })}
           onCreateBoard={handleOpenCreateBoard}
+          canManage={canManageSelectedProject}
+          currentUserId={currentUserId}
+          availableUsers={availableUsers}
+          workspaceRoles={workspaceRoles}
         />
       )}
 
@@ -182,7 +192,6 @@ export const Projects = () => {
         />
       )}
 
-      {/* Create Board Dialog (inline — swap for a dedicated component if you have one) */}
       {createBoardOpen && selectedProject && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-md border border-[#0F2D29]/15 bg-white p-5 shadow-xl">

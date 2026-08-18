@@ -20,6 +20,9 @@ export const useRemoveProjectMember = () => {
       queryClient.invalidateQueries({
         queryKey: ["project", variables.projectId],
       });
+      queryClient.invalidateQueries({
+        queryKey: ["projects"],
+      });
     },
 
     onError: (error: any) => {

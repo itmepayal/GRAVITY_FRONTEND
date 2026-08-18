@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   type Workspace,
@@ -17,12 +17,9 @@ import { useGetAllUsers } from "@/hooks/queries/users/use-get-all-users";
 import { useRemoveWorkspaceMember } from "@/hooks/mutations/workspace/use-remove-workspace-member";
 import { useUpdateWorkspaceMemberRole } from "@/hooks/mutations/workspace/update-workspace-member-role";
 import { useGetWorkspaceGoals } from "@/hooks/queries/goal/get-workspace-goals";
+import { useWorkspaceStore } from "@/store/workspace.store";
+import { useState } from "react";
 
-// NOTE: `_id` is kept here as an extra field via intersection typing since the
-// `Member` type imported from "@/components/workspace" does not declare it.
-// If you don't actually need `_id` on members anywhere (member identity is
-// tracked via `user.id` throughout this file), you can drop the `_id` line
-// and change the return type back to plain `Member`.
 export const normalizeMember = (raw: any): Member & { _id: string } => ({
   _id: raw._id ?? nextId("m"),
   user: {
@@ -84,7 +81,10 @@ export function useWorkspacesState() {
   }, [usersResponse]);
 
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const { currentWorkspaceId, setCurrentWorkspaceId } = useWorkspaceStore();
+  const activeId = currentWorkspaceId;
+  const setActiveId = setCurrentWorkspaceId;
+
   const [showCreate, setShowCreate] = useState(false);
   const [query, setQuery] = useState("");
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -114,11 +114,12 @@ export function useWorkspacesState() {
       : (workspacesResponse?.data ?? []);
     const normalized = raw.map(normalizeWorkspace);
     setWorkspaces(normalized);
-
-    setActiveId((cur) => {
-      if (cur && normalized.some((w: Workspace) => w._id === cur)) return cur;
-      return normalized[0]?._id ?? null;
-    });
+    const isValidSelection = normalized.some(
+      (w: Workspace) => w._id === activeId,
+    );
+    if (!activeId || !isValidSelection) {
+      setActiveId(normalized[0]?._id ?? "");
+    }
   }, [workspacesResponse]);
 
   useEffect(() => {
@@ -183,7 +184,10 @@ export function useWorkspacesState() {
     deleteWorkspaceMutation(id, {
       onSuccess: () => {
         setWorkspaces((prev) => prev.filter((w) => w._id !== id));
-        setActiveId((cur) => (cur === id ? null : cur));
+        if (activeId === id) {
+          const remaining = workspaces.filter((w) => w._id !== id);
+          setActiveId(remaining[0]?._id ?? "");
+        }
         addToast("info", `Deleted "${wsName}".`);
         queryClient.invalidateQueries({ queryKey: ["workspaces"] });
       },
@@ -266,7 +270,7 @@ export function useWorkspacesState() {
 
   const handleAddMember = (
     workspaceId: string,
-    memberData: { userId: string; role: string },
+    memberData: { email: string; roleId: string },
   ) => {
     addWorkspaceMemberMutation(
       { workspaceId, data: memberData },
@@ -289,7 +293,7 @@ export function useWorkspacesState() {
               "added a teammate",
               newMember?.user?.name ??
                 newMember?.user?.email ??
-                memberData.userId,
+                memberData.email,
               "member",
             );
             addToast("success", "Teammate added successfully!");
@@ -311,7 +315,7 @@ export function useWorkspacesState() {
   const handleUpdateMemberRole = (
     workspaceId: string,
     memberId: string,
-    newRole: Role,
+    newRoleId: string,
     memberLabel: string,
   ) => {
     const previousWorkspaces = workspaces;
@@ -321,7 +325,7 @@ export function useWorkspacesState() {
           ? {
               ...w,
               members: w.members.map((m) =>
-                m.user.id === memberId ? { ...m, role: newRole } : m,
+                m.user.id === memberId ? { ...m, role: newRoleId as Role } : m,
               ),
             }
           : w,
@@ -332,16 +336,11 @@ export function useWorkspacesState() {
       {
         workspaceId,
         userId: memberId,
-        data: { role: newRole },
+        data: { roleId: newRoleId },
       },
       {
         onSuccess: () => {
-          addActivity(
-            workspaceId,
-            `changed role to ${newRole}`,
-            memberLabel,
-            "member",
-          );
+          addActivity(workspaceId, `changed role`, memberLabel, "member");
           addToast("info", `Updated role for ${memberLabel}`);
           queryClient.invalidateQueries({ queryKey: ["workspaces"] });
           queryClient.invalidateQueries({

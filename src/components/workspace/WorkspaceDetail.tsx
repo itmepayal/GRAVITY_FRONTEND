@@ -10,6 +10,7 @@ import {
   Shield,
   Activity,
   Loader2,
+  UserPlus,
 } from "lucide-react";
 import {
   type Workspace,
@@ -34,11 +35,9 @@ interface WorkspaceDetailProps {
   workspace: Workspace;
   isRefreshing?: boolean;
   isDeleting?: boolean;
-  isAddingMember?: boolean;
   isRemovingMember?: boolean;
   onUpdated: (patch: Partial<Workspace>) => void;
   onDeleted: () => void;
-  onAddMember: (memberData: { userId: string; role: string }) => void;
   onRemoveMember: (memberId: string, memberLabel: string) => void;
   onUpdateMemberRole: (
     memberId: string,
@@ -51,29 +50,25 @@ interface WorkspaceDetailProps {
     target: string,
     iconType: ActivityItem["iconType"],
   ) => void;
-  users: { id: string; name: string; email: string; avatar: string | null }[];
-  isLoadingUsers?: boolean;
   addToast: (type: "success" | "info" | "warning", msg: string) => void;
   onOpenAddProject?: () => void;
+  onOpenInviteTeammate?: () => void;
 }
 
 export const WorkspaceDetail = ({
   workspace,
   isRefreshing = false,
   isDeleting = false,
-  isAddingMember = false,
   isRemovingMember = false,
   onUpdated,
   onDeleted,
-  onAddMember,
   onRemoveMember,
   onUpdateMemberRole,
   isUpdatingMemberRole = false,
   addActivity,
   addToast,
-  users,
-  isLoadingUsers,
   onOpenAddProject,
+  onOpenInviteTeammate,
 }: WorkspaceDetailProps) => {
   const [tab, setTab] = useState<Tab>("projects");
   const [editing, setEditing] = useState(false);
@@ -268,6 +263,17 @@ export const WorkspaceDetail = ({
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-2 self-start">
+              {canManage && onOpenInviteTeammate && (
+                <button
+                  onClick={onOpenInviteTeammate}
+                  disabled={isDeleting}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#0F2D29]/15 bg-white px-3.5 py-2 text-[12.5px] font-medium text-[#0F2D29] shadow-xs transition-colors duration-150 hover:bg-[#0F2D29]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F2D29]/30 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <UserPlus size={13} />
+                  Invite
+                </button>
+              )}
+
               {canManage && (
                 <button
                   onClick={() => setEditing(true)}
@@ -365,21 +371,33 @@ export const WorkspaceDetail = ({
         )}
 
         {tab === "members" && (
-          <MembersPanel
-            members={workspace.members}
-            canManage={canManage}
-            onChange={(members) => onUpdated({ members })}
-            onAddMember={onAddMember}
-            isAddingMember={isAddingMember}
-            onRemoveMember={onRemoveMember}
-            isRemovingMember={isRemovingMember}
-            onUpdateMemberRole={onUpdateMemberRole}
-            isUpdatingMemberRole={isUpdatingMemberRole}
-            users={users}
-            isLoadingUsers={isLoadingUsers}
-            addActivity={addActivity}
-            addToast={addToast}
-          />
+          <>
+            {canManage && onOpenInviteTeammate && (
+              <div className="mb-4 flex items-center justify-between rounded-xl border border-dashed border-[#0F2D29]/15 bg-[#0F2D29]/3 px-4 py-3">
+                <p className="text-[12.5px] text-[#5B6E68]">
+                  Send an email invite or share an invite link to bring someone
+                  into this workspace.
+                </p>
+                <button
+                  onClick={onOpenInviteTeammate}
+                  className="inline-flex shrink-0 items-center gap-1.5 bg-[#0F2D29] px-3.5 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-[#0F2D29]/90"
+                >
+                  <UserPlus size={13} />
+                  Invite teammate
+                </button>
+              </div>
+            )}
+
+            <MembersPanel
+              members={workspace.members}
+              canManage={canManage}
+              onChange={(members) => onUpdated({ members })}
+              onRemoveMember={onRemoveMember}
+              isRemovingMember={isRemovingMember}
+              onUpdateMemberRole={onUpdateMemberRole}
+              isUpdatingMemberRole={isUpdatingMemberRole}
+            />
+          </>
         )}
 
         {tab === "roles" && (
