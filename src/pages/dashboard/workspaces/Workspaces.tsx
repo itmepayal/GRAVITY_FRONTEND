@@ -90,9 +90,7 @@ export const Workspaces = () => {
     : ((pendingInvitations as any)?.data ?? []);
 
   const [dismissedInvites, setDismissedInvites] = useState(false);
-  // --- end pending invitations ---
 
-  // --- Invite teammate modal (invites sent FROM the active workspace) ---
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRoleId, setInviteRoleId] = useState("");
@@ -100,7 +98,9 @@ export const Workspaces = () => {
   const [linkRoleId, setLinkRoleId] = useState("");
   const [copied, setCopied] = useState(false);
 
-  const { data: rolesResponse } = useGetWorkspaceRoles(activeWorkspace?._id);
+  const { data: rolesResponse } = useGetWorkspaceRoles(
+    activeWorkspace?._id ?? "",
+  );
   const { data: allUsersResponse, isLoading: isLoadingAllUsers } =
     useGetAllUsers();
 
