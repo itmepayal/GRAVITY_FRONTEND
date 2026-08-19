@@ -19,6 +19,7 @@ import Board from "./pages/dashboard/board/Board";
 import Sprints from "./pages/dashboard/sprint/Sprints";
 import InvitePage from "@/pages/dashboard/invite/Invite";
 import Teams from "./pages/dashboard/teams/Teams";
+import Role from "./pages/dashboard/role/Role";
 
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ProtectedRoute } from "@/routes/ProtectedRoute";
@@ -49,6 +50,7 @@ function App() {
           <Route path="/dashboard/tasks" element={<MyTasks />} />
           <Route path="/dashboard/members" element={<Members />} />
           <Route path="/dashboard/teams" element={<Teams />} />
+          <Route path="/dashboard/roles" element={<Role />} />
           <Route path="/dashboard/archived" element={<Archived />} />
           <Route path="/dashboard/settings" element={<Settings />} />
         </Route>
