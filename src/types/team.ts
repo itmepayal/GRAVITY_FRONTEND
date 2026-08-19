@@ -1,24 +1,33 @@
+export interface TeamUser {
+  _id?: string;
+  id?: string;
+  name: string;
+  email?: string;
+  avatar?: string;
+}
+
 export interface TeamMember {
-  user: string;
+  user: string | TeamUser;
   joinedAt: string;
 }
 
 export interface Team {
+  _id?: string;
   id: string;
   name: string;
   description?: string;
 
-  workspace: string;
+  workspace: string | { _id?: string; id?: string; name?: string };
 
-  lead: string;
+  lead: string | TeamUser;
   members: TeamMember[];
 
   color?: string;
 
-  createdBy: string;
+  createdBy?: string | TeamUser;
 
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
 }
 
 // ====================
@@ -43,7 +52,8 @@ export interface AddTeamMemberRequest {
 }
 
 export interface ChangeTeamLeadRequest {
-  userId: string;
+  userId?: string;
+  leadId?: string;
 }
 
 // ====================
@@ -66,3 +76,4 @@ export interface MessageResponse {
   success: boolean;
   message: string;
 }
+

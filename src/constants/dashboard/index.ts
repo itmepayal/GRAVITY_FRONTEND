@@ -15,15 +15,15 @@ import {
   // FolderOpen,
   // FileText,
   // Inbox,
-  // UsersRound,
-  // ShieldCheck,
+  UsersRound,
+  ShieldCheck,
   // Target,
   // GanttChartSquare,
   TimerReset,
   BriefcaseBusiness,
   // Layers,
   // Clock,
-  // TrendingUp,
+  TrendingUp,
 } from "lucide-react";
 
 export type NavItem = {
@@ -80,13 +80,13 @@ export const DASHBOARD_NAV: NavSection[] = [
     label: "Team & Access",
     items: [
       { label: "Members", path: "/dashboard/members", icon: Users },
-      // { label: "Teams", path: "/dashboard/teams", icon: UsersRound },
-      // {
-      //   label: "Roles & Permissions",
-      //   path: "/dashboard/roles",
-      //   icon: ShieldCheck,
-      // },
-      // { label: "Activity Log", path: "/dashboard/activity", icon: TrendingUp },
+      { label: "Teams", path: "/dashboard/teams", icon: UsersRound },
+      {
+        label: "Roles & Permissions",
+        path: "/dashboard/roles",
+        icon: ShieldCheck,
+      },
+      { label: "Activity Log", path: "/dashboard/activity", icon: TrendingUp },
     ],
   },
   // {
