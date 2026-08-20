@@ -148,3 +148,11 @@ export const createWorkspaceRole = async (
   const response = await api.post(`/workspaces/${workspaceId}/roles`, data);
   return response.data;
 };
+
+export const regenerateInviteCode = async (workspaceId: string) => {
+  const response = await api.post(
+    `/invitations/workspaces/${workspaceId}/link`,
+    {},
+  );
+  return response.data;
+};

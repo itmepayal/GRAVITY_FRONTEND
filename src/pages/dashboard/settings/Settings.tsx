@@ -7,6 +7,11 @@ import {
   Check,
   User,
   Mail,
+  CheckSquare,
+  MessageSquare,
+  BarChart,
+  Building2,
+  RefreshCw,
 } from "lucide-react";
 import { Topbar } from "@/components/layout/Topbar";
 import { useDashboardContext } from "@/components/layout/DashboardLayout";
@@ -30,6 +35,10 @@ import { useChangePassword } from "@/hooks/mutations/settings/use-change-passwor
 import { useEnableTwoFA } from "@/hooks/mutations/auth/use-enable-2fa";
 import { useDisableTwoFA } from "@/hooks/mutations/auth/use-disabled-2fa";
 import { useLogout } from "@/hooks/mutations/auth/use-logout";
+import { useUpdateNotificationPreferences } from "@/hooks/mutations/settings/use-update-notification-preferences";
+import { useGetUserWorkspaces } from "@/hooks/queries/workspace/use-get-user-workspaces";
+import { useRegenerateInviteCode } from "@/hooks/mutations/workspace/use-regenerate-invite-code";
+import { FONT_GOLDMAN } from "@/components/common/design-system";
 
 export default function Settings() {
   const { openMobileNav } = useDashboardContext();
@@ -46,6 +55,65 @@ export default function Settings() {
   const logoutMutation = useLogout();
   const enableTwoFAMutation = useEnableTwoFA();
   const disableTwoFAMutation = useDisableTwoFA();
+  const updateNotifMutation = useUpdateNotificationPreferences();
+
+  // Workspaces for Workspace Admin Card
+  const { data: workspacesResponse } = useGetUserWorkspaces();
+  const workspaces = workspacesResponse?.data || [];
+  const activeWorkspace = workspaces[0];
+
+  const regenerateInviteMutation = useRegenerateInviteCode();
+
+  // Notification Preferences State
+  const notifPrefs = (user as any)?.notificationPreferences || {
+    emailNotifications: true,
+    taskAssigned: true,
+    mentionAlerts: true,
+    weeklyDigest: false,
+  };
+
+  const [emailNotifs, setEmailNotifs] = useState(
+    notifPrefs.emailNotifications ?? true,
+  );
+  const [taskAssignedNotif, setTaskAssignedNotif] = useState(
+    notifPrefs.taskAssigned ?? true,
+  );
+  const [mentionNotif, setMentionNotif] = useState(
+    notifPrefs.mentionAlerts ?? true,
+  );
+  const [weeklyDigestNotif, setWeeklyDigestNotif] = useState(
+    notifPrefs.weeklyDigest ?? false,
+  );
+
+  useEffect(() => {
+    if (user && (user as any).notificationPreferences) {
+      const prefs = (user as any).notificationPreferences;
+      setEmailNotifs(prefs.emailNotifications ?? true);
+      setTaskAssignedNotif(prefs.taskAssigned ?? true);
+      setMentionNotif(prefs.mentionAlerts ?? true);
+      setWeeklyDigestNotif(prefs.weeklyDigest ?? false);
+    }
+  }, [user]);
+
+  const handleToggleNotif = (
+    key: "emailNotifications" | "taskAssigned" | "mentionAlerts" | "weeklyDigest",
+    val: boolean,
+  ) => {
+    let updated = {
+      emailNotifications: emailNotifs,
+      taskAssigned: taskAssignedNotif,
+      mentionAlerts: mentionNotif,
+      weeklyDigest: weeklyDigestNotif,
+      [key]: val,
+    };
+
+    if (key === "emailNotifications") setEmailNotifs(val);
+    if (key === "taskAssigned") setTaskAssignedNotif(val);
+    if (key === "mentionAlerts") setMentionNotif(val);
+    if (key === "weeklyDigest") setWeeklyDigestNotif(val);
+
+    updateNotifMutation.mutate(updated);
+  };
 
   const is2FAEnabled = (user as any)?.is2FAEnabled ?? false;
   const is2FAPending =
@@ -162,11 +230,12 @@ export default function Settings() {
     <>
       <Topbar
         title="Settings"
-        subtitle="Manage your profile and account security"
+        subtitle="Manage your profile, notification preferences, and workspace controls"
         onMenuClick={openMobileNav}
       />
       <main className="flex-1 p-4 sm:p-6 lg:p-8">
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-6 max-w-[1600px] mx-auto">
+          {/* Profile & Session Row */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-stretch">
             <div className="lg:col-span-2">
               <form
@@ -176,7 +245,7 @@ export default function Settings() {
                 )}
               >
                 <SettingsCard
-                  title="Profile"
+                  title="Profile Settings"
                   description="This is how your name and photo appear across Gravity."
                   footer={
                     <button
@@ -269,7 +338,7 @@ export default function Settings() {
             </div>
 
             <SettingsCard
-              title="Session"
+              title="Active Session"
               description="End your session on this device."
             >
               <div className="flex flex-col gap-4">
@@ -279,10 +348,10 @@ export default function Settings() {
                   </div>
                   <div className="min-w-0">
                     <p className="text-[#0F2D29] text-[12.5px] font-medium truncate">
-                      This device
+                      Current Device
                     </p>
                     <p className="text-[#8FA69E] text-[11px] mt-0.5">
-                      Active now
+                      Active session now
                     </p>
                   </div>
                 </div>
@@ -298,20 +367,20 @@ export default function Settings() {
             </SettingsCard>
           </div>
 
+          {/* 2FA & Password Row */}
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 items-stretch">
             <div className="lg:col-span-2">
               <SettingsCard
                 title="Two-factor authentication"
-                description="Add an extra layer of security."
+                description="Add an extra layer of security to your account."
               >
                 <div className="flex items-center justify-between gap-5 h-full">
                   <div className="flex items-center gap-3">
                     <div
-                      className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
-                        is2FAEnabled
-                          ? "bg-[#8FE3C4]/20 text-[#0F2D29]"
-                          : "bg-[#0F2D29]/6 text-[#8FA69E]"
-                      }`}
+                      className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-colors ${is2FAEnabled
+                        ? "bg-[#8FE3C4]/20 text-[#0F2D29]"
+                        : "bg-[#0F2D29]/6 text-[#8FA69E]"
+                        }`}
                     >
                       {is2FAEnabled ? (
                         <ShieldCheck size={17} />
@@ -322,20 +391,19 @@ export default function Settings() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-[#0F2D29] text-[13px] font-medium truncate">
-                          Email codes
+                          Email OTP Codes
                         </p>
                         <span
-                          className={`shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded ${
-                            is2FAEnabled
-                              ? "bg-[#8FE3C4]/25 text-[#0F2D29]"
-                              : "bg-[#0F2D29]/6 text-[#8FA69E]"
-                          }`}
+                          className={`shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded ${is2FAEnabled
+                            ? "bg-[#8FE3C4]/25 text-[#0F2D29]"
+                            : "bg-[#0F2D29]/6 text-[#8FA69E]"
+                            }`}
                         >
                           {is2FAEnabled ? "On" : "Off"}
                         </span>
                       </div>
-                      <p className="text-[#5B6E68] text-[12px] mt-0.5 leading-snug text-center">
-                        One-time code on every sign-in.
+                      <p className="text-[#5B6E68] text-[12px] mt-0.5 leading-snug">
+                        One-time code required on every sign-in.
                       </p>
                     </div>
                   </div>
@@ -430,6 +498,149 @@ export default function Settings() {
               </form>
             </div>
           </div>
+
+          {/* Notification Preferences Card */}
+          <SettingsCard
+            title="Notification Preferences"
+            description="Control which updates you receive via email and in-app alerts."
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Email Notifications */}
+              <div className="flex items-center justify-between p-3.5 rounded-lg border border-[#0F2D29]/10 bg-white">
+                <div className="flex items-center gap-3">
+                  <Mail size={16} className="text-[#0F8A65]" />
+                  <div>
+                    <p className="text-xs font-semibold text-[#0F2D29]">
+                      Email Notifications
+                    </p>
+                    <p className="text-[11px] text-[#5B6E68]">
+                      Global email updates & alerts
+                    </p>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={emailNotifs}
+                  onChange={(e) =>
+                    handleToggleNotif("emailNotifications", e.target.checked)
+                  }
+                  className="h-4 w-4 accent-[#0F8A65]"
+                />
+              </div>
+
+              {/* Task Assignments */}
+              <div className="flex items-center justify-between p-3.5 rounded-lg border border-[#0F2D29]/10 bg-white">
+                <div className="flex items-center gap-3">
+                  <CheckSquare size={16} className="text-[#0F8A65]" />
+                  <div>
+                    <p className="text-xs font-semibold text-[#0F2D29]">
+                      Task Assignments
+                    </p>
+                    <p className="text-[11px] text-[#5B6E68]">
+                      Alert when assigned to a new task
+                    </p>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={taskAssignedNotif}
+                  onChange={(e) =>
+                    handleToggleNotif("taskAssigned", e.target.checked)
+                  }
+                  className="h-4 w-4 accent-[#0F8A65]"
+                />
+              </div>
+
+              {/* Mentions & Comments */}
+              <div className="flex items-center justify-between p-3.5 rounded-lg border border-[#0F2D29]/10 bg-white">
+                <div className="flex items-center gap-3">
+                  <MessageSquare size={16} className="text-[#0F8A65]" />
+                  <div>
+                    <p className="text-xs font-semibold text-[#0F2D29]">
+                      Mentions & Comments
+                    </p>
+                    <p className="text-[11px] text-[#5B6E68]">
+                      Alert when tagged in discussions
+                    </p>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={mentionNotif}
+                  onChange={(e) =>
+                    handleToggleNotif("mentionAlerts", e.target.checked)
+                  }
+                  className="h-4 w-4 accent-[#0F8A65]"
+                />
+              </div>
+
+              {/* Weekly Digest */}
+              <div className="flex items-center justify-between p-3.5 rounded-lg border border-[#0F2D29]/10 bg-white">
+                <div className="flex items-center gap-3">
+                  <BarChart size={16} className="text-[#0F8A65]" />
+                  <div>
+                    <p className="text-xs font-semibold text-[#0F2D29]">
+                      Weekly Activity Digest
+                    </p>
+                    <p className="text-[11px] text-[#5B6E68]">
+                      Weekly summary email report
+                    </p>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={weeklyDigestNotif}
+                  onChange={(e) =>
+                    handleToggleNotif("weeklyDigest", e.target.checked)
+                  }
+                  className="h-4 w-4 accent-[#0F8A65]"
+                />
+              </div>
+            </div>
+          </SettingsCard>
+
+          {/* Workspace Admin Settings Card */}
+          {activeWorkspace && (
+            <SettingsCard
+              title="Workspace Admin Settings"
+              description={`Manage controls for active workspace: ${activeWorkspace.name}`}
+            >
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3.5 rounded-lg border border-[#0F2D29]/10 bg-gray-50/50">
+                  <div className="flex items-center gap-3">
+                    <Building2 size={18} className="text-[#0F8A65]" />
+                    <div>
+                      <p className="text-xs font-bold text-[#0F2D29]">
+                        Workspace Invite Code
+                      </p>
+                      <p className={`${FONT_GOLDMAN} text-xs text-[#5B6E68] mt-0.5`}>
+                        Code: {activeWorkspace.inviteCode || "N/A"}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() =>
+                      regenerateInviteMutation.mutate(
+                        activeWorkspace._id || activeWorkspace.id,
+                      )
+                    }
+                    disabled={regenerateInviteMutation.isPending}
+                    className="flex items-center gap-1.5 text-xs font-medium text-[#0F2D29] border border-[#0F2D29]/20 bg-white px-3 py-1.5 rounded-lg hover:bg-gray-50"
+                  >
+                    <RefreshCw
+                      size={13}
+                      className={
+                        regenerateInviteMutation.isPending
+                          ? "animate-spin text-[#0F8A65]"
+                          : ""
+                      }
+                    />
+                    Regenerate Code
+                  </button>
+                </div>
+              </div>
+            </SettingsCard>
+          )}
         </div>
       </main>
     </>

@@ -50,6 +50,16 @@ export const changeProfile = async (
   return response.data;
 };
 
+export const updateNotificationPreferences = async (data: {
+  emailNotifications?: boolean;
+  taskAssigned?: boolean;
+  mentionAlerts?: boolean;
+  weeklyDigest?: boolean;
+}): Promise<any> => {
+  const response = await api.patch("/users/notifications/preferences", data);
+  return response.data;
+};
+
 export const getAllUsers = async (): Promise<User[]> => {
   const response = await api.get<{
     success: boolean;
