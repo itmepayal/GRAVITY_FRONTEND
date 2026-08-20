@@ -20,6 +20,12 @@ import Sprints from "./pages/dashboard/sprint/Sprints";
 import InvitePage from "@/pages/dashboard/invite/Invite";
 import Teams from "./pages/dashboard/teams/Teams";
 import Role from "./pages/dashboard/role/Role";
+import ActivityLog from "./pages/dashboard/activity-log/ActivityLog";
+import BackLog from "./pages/dashboard/backlog/BackLog";
+import Calendar from "./pages/dashboard/calendar/Calendar";
+import TimeLine from "./pages/dashboard/timeline/TimeLine";
+import Goal from "./pages/dashboard/goal/Goal";
+import TimeTracking from "./pages/dashboard/time-tracking/TimeTracking";
 
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ProtectedRoute } from "@/routes/ProtectedRoute";
@@ -51,7 +57,13 @@ function App() {
           <Route path="/dashboard/members" element={<Members />} />
           <Route path="/dashboard/teams" element={<Teams />} />
           <Route path="/dashboard/roles" element={<Role />} />
+          <Route path="/dashboard/activity-log" element={<ActivityLog />} />
+          <Route path="/dashboard/backlog" element={<BackLog />} />
+          <Route path="/dashboard/calendar" element={<Calendar />} />
+          <Route path="/dashboard/goals" element={<Goal />} />
+          <Route path="/dashboard/time-tracking" element={<TimeTracking />} />
           <Route path="/dashboard/archived" element={<Archived />} />
+          <Route path="/dashboard/timeline" element={<TimeLine />} />
           <Route path="/dashboard/settings" element={<Settings />} />
         </Route>
       </Route>

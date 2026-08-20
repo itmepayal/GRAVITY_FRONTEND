@@ -7,8 +7,8 @@ export const getAllUserBoards = async () => {
   return response.data;
 };
 
-export const getBoardById = async (boardId: string): Promise<Board> => {
-  const response = await api.get<Board>(`/boards/${boardId}`);
+export const getBoardById = async (boardId: string): Promise<any> => {
+  const response = await api.get(`/boards/${boardId}`);
   return response.data;
 };
 

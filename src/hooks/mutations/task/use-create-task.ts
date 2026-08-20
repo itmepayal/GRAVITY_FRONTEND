@@ -2,12 +2,12 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createTask } from "@/apis/task.api";
 import { toast } from "sonner";
 
-import type { TaskResponse } from "@/types/task";
+import type { TaskResponse, CreateTaskData } from "@/types/task";
 
 export const useCreateTask = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<TaskResponse, Error, FormData>({
+  return useMutation<TaskResponse, Error, CreateTaskData | FormData>({
     mutationFn: (data) => createTask(data),
 
     onSuccess: () => {

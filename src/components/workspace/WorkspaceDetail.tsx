@@ -410,7 +410,7 @@ export const WorkspaceDetail = ({
         )}
 
         {tab === "activity" && (
-          <ActivityPanel activityLog={workspace.activityLog || []} />
+          <ActivityPanel workspaceId={workspace._id} activityLog={workspace.activityLog || []} />
         )}
       </div>
 

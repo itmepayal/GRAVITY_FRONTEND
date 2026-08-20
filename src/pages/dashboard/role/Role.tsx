@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Topbar } from "@/components/layout/Topbar";
 import { useDashboardContext } from "@/components/layout/DashboardLayout";
-import { useRolesState, type RoleItem } from "@/hooks/useRolesState";
+import { useRolesState } from "@/hooks/useRolesState";
 import {
     Shield,
     ShieldAlert,
@@ -37,7 +37,6 @@ export function Role() {
         setDeletingRole,
         isLoadingWorkspaces,
         isLoadingRoles,
-        isLoadingPermissions,
         isCreatingRole,
         isUpdatingRole,
         isDeletingRole,

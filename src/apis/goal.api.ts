@@ -4,7 +4,6 @@ import type {
   CreateGoalData,
   UpdateGoalData,
   GoalResponse,
-  GoalsResponse,
   MessageResponse,
 } from "@/types/goal";
 
@@ -22,8 +21,8 @@ export const createGoal = async (
 
 export const getWorkspaceGoals = async (
   workspaceId: string,
-): Promise<GoalsResponse> => {
-  const response = await api.get<GoalsResponse>(
+): Promise<any> => {
+  const response = await api.get(
     `/goals/workspaces/${workspaceId}/goals`,
   );
 
