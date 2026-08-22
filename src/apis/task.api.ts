@@ -196,3 +196,13 @@ export const updateActualHours = async (
 
   return response.data;
 };
+
+export const getProjectTasks = async (
+  projectId: string,
+): Promise<TasksResponse> => {
+  const response = await api.get<TasksResponse>(
+    `/tasks/projects/${projectId}/tasks`,
+  );
+
+  return response.data;
+};

@@ -3,6 +3,7 @@ import { Topbar } from "@/components/layout/Topbar";
 import { useDashboardContext } from "@/components/layout/DashboardLayout";
 import { useGetUserWorkspaces } from "@/hooks/queries/workspace/use-get-user-workspaces";
 import { useGetWorkspaceProjects } from "@/hooks/queries/project/use-get-workspace-projects";
+import { useGetProjectTasks } from "@/hooks/queries/task/use-get-project-tasks";
 import { useGetWorkspaceTimeEntries } from "@/hooks/queries/time-entry/use-get-workspace-time-entries";
 import { useCreateTimeEntry } from "@/hooks/mutations/time-entry/use-create-time-entry";
 import { useDeleteTimeEntry } from "@/hooks/mutations/time-entry/use-delete-time-entry";
@@ -12,6 +13,7 @@ import {
   FONT_POPPINS,
   COMMON_CLASSES,
 } from "@/components/common/design-system";
+import { toast } from "sonner";
 
 import {
   Clock,
@@ -26,6 +28,7 @@ import {
   User,
   History,
   Timer,
+  ListChecks,
 } from "lucide-react";
 
 export function TimeTracking() {
@@ -142,6 +145,7 @@ export function TimeTracking() {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [targetProjectId, setTargetProjectId] = useState<string>("");
+  const [targetTaskId, setTargetTaskId] = useState<string>("");
   const [description, setDescription] = useState("");
   const [durationHours, setDurationHours] = useState<number>(1);
   const [durationMins, setDurationMins] = useState<number>(0);
@@ -149,7 +153,19 @@ export function TimeTracking() {
     new Date().toISOString().split("T")[0],
   );
 
+  // 3. Fetch Tasks for the selected project inside the modal
+  const { data: tasksResponse, isLoading: isLoadingTasks } =
+    useGetProjectTasks(targetProjectId);
+  const tasks = tasksResponse?.data || [];
+
+  // Reset task selection whenever project changes inside modal
+  React.useEffect(() => {
+    setTargetTaskId("");
+  }, [targetProjectId]);
+
   const resetForm = () => {
+    setTargetProjectId("");
+    setTargetTaskId("");
     setDescription("");
     setDurationHours(1);
     setDurationMins(0);
@@ -168,14 +184,28 @@ export function TimeTracking() {
     e.preventDefault();
     if (!selectedWorkspaceId) return;
 
+    if (!targetProjectId) {
+      toast.error("Please select a project.");
+      return;
+    }
+
+    if (!targetTaskId) {
+      toast.error("Please select a task to log time against.");
+      return;
+    }
+
     const calculatedTotalMins =
       Number(durationHours) * 60 + Number(durationMins);
-    if (calculatedTotalMins <= 0) return;
+    if (calculatedTotalMins <= 0) {
+      toast.error("Duration must be greater than 0.");
+      return;
+    }
 
     createEntry(
       {
         workspace: selectedWorkspaceId,
-        project: targetProjectId || undefined,
+        project: targetProjectId,
+        task: targetTaskId,
         description: description.trim(),
         durationMinutes: calculatedTotalMins,
         date: new Date(entryDate).toISOString(),
@@ -337,7 +367,8 @@ export function TimeTracking() {
                 No time entries logged
               </h4>
               <p className={`${COMMON_CLASSES.headingSubtitle} mt-1 max-w-md`}>
-                No work sessions logged for this workspace/project. Click Log Time Entry to add your hours.
+                No work sessions logged for this workspace/project. Click Log
+                Time Entry to add your hours.
               </p>
               <button
                 onClick={handleOpenModal}
@@ -350,10 +381,13 @@ export function TimeTracking() {
           ) : (
             <div className="space-y-3">
               {filteredTimeEntries.map((te: any) => {
-                const dateStr = new Date(te.date || te.createdAt).toLocaleDateString(
-                  [],
-                  { month: "short", day: "numeric", year: "numeric" },
-                );
+                const dateStr = new Date(
+                  te.date || te.createdAt,
+                ).toLocaleDateString([], {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                });
                 const hrs = Math.floor((te.durationMinutes || 0) / 60);
                 const mins = (te.durationMinutes || 0) % 60;
                 const durationLabel = `${hrs > 0 ? `${hrs}h ` : ""}${mins}m`;
@@ -365,22 +399,37 @@ export function TimeTracking() {
                   >
                     <div className="space-y-1 min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className={`${FONT_GOLDMAN} bg-[#0F2D29] text-white px-2.5 py-0.5 text-xs font-bold`}>
+                        <span
+                          className={`${FONT_GOLDMAN} bg-[#0F2D29] text-white px-2.5 py-0.5 text-xs font-bold`}
+                        >
                           {durationLabel}
                         </span>
                         {te.project?.name && (
-                          <span className={`${FONT_GOLDMAN} bg-indigo-50 text-indigo-800 border border-indigo-200 px-2 py-0.5 text-[10px] font-bold`}>
+                          <span
+                            className={`${FONT_GOLDMAN} bg-indigo-50 text-indigo-800 border border-indigo-200 px-2 py-0.5 text-[10px] font-bold`}
+                          >
                             {te.project.name}
                           </span>
                         )}
-                        <span className={`${FONT_POPPINS} text-xs font-semibold text-[#5B6E68] flex items-center gap-1`}>
+                        {te.task?.title && (
+                          <span
+                            className={`${FONT_GOLDMAN} bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 text-[10px] font-bold`}
+                          >
+                            {te.task.title}
+                          </span>
+                        )}
+                        <span
+                          className={`${FONT_POPPINS} text-xs font-semibold text-[#5B6E68] flex items-center gap-1`}
+                        >
                           <User size={12} className="text-[#8FA69E]" />
                           {te.user?.name || "Team Member"}
                         </span>
                       </div>
 
                       {te.description && (
-                        <p className={`${FONT_POPPINS} text-xs text-[#0F2D29] font-medium`}>
+                        <p
+                          className={`${FONT_POPPINS} text-xs text-[#0F2D29] font-medium`}
+                        >
                           {te.description}
                         </p>
                       )}
@@ -431,20 +480,53 @@ export function TimeTracking() {
             <form onSubmit={handleSubmit} className="p-4 space-y-4">
               <div>
                 <label className={COMMON_CLASSES.labelUppercase}>
-                  Project (Optional)
+                  Project *
                 </label>
                 <select
+                  required
                   value={targetProjectId}
                   onChange={(e) => setTargetProjectId(e.target.value)}
                   className={COMMON_CLASSES.selectBase + " w-full"}
                 >
-                  <option value="">No Project</option>
+                  <option value="">Select a project</option>
                   {projects.map((p: any) => (
                     <option key={p._id || p.id} value={p._id || p.id}>
                       {p.name}
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className={COMMON_CLASSES.labelUppercase}>Task *</label>
+                <div className="relative">
+                  <select
+                    required
+                    value={targetTaskId}
+                    onChange={(e) => setTargetTaskId(e.target.value)}
+                    disabled={!targetProjectId || isLoadingTasks}
+                    className={COMMON_CLASSES.selectBase + " w-full pl-8"}
+                  >
+                    <option value="">
+                      {!targetProjectId
+                        ? "Select a project first"
+                        : isLoadingTasks
+                          ? "Loading tasks..."
+                          : tasks.length === 0
+                            ? "No tasks available"
+                            : "Select a task"}
+                    </option>
+                    {tasks.map((t: any) => (
+                      <option key={t._id || t.id} value={t._id || t.id}>
+                        {t.title}
+                      </option>
+                    ))}
+                  </select>
+                  <ListChecks
+                    size={15}
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#5B6E68]"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -512,7 +594,7 @@ export function TimeTracking() {
                 </button>
                 <button
                   type="submit"
-                  disabled={isCreating}
+                  disabled={isCreating || !targetTaskId}
                   className={COMMON_CLASSES.btnPrimary}
                 >
                   {isCreating ? "Saving..." : "Log Time Session"}
