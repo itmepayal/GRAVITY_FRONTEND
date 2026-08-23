@@ -26,11 +26,16 @@ import Calendar from "./pages/dashboard/calendar/Calendar";
 import TimeLine from "./pages/dashboard/timeline/TimeLine";
 import Goal from "./pages/dashboard/goal/Goal";
 import TimeTracking from "./pages/dashboard/time-tracking/TimeTracking";
+import Files from "./pages/dashboard/files/FIles";
+import Documents from "./pages/dashboard/documents/Documents";
+import Reports from "./pages/dashboard/reports/Reports";
+import Inbox from "./pages/dashboard/inbox/Inbox";
+import Analytics from "./pages/dashboard/analytics/Analytics";
+import Notification from "./pages/dashboard/notification/Notification";
 
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ProtectedRoute } from "@/routes/ProtectedRoute";
 import { PublicRoute } from "@/routes/PublicRoute";
-import Files from "./pages/dashboard/files/FIles";
 
 function App() {
   return (
@@ -66,6 +71,11 @@ function App() {
           <Route path="/dashboard/archived" element={<Archived />} />
           <Route path="/dashboard/timeline" element={<TimeLine />} />
           <Route path="/dashboard/files" element={<Files />} />
+          <Route path="/dashboard/documents" element={<Documents />} />
+          <Route path="/dashboard/inbox" element={<Inbox />} />
+          <Route path="/dashboard/reports" element={<Reports />} />
+          <Route path="/dashboard/notifications" element={<Notification />} />
+          <Route path="/dashboard/analytics" element={<Analytics />} />
           <Route path="/dashboard/settings" element={<Settings />} />
         </Route>
       </Route>
