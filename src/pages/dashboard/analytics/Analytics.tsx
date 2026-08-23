@@ -8,7 +8,8 @@ import { useGetWorkspaceProjects } from "@/hooks/queries/project/use-get-workspa
 import { useGetAnalyticsOverview } from "@/hooks/queries/analytics/use-get-analytics-overview";
 import { useGetAnalyticsSnapshots } from "@/hooks/queries/analytics/use-get-analytics-snapshots";
 import { useCreateAnalyticsSnapshot } from "@/hooks/mutations/analytics/use-create-analytics-snapshot";
-import type { AnalyticsPeriod } from "@/types/analytics";
+import { useDeleteAnalyticsSnapshot } from "@/hooks/mutations/analytics/use-delete-analytics-snapshot";
+import type { AnalyticsPeriod, IAnalyticsSnapshot } from "@/types/analytics";
 import {
     BarChart3,
     Clock,
@@ -25,8 +26,17 @@ import {
     Building2,
     Sparkles,
     Loader2,
+    Trash2,
+    Eye,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from "@/components/ui/dialog";
 
 export const Analytics: React.FC = () => {
     const { openMobileNav } = useDashboardContext();
@@ -80,6 +90,22 @@ export const Analytics: React.FC = () => {
     });
 
     const { mutate: createSnapshot, isPending: isSavingSnapshot } = useCreateAnalyticsSnapshot();
+    const { mutate: deleteSnapshot, isPending: isDeletingSnapshot } = useDeleteAnalyticsSnapshot();
+
+    const [selectedSnapshot, setSelectedSnapshot] = useState<IAnalyticsSnapshot | null>(null);
+
+    const handleDeleteSnapshot = (id: string, e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
+        deleteSnapshot(id, {
+            onSuccess: () => {
+                toast.success("Snapshot deleted successfully.");
+                setSelectedSnapshot((current) => (current?._id === id ? null : current));
+            },
+            onError: (err: any) => {
+                toast.error(err?.message || "Failed to delete snapshot.");
+            },
+        });
+    };
 
     const handleTakeSnapshot = () => {
         const targetWs = selectedWorkspace || activeWorkspaceId;
@@ -452,7 +478,8 @@ export const Analytics: React.FC = () => {
                                         return (
                                             <div
                                                 key={snap._id}
-                                                className="flex flex-col sm:flex-row sm:items-center justify-between py-4 gap-3 hover:bg-[#0F2D29]/2 px-3 rounded-xl transition-colors"
+                                                onClick={() => setSelectedSnapshot(snap)}
+                                                className="group flex flex-col sm:flex-row sm:items-center justify-between py-4 gap-3 hover:bg-[#0F8A65]/5 px-4 rounded-xl transition-all cursor-pointer border border-transparent hover:border-[#0F8A65]/20"
                                             >
                                                 <div className="space-y-1">
                                                     <div className="flex items-center gap-2">
@@ -468,12 +495,37 @@ export const Analytics: React.FC = () => {
                                                     </p>
                                                 </div>
 
-                                                {createdUser && (
-                                                    <div className="flex items-center gap-1.5 text-xs text-[#5B6E68]">
-                                                        <UserCheck size={14} className="text-[#0F8A65]" />
-                                                        <span>Saved by {createdUser.name}</span>
+                                                <div className="flex items-center gap-3 self-end sm:self-auto">
+                                                    {createdUser && (
+                                                        <div className="flex items-center gap-1.5 text-xs text-[#5B6E68]">
+                                                            <UserCheck size={14} className="text-[#0F8A65]" />
+                                                            <span>Saved by {createdUser.name}</span>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="flex items-center gap-1.5 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setSelectedSnapshot(snap);
+                                                            }}
+                                                            className="flex items-center gap-1 rounded-lg bg-[#0F2D29] px-2.5 py-1 text-[11px] font-bold text-white transition-colors hover:bg-[#0F2D29]/80"
+                                                        >
+                                                            <Eye size={12} />
+                                                            View
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => handleDeleteSnapshot(snap._id, e)}
+                                                            className="rounded-lg p-1.5 text-red-500 hover:bg-red-50 transition-colors"
+                                                            title="Delete snapshot"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
                                                     </div>
-                                                )}
+                                                </div>
                                             </div>
                                         );
                                     })}
@@ -482,6 +534,163 @@ export const Analytics: React.FC = () => {
                         </div>
                     </div>
                 )}
+
+                {/* SNAPSHOT DETAIL MODAL */}
+                <Dialog open={!!selectedSnapshot} onOpenChange={(open) => !open && setSelectedSnapshot(null)}>
+                    <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-6 bg-white rounded-2xl border border-[#0F2D29]/15">
+                        {selectedSnapshot && (
+                            <div className="space-y-6">
+                                <DialogHeader className="flex flex-row items-start justify-between pb-4 border-b border-[#0F2D29]/10">
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="rounded-md bg-[#0F8A65]/10 px-2.5 py-0.5 text-[11px] font-bold text-[#0F8A65] uppercase">
+                                                {selectedSnapshot.period} Snapshot
+                                            </span>
+                                            <span className="text-xs font-semibold text-[#5B6E68]">
+                                                {new Date(selectedSnapshot.snapshotDate).toLocaleString()}
+                                            </span>
+                                        </div>
+                                        <DialogTitle className="text-lg font-black text-[#0F2D29]">
+                                            Analytics Snapshot Overview
+                                        </DialogTitle>
+                                        <DialogDescription className="text-xs text-[#5B6E68] mt-0.5">
+                                            {typeof selectedSnapshot.createdBy === "object" && selectedSnapshot.createdBy?.name
+                                                ? `Captured by ${selectedSnapshot.createdBy.name}`
+                                                : "Historical performance record"}
+                                        </DialogDescription>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={(e) => handleDeleteSnapshot(selectedSnapshot._id, e)}
+                                        disabled={isDeletingSnapshot}
+                                        className="flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600 transition-colors hover:bg-red-100 disabled:opacity-50"
+                                    >
+                                        <Trash2 size={14} />
+                                        Delete
+                                    </button>
+                                </DialogHeader>
+
+                                {/* Snapshot Metric Cards */}
+                                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                                    <div className="rounded-xl border border-[#0F2D29]/10 bg-[#0F8A65]/5 p-3">
+                                        <p className="text-[11px] font-bold text-[#5B6E68]">Tasks Completed</p>
+                                        <p className="text-lg font-black text-[#0F2D29] mt-1">
+                                            {selectedSnapshot.metrics.tasks.completed}/{selectedSnapshot.metrics.tasks.total}
+                                        </p>
+                                        <p className="text-[10px] font-medium text-[#0F8A65]">
+                                            {selectedSnapshot.metrics.tasks.storyPointsCompleted} story pts
+                                        </p>
+                                    </div>
+                                    <div className="rounded-xl border border-[#0F2D29]/10 bg-[#2563EB]/5 p-3">
+                                        <p className="text-[11px] font-bold text-[#5B6E68]">Time Tracked</p>
+                                        <p className="text-lg font-black text-[#0F2D29] mt-1">
+                                            {selectedSnapshot.metrics.timeTracking.totalHoursLogged} hrs
+                                        </p>
+                                        <p className="text-[10px] font-medium text-[#2563EB]">
+                                            {selectedSnapshot.metrics.timeTracking.entriesCount} entries
+                                        </p>
+                                    </div>
+                                    <div className="rounded-xl border border-[#0F2D29]/10 bg-[#7C3AED]/5 p-3">
+                                        <p className="text-[11px] font-bold text-[#5B6E68]">Sprint Velocity</p>
+                                        <p className="text-lg font-black text-[#0F2D29] mt-1">
+                                            {selectedSnapshot.metrics.sprints.velocity} pts
+                                        </p>
+                                        <p className="text-[10px] font-medium text-[#7C3AED]">
+                                            {selectedSnapshot.metrics.sprints.activeCount} active sprints
+                                        </p>
+                                    </div>
+                                    <div className="rounded-xl border border-[#0F2D29]/10 bg-[#DC2626]/5 p-3">
+                                        <p className="text-[11px] font-bold text-[#5B6E68]">Overdue Tasks</p>
+                                        <p className="text-lg font-black text-[#0F2D29] mt-1">
+                                            {selectedSnapshot.metrics.tasks.overdue}
+                                        </p>
+                                        <p className="text-[10px] font-medium text-[#DC2626]">past due date</p>
+                                    </div>
+                                </div>
+
+                                {/* Status & Priority breakdown */}
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                    {/* Status */}
+                                    <div className="rounded-xl border border-[#0F2D29]/10 bg-white p-4">
+                                        <h5 className="text-xs font-black text-[#0F2D29] uppercase tracking-wide flex items-center gap-1.5 mb-3">
+                                            <BarChart3 size={14} className="text-[#0F8A65]" /> Status Breakdown
+                                        </h5>
+                                        <div className="space-y-2.5">
+                                            {Object.entries(selectedSnapshot.metrics.breakdownByStatus || {}).map(([st, count]) => {
+                                                const pct = selectedSnapshot.metrics.tasks.total > 0
+                                                    ? Math.round((count / selectedSnapshot.metrics.tasks.total) * 100)
+                                                    : 0;
+                                                return (
+                                                    <div key={st} className="space-y-1">
+                                                        <div className="flex justify-between text-[11.5px] font-bold text-[#0F2D29]">
+                                                            <span className="capitalize">{st.replace("_", " ")}</span>
+                                                            <span className="text-[#5B6E68]">{count} ({pct}%)</span>
+                                                        </div>
+                                                        <div className="h-1.5 w-full rounded-full bg-[#0F2D29]/5 overflow-hidden">
+                                                            <div className="h-full rounded-full bg-[#0F8A65]" style={{ width: `${pct}%` }} />
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* Priority */}
+                                    <div className="rounded-xl border border-[#0F2D29]/10 bg-white p-4">
+                                        <h5 className="text-xs font-black text-[#0F2D29] uppercase tracking-wide flex items-center gap-1.5 mb-3">
+                                            <Zap size={14} className="text-[#D97706]" /> Priority Breakdown
+                                        </h5>
+                                        <div className="space-y-2.5">
+                                            {Object.entries(selectedSnapshot.metrics.breakdownByPriority || {}).map(([pr, count]) => {
+                                                const pct = selectedSnapshot.metrics.tasks.total > 0
+                                                    ? Math.round((count / selectedSnapshot.metrics.tasks.total) * 100)
+                                                    : 0;
+                                                return (
+                                                    <div key={pr} className="space-y-1">
+                                                        <div className="flex justify-between text-[11.5px] font-bold text-[#0F2D29]">
+                                                            <span className="capitalize">{pr}</span>
+                                                            <span className="text-[#5B6E68]">{count} ({pct}%)</span>
+                                                        </div>
+                                                        <div className="h-1.5 w-full rounded-full bg-[#0F2D29]/5 overflow-hidden">
+                                                            <div className="h-full rounded-full bg-[#D97706]" style={{ width: `${pct}%` }} />
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Top Contributors */}
+                                <div className="rounded-xl border border-[#0F2D29]/10 bg-white p-4">
+                                    <h5 className="text-xs font-black text-[#0F2D29] uppercase tracking-wide flex items-center gap-1.5 mb-3">
+                                        <Users size={14} className="text-[#2563EB]" /> Top Contributors
+                                    </h5>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                        {(selectedSnapshot.metrics.team?.topContributors || []).map((c, idx) => {
+                                            const u = typeof c.user === "object" ? c.user : null;
+                                            const uname = u?.name || `Teammate ${idx + 1}`;
+                                            return (
+                                                <div key={idx} className="flex items-center justify-between p-2.5 rounded-lg border border-[#0F2D29]/8 bg-[#0F2D29]/2 text-xs">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#0F2D29] text-[10px] font-bold text-white">
+                                                            {uname.slice(0, 2).toUpperCase()}
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-bold text-[#0F2D29]">{uname}</p>
+                                                            <p className="text-[10px] text-[#5B6E68]">{c.minutesLogged} mins logged</p>
+                                                        </div>
+                                                    </div>
+                                                    <span className="font-extrabold text-[#0F8A65]">{c.tasksCompleted} done</span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </DialogContent>
+                </Dialog>
             </main>
         </>
     );

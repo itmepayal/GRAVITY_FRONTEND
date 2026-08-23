@@ -180,3 +180,21 @@ export const MOCK_ARCHIVED: Task[] = [
     assignee: { name: "Ishaan Roy", color: "#B7CFC7" },
   },
 ];
+
+export interface IDashboardStats {
+  workspacesCount: number;
+  projectsCount: number;
+  tasks: {
+    total: number;
+    completed: number;
+    inProgress: number;
+    overdue: number;
+    completionRate: number;
+  };
+  teamMembersCount: number;
+  totalHoursLogged: number;
+  recentTasks: any[];
+  statusBreakdown: Record<string, number>;
+  recentActivities: any[];
+}
+

@@ -107,7 +107,7 @@ export const DASHBOARD_NAV: NavSection[] = [
     items: [
       { label: "Reports", path: "/dashboard/reports", icon: BarChart3 },
       { label: "Analytics", path: "/dashboard/analytics", icon: LineChart },
-      { label: "Integrations", path: "/dashboard/integrations", icon: Plug },
+      { label: "Integrations", path: "/dashboard/integration", icon: Plug },
       { label: "Billing & Plan", path: "/dashboard/billing", icon: CreditCard },
       { label: "Settings", path: "/dashboard/settings", icon: Settings },
     ],

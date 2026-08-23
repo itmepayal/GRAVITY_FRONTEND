@@ -32,6 +32,8 @@ import Reports from "./pages/dashboard/reports/Reports";
 import Inbox from "./pages/dashboard/inbox/Inbox";
 import Analytics from "./pages/dashboard/analytics/Analytics";
 import Notification from "./pages/dashboard/notification/Notification";
+import Integration from "./pages/dashboard/integrations/Integration";
+import Billing from "./pages/dashboard/billing/Billing";
 
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ProtectedRoute } from "@/routes/ProtectedRoute";
@@ -41,9 +43,7 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
-
       <Route path="/invite/:token" element={<InvitePage />} />
-
       <Route element={<PublicRoute />}>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -76,10 +76,11 @@ function App() {
           <Route path="/dashboard/reports" element={<Reports />} />
           <Route path="/dashboard/notifications" element={<Notification />} />
           <Route path="/dashboard/analytics" element={<Analytics />} />
+          <Route path="/dashboard/integration" element={<Integration />} />
+          <Route path="/dashboard/billing" element={<Billing />} />
           <Route path="/dashboard/settings" element={<Settings />} />
         </Route>
       </Route>
-
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

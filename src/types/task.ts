@@ -289,10 +289,10 @@ export const columnToStatus: Record<string, TaskStatus> = {
 export interface CreateTaskData {
   title: string;
   description?: string;
-  board: string;
+  board?: string;
   project: string;
   workspace: string;
-  column: string;
+  column?: string;
   assignee?: string;
   status?: TaskStatus;
   priority?: TaskPriority;
