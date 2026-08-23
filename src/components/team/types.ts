@@ -1,4 +1,4 @@
-import type { Team, TeamUser, TeamMember } from "@/types/team";
+import type { TeamUser } from "@/types/team";
 
 export type TeamViewMode = "grid" | "table" | "detail";
 

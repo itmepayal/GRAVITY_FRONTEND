@@ -29,6 +29,7 @@ import {
   History,
   Timer,
   ListChecks,
+  AlertTriangle,
 } from "lucide-react";
 
 export function TimeTracking() {
@@ -153,12 +154,11 @@ export function TimeTracking() {
     new Date().toISOString().split("T")[0],
   );
 
-  // 3. Fetch Tasks for the selected project inside the modal
   const { data: tasksResponse, isLoading: isLoadingTasks } =
     useGetProjectTasks(targetProjectId);
-  const tasks = tasksResponse?.data || [];
+  const tasks = (tasksResponse as any)?.data || [];
 
-  // Reset task selection whenever project changes inside modal
+
   React.useEffect(() => {
     setTargetTaskId("");
   }, [targetProjectId]);
@@ -220,8 +220,35 @@ export function TimeTracking() {
     );
   };
 
-  const handleDelete = (id: string) => {
-    deleteEntry(id, { onSuccess: () => refetch() });
+  // Delete Confirmation Modal State
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deletingEntryId, setDeletingEntryId] = useState<string | null>(null);
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
+
+  const handleRequestDelete = (id: string) => {
+    setDeletingEntryId(id);
+    setDeleteConfirmInput("");
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!deletingEntryId) return;
+
+    if (deleteConfirmInput.trim().toUpperCase() !== "DELETE") {
+      toast.error('Please type "DELETE" to confirm.');
+      return;
+    }
+
+    deleteEntry(deletingEntryId, {
+      onSuccess: () => {
+        setIsDeleteModalOpen(false);
+        setDeletingEntryId(null);
+        setDeleteConfirmInput("");
+        refetch();
+        toast.success("Time entry deleted successfully.");
+      },
+    });
   };
 
   return (
@@ -234,15 +261,12 @@ export function TimeTracking() {
       />
 
       <main className="mx-auto w-full max-w-[1600px] flex-1 space-y-6 p-4 sm:p-6 lg:p-8">
-        {/* Banner matching Workspace & Project system */}
         <DashboardMetricsBanner cards={metricCards} />
-
-        {/* Toolbar matching Workspace & Project system */}
         <div className="border border-[#0F2D29]/15 bg-white p-4 shadow-2xs">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             {/* Left: Workspace & Project Selectors */}
             <div className="flex flex-wrap items-center gap-3">
-              <div className="min-w-[190px]">
+              <div className="min-w-47.5">
                 <label className={COMMON_CLASSES.labelUppercase}>
                   Workspace
                 </label>
@@ -266,7 +290,7 @@ export function TimeTracking() {
                 </div>
               </div>
 
-              <div className="min-w-[190px]">
+              <div className="min-w-47.5">
                 <label className={COMMON_CLASSES.labelUppercase}>
                   Project Filter
                 </label>
@@ -292,7 +316,7 @@ export function TimeTracking() {
               </div>
 
               {/* Search */}
-              <div className="min-w-[220px] flex-1">
+              <div className="min-w-55 flex-1">
                 <label className={COMMON_CLASSES.labelUppercase}>
                   Search Log
                 </label>
@@ -443,8 +467,8 @@ export function TimeTracking() {
                       </div>
 
                       <button
-                        onClick={() => handleDelete(te._id || te.id)}
-                        className="p-1.5 text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200"
+                        onClick={() => handleRequestDelete(te._id || te.id)}
+                        className="p-1.5 text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition"
                         title="Delete Entry"
                       >
                         <Trash2 size={14} />
@@ -598,6 +622,75 @@ export function TimeTracking() {
                   className={COMMON_CLASSES.btnPrimary}
                 >
                   {isCreating ? "Saving..." : "Log Time Session"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F2D29]/40 backdrop-blur-xs p-4">
+          <div className={`${COMMON_CLASSES.modalShell} max-w-md w-full`}>
+            <div className="flex items-center justify-between border-b border-[#0F2D29]/15 p-4">
+              <h3
+                className={`${COMMON_CLASSES.headingTitle} text-base flex items-center gap-2 text-rose-600`}
+              >
+                <AlertTriangle size={18} />
+                Confirm Deletion
+              </h3>
+              <button
+                onClick={() => {
+                  setIsDeleteModalOpen(false);
+                  setDeletingEntryId(null);
+                  setDeleteConfirmInput("");
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmDelete} className="p-4 space-y-4">
+              <p className={`${FONT_POPPINS} text-xs text-[#5B6E68]`}>
+                This action cannot be undone. To permanently delete this time log
+                entry, please type <span className="font-bold text-rose-600">DELETE</span> in the box below.
+              </p>
+
+              <div>
+                <label className={COMMON_CLASSES.labelUppercase}>
+                  Verification Text *
+                </label>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  placeholder='Type "DELETE" to confirm'
+                  value={deleteConfirmInput}
+                  onChange={(e) => setDeleteConfirmInput(e.target.value)}
+                  className={`${COMMON_CLASSES.inputBase} border-rose-300 focus:border-rose-600 focus:ring-rose-500`}
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 border-t border-[#0F2D29]/15 pt-4 mt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsDeleteModalOpen(false);
+                    setDeletingEntryId(null);
+                    setDeleteConfirmInput("");
+                  }}
+                  className={COMMON_CLASSES.btnSecondary}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={deleteConfirmInput.trim().toUpperCase() !== "DELETE"}
+                  className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                >
+                  Confirm & Delete
                 </button>
               </div>
             </form>

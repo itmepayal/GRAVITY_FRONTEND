@@ -73,7 +73,7 @@ export function Teams() {
   }, []);
 
   const activeWorkspaceName =
-    workspaces.find((w) => w.id === selectedWorkspaceId)?.name ?? "Workspace";
+    workspaces.find((w: any) => w.id === selectedWorkspaceId)?.name ?? "Workspace";
 
   return (
     <>

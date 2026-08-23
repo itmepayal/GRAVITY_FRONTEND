@@ -46,7 +46,7 @@ export function Role() {
     } = useRolesState();
 
     const activeWorkspaceName =
-        workspaces.find((w) => w.id === selectedWorkspaceId)?.name ?? "Workspace";
+        workspaces.find((w: any) => w.id === selectedWorkspaceId)?.name ?? "Workspace";
 
     return (
         <>
@@ -68,7 +68,7 @@ export function Role() {
                             disabled={isLoadingWorkspaces}
                             className="rounded-xl border border-[#0F2D29]/20 bg-white px-3.5 py-2 text-xs font-bold text-[#0F2D29] outline-none shadow-2xs focus:border-[#0F2D29]"
                         >
-                            {workspaces.map((w) => (
+                            {workspaces.map((w: any) => (
                                 <option key={w.id} value={w.id}>
                                     {w.name}
                                 </option>

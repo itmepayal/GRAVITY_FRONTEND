@@ -30,6 +30,7 @@ import TimeTracking from "./pages/dashboard/time-tracking/TimeTracking";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ProtectedRoute } from "@/routes/ProtectedRoute";
 import { PublicRoute } from "@/routes/PublicRoute";
+import Files from "./pages/dashboard/files/FIles";
 
 function App() {
   return (
@@ -64,6 +65,7 @@ function App() {
           <Route path="/dashboard/time-tracking" element={<TimeTracking />} />
           <Route path="/dashboard/archived" element={<Archived />} />
           <Route path="/dashboard/timeline" element={<TimeLine />} />
+          <Route path="/dashboard/files" element={<Files />} />
           <Route path="/dashboard/settings" element={<Settings />} />
         </Route>
       </Route>
