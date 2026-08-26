@@ -19,6 +19,10 @@ export const useCreateInviteLink = () => {
       toast.success("Invite link created successfully");
 
       queryClient.invalidateQueries({
+        queryKey: ["workspace-sharing", variables.workspaceId],
+      });
+
+      queryClient.invalidateQueries({
         queryKey: ["workspace-invitations", variables.workspaceId],
       });
 

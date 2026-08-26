@@ -2,6 +2,9 @@ export type InvitationStatus = "pending" | "accepted" | "rejected" | "revoked";
 
 export type InvitationType = "email" | "link";
 
+export type LinkPermission = "view" | "comment" | "edit";
+export type LinkExpiryPreset = "never" | "24h" | "7d" | "custom";
+
 export interface Invitation {
   id: string;
   workspace: string;
@@ -13,6 +16,7 @@ export interface Invitation {
   status: InvitationStatus;
   acceptedBy?: string;
   expiresAt?: string;
+  linkPermission?: LinkPermission;
   createdAt: string;
   updatedAt: string;
 }
@@ -24,8 +28,12 @@ export interface CreateEmailInvitationData {
 }
 
 export interface CreateInviteLinkData {
-  roleId: string;
+  roleId?: string;
+  linkPermission?: LinkPermission;
   expiresInDays?: number;
+  maxUses?: number | null;
+  expiryPreset?: LinkExpiryPreset;
+  expiresAt?: string;
 }
 
 export interface InvitationResponse {

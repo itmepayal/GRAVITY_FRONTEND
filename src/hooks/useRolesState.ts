@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from "react";
-import { useGetUserWorkspaces } from "@/hooks/queries/workspace/use-get-user-workspaces";
+import { useState, useMemo } from "react";
+import { useSyncedWorkspace } from "@/hooks/useSyncedWorkspace";
 import { useGetWorkspaceRoles } from "@/hooks/queries/role/use-get-workspace-roles";
 import { useGetAllPermissions } from "@/hooks/queries/role/use-get-all-permissions";
 import { useCreateWorkspaceRole } from "@/hooks/mutations/role/use-create-role";
@@ -18,7 +18,12 @@ export interface RoleItem {
 }
 
 export function useRolesState() {
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>("");
+  const {
+    workspaces: syncedWorkspaces,
+    currentWorkspaceId: selectedWorkspaceId,
+    setCurrentWorkspaceId: setSelectedWorkspaceId,
+    isLoadingWorkspaces,
+  } = useSyncedWorkspace();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRole, setSelectedRole] = useState<RoleItem | null>(null);
 
@@ -27,25 +32,14 @@ export function useRolesState() {
   const [editingRole, setEditingRole] = useState<RoleItem | null>(null);
   const [deletingRole, setDeletingRole] = useState<RoleItem | null>(null);
 
-  // 1. Workspaces list
-  const { data: workspacesResponse, isLoading: isLoadingWorkspaces } =
-    useGetUserWorkspaces();
-
-  const workspaces = useMemo(() => {
-    const raw = Array.isArray(workspacesResponse)
-      ? workspacesResponse
-      : workspacesResponse?.data ?? [];
-    return raw.map((w: any) => ({
-      id: w._id ?? w.id,
-      name: w.name ?? "Untitled Workspace",
-    }));
-  }, [workspacesResponse]);
-
-  useEffect(() => {
-    if (workspaces.length > 0 && !selectedWorkspaceId) {
-      setSelectedWorkspaceId(workspaces[0].id);
-    }
-  }, [workspaces, selectedWorkspaceId]);
+  const workspaces = useMemo(
+    () =>
+      syncedWorkspaces.map((workspace: any) => ({
+        id: workspace.id ?? workspace._id,
+        name: workspace.name ?? "Untitled Workspace",
+      })),
+    [syncedWorkspaces],
+  );
 
   const activeWorkspaceId = selectedWorkspaceId || (workspaces[0]?.id ?? "");
 

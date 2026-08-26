@@ -6,26 +6,21 @@ export const useArchiveTask = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (taskId: string) => archiveTask(taskId),
-
-    onSuccess: (response, taskId) => {
-      toast.success(response.message || "Task archived successfully.");
-
-      queryClient.invalidateQueries({
-        queryKey: ["task", taskId],
-      });
-
-      queryClient.invalidateQueries({
-        queryKey: ["tasks"],
-      });
-
-      queryClient.invalidateQueries({
-        queryKey: ["board-tasks"],
-      });
+    mutationFn: ({
+      taskId,
+      isArchived,
+    }: {
+      taskId: string;
+      isArchived?: boolean;
+    }) => archiveTask(taskId, isArchived),
+    onSuccess: (data) => {
+      toast.success(data.message ?? "Task updated successfully.");
+      queryClient.invalidateQueries({ queryKey: ["archived-tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["my-tasks"] });
     },
-
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Failed to archive task.");
+      toast.error(error.response?.data?.message ?? "Failed to update task.");
     },
   });
 };

@@ -8,7 +8,7 @@ export const useGetAllUsers = () => {
 
   return useQuery({
     queryKey: ["users"],
-    queryFn: getAllUsers,
+    queryFn: () => getAllUsers(),
     enabled: isAuthenticated && isAuthInitialized,
   });
 };

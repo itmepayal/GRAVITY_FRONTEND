@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createSprint } from "@/apis/project.api";
 import { toast } from "sonner";
+import type { CreateProjectSprintInput } from "@/types/project";
 
 interface ValidationError {
   field: string;
@@ -22,21 +23,16 @@ export const useCreateSprint = () => {
       data,
     }: {
       projectId: string;
-      data: {
-        name: string;
-        goal?: string;
-        startDate: string;
-        endDate: string;
-      };
+      data: CreateProjectSprintInput;
     }) => createSprint(projectId, data),
 
-    onSuccess: (_, variables) => {
-      toast.success("Sprint created successfully");
+    onSuccess: (response, variables) => {
+      toast.success(response.message ?? "Sprint created successfully");
 
       queryClient.invalidateQueries({
         queryKey: ["project-sprints", variables.projectId],
       });
-
+      queryClient.invalidateQueries({ queryKey: ["sprints"] });
       queryClient.invalidateQueries({
         queryKey: ["project", variables.projectId],
       });
@@ -49,7 +45,6 @@ export const useCreateSprint = () => {
         response.errors.forEach((err) => {
           toast.error(`${err.field}: ${err.message}`);
         });
-
         return;
       }
 

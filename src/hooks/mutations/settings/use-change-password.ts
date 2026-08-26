@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { changePassword } from "@/apis/user.api";
+import { changePassword } from "@/apis/settings.api";
 import { toast } from "sonner";
 
 export const useChangePassword = () => {

@@ -1,5 +1,6 @@
 import axios from "axios";
 import { useAuthStore } from "@/store/auth.store";
+import { refreshAuthSession } from "@/lib/refresh-session";
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
@@ -31,12 +32,8 @@ api.interceptors.response.use(
       }
 
       try {
-        const { data } = await axios.post(
-          `${import.meta.env.VITE_API_URL}/auth/refresh-token`,
-          { refreshToken: currentRefreshToken },
-          { withCredentials: true },
-        );
-        const { accessToken, refreshToken } = data.data;
+        const { accessToken, refreshToken } =
+          await refreshAuthSession(currentRefreshToken);
         useAuthStore.getState().updateTokens(accessToken, refreshToken);
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return api(originalRequest);

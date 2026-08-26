@@ -7,6 +7,22 @@ import type {
 } from "@/types/invitation";
 import type { MessageResponse } from "@/types/task";
 
+/**
+ * Invitation API — maps 1:1 to `server/src/modules/invitation/invitation.route.ts`
+ *
+ * | Client function         | Method | Server route                                    |
+ * |-------------------------|--------|-------------------------------------------------|
+ * | getInvitationByToken    | GET    | /invitations/:token                             |
+ * | createEmailInvitation   | POST   | /invitations/workspaces/:workspaceId/email        |
+ * | createInviteLink        | POST   | /invitations/workspaces/:workspaceId/link         |
+ * | getWorkspaceInvitations | GET    | /invitations/workspaces/:workspaceId              |
+ * | getMyPendingInvitations | GET    | /invitations/me/pending                           |
+ * | acceptInvitation        | POST   | /invitations/:token/accept                        |
+ * | rejectInvitation        | POST   | /invitations/:token/reject                        |
+ * | joinViaInviteCode       | POST   | /invitations/:token/join                          |
+ * | revokeInvitation        | DELETE | /invitations/workspaces/:workspaceId/:invitationId|
+ */
+
 export const getInvitationByToken = async (
   token: string,
 ): Promise<InvitationResponse> => {

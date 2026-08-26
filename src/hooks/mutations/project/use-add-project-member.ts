@@ -17,8 +17,8 @@ export const useAddProjectMember = () => {
       };
     }) => addProjectMember(projectId, data),
 
-    onSuccess: (_, variables) => {
-      toast.success("Project member added successfully");
+    onSuccess: (response, variables) => {
+      toast.success(response.message ?? "Project member added successfully");
 
       queryClient.invalidateQueries({
         queryKey: ["project", variables.projectId],
@@ -26,6 +26,7 @@ export const useAddProjectMember = () => {
       queryClient.invalidateQueries({
         queryKey: ["projects"],
       });
+      queryClient.invalidateQueries({ queryKey: ["workspaces"] });
     },
 
     onError: (error: any) => {

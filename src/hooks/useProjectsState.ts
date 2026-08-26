@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   type Project,
@@ -6,7 +6,7 @@ import {
   normalizeProjectData,
 } from "@/components/project/types";
 import type { ProjectViewMode } from "@/components/project/ProjectFilterBar";
-import { useGetUserWorkspaces } from "@/hooks/queries/workspace/use-get-user-workspaces";
+import { useSyncedWorkspace } from "@/hooks/useSyncedWorkspace";
 import { useGetWorkspaceById } from "@/hooks/queries/workspace/use-get-workspace-by-id";
 import { useGetWorkspaceRoles } from "@/hooks/queries/workspace/use-get-workspace-roles";
 import { useGetWorkspaceProjects } from "@/hooks/queries/project/use-get-workspace-projects";
@@ -20,6 +20,11 @@ export function useProjectsState() {
   const queryClient = useQueryClient();
   const currentUser = useAuthStore((s) => s.user);
 
+  const {
+    workspaces: syncedWorkspaces,
+    setCurrentWorkspaceId,
+    isLoadingWorkspaces,
+  } = useSyncedWorkspace();
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<"all" | ProjectStatus>(
     "all",
@@ -34,22 +39,21 @@ export function useProjectsState() {
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const { data: workspacesResponse, isLoading: isLoadingWorkspaces } =
-    useGetUserWorkspaces();
-  const workspaces = useMemo(() => {
-    const raw = Array.isArray(workspacesResponse)
-      ? workspacesResponse
-      : (workspacesResponse?.data ?? []);
-    return raw.map((w: any) => ({
-      id: w._id ?? w.id,
-      name: w.name ?? "Untitled Workspace",
-    }));
-  }, [workspacesResponse]);
+  const workspaces = useMemo(
+    () =>
+      syncedWorkspaces.map((workspace: any) => ({
+        id: workspace.id ?? workspace._id,
+        name: workspace.name ?? "Untitled Workspace",
+      })),
+    [syncedWorkspaces],
+  );
 
-  useEffect(() => {
-    if (workspaces.length > 0 && selectedWorkspaceId === "all") {
+  const handleWorkspaceChange = (workspaceId: string) => {
+    setSelectedWorkspaceId(workspaceId);
+    if (workspaceId !== "all") {
+      setCurrentWorkspaceId(workspaceId);
     }
-  }, [workspaces]);
+  };
 
   const targetWorkspaceId =
     selectedWorkspaceId !== "all"
@@ -78,12 +82,17 @@ export function useProjectsState() {
   );
 
   const workspaceDetail = useMemo(() => {
-    const raw = workspaceDetailResponse?.data ?? workspaceDetailResponse;
-    return raw ?? null;
+    const response = workspaceDetailResponse as
+      | { data?: { members?: unknown[] } }
+      | { members?: unknown[] }
+      | null
+      | undefined;
+    if (!response) return null;
+    return "data" in response && response.data ? response.data : response;
   }, [workspaceDetailResponse]);
 
   const availableUsers = useMemo(() => {
-    const members = workspaceDetail?.members ?? [];
+    const members = (workspaceDetail as { members?: unknown[] } | null)?.members ?? [];
     return members
       .map((m: any) => {
         const u = m.user ?? {};
@@ -244,7 +253,7 @@ export function useProjectsState() {
   return {
     workspaces,
     selectedWorkspaceId,
-    setSelectedWorkspaceId,
+    setSelectedWorkspaceId: handleWorkspaceChange,
     selectedStatus,
     setSelectedStatus,
     searchQuery,

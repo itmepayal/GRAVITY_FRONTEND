@@ -16,23 +16,14 @@ export interface Team {
   id: string;
   name: string;
   description?: string;
-
   workspace: string | { _id?: string; id?: string; name?: string };
-
   lead: string | TeamUser;
   members: TeamMember[];
-
   color?: string;
-
   createdBy?: string | TeamUser;
-
   createdAt: string;
   updatedAt?: string;
 }
-
-// ====================
-// Request Types
-// ====================
 
 export interface CreateTeamRequest {
   name: string;
@@ -52,28 +43,36 @@ export interface AddTeamMemberRequest {
 }
 
 export interface ChangeTeamLeadRequest {
-  userId?: string;
-  leadId?: string;
+  leadId: string;
 }
 
-// ====================
-// Response Types
-// ====================
+export interface GetWorkspaceTeamsParams {
+  page?: number;
+  limit?: number;
+}
 
 export interface TeamResponse {
   success: boolean;
+  statusCode: number;
   message: string;
   data: Team;
 }
 
 export interface TeamsListResponse {
   success: boolean;
+  statusCode: number;
   message: string;
   data: Team[];
+  meta?: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
 }
 
 export interface MessageResponse {
   success: boolean;
+  statusCode: number;
   message: string;
 }
-

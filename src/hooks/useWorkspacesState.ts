@@ -18,7 +18,7 @@ import { useGetWorkspaceById } from "@/hooks/queries/workspace/use-get-workspace
 import { useAddWorkspaceMember } from "@/hooks/mutations/workspace/use-add-workspace-member";
 import { useGetAllUsers } from "@/hooks/queries/users/use-get-all-users";
 import { useRemoveWorkspaceMember } from "@/hooks/mutations/workspace/use-remove-workspace-member";
-import { useUpdateWorkspaceMemberRole } from "@/hooks/mutations/workspace/update-workspace-member-role";
+import { useUpdateWorkspaceMemberRole } from "@/hooks/mutations/workspace/use-update-workspace-member-role";
 import { useGetWorkspaceGoals } from "@/hooks/queries/goal/get-workspace-goals";
 import { useWorkspaceStore } from "@/store/workspace.store";
 import { useState } from "react";
@@ -77,9 +77,7 @@ export function useWorkspacesState() {
 
   const { data: usersResponse, isLoading: isLoadingUsers } = useGetAllUsers();
   const users = useMemo(() => {
-    const raw = Array.isArray(usersResponse)
-      ? usersResponse
-      : (usersResponse ?? []);
+    const raw = Array.isArray(usersResponse) ? usersResponse : [];
     return raw.map(normalizeUser);
   }, [usersResponse]);
 
@@ -296,31 +294,22 @@ export function useWorkspacesState() {
       { workspaceId, data: memberData },
       {
         onSuccess: (response: any) => {
-          const newMember = response?.data ?? response;
-          if (newMember) {
-            setWorkspaces((prev) =>
-              prev.map((w) =>
-                w._id === workspaceId
-                  ? {
-                      ...w,
-                      members: [...w.members, normalizeMember(newMember)],
-                    }
-                  : w,
-              ),
-            );
-            addActivity(
-              workspaceId,
-              "added a teammate",
-              newMember?.user?.name ??
-                newMember?.user?.email ??
-                memberData.email,
-              "member",
-            );
-            addToast("success", "Teammate added successfully!");
-          }
+          addActivity(
+            workspaceId,
+            "sent an invitation to",
+            memberData.email,
+            "member",
+          );
+          addToast(
+            "success",
+            response?.message ?? "Invitation sent successfully!",
+          );
           queryClient.invalidateQueries({ queryKey: ["workspaces"] });
           queryClient.invalidateQueries({
             queryKey: ["workspace", workspaceId],
+          });
+          queryClient.invalidateQueries({
+            queryKey: ["workspace-invitations", workspaceId],
           });
         },
         onError: (error: unknown) => {

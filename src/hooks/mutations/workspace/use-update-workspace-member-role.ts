@@ -18,9 +18,12 @@ export const useUpdateWorkspaceMemberRole = () => {
       };
     }) => updateWorkspaceMemberRole(workspaceId, userId, data),
 
-    onSuccess: (_data, variables) => {
-      toast.success("Member role updated successfully");
+    onSuccess: (response, variables) => {
+      toast.success(response.message ?? "Member role updated successfully");
 
+      queryClient.invalidateQueries({
+        queryKey: ["workspace-sharing", variables.workspaceId],
+      });
       queryClient.invalidateQueries({
         queryKey: ["workspace", variables.workspaceId],
       });

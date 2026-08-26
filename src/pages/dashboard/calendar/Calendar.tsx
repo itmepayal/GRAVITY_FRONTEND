@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { Topbar } from "@/components/layout/Topbar";
 import { useDashboardContext } from "@/components/layout/DashboardLayout";
-import { useGetUserWorkspaces } from "@/hooks/queries/workspace/use-get-user-workspaces";
+import { useSyncedWorkspace } from "@/hooks/useSyncedWorkspace";
 import { useGetWorkspaceCalendarEvents } from "@/hooks/queries/calendar/use-get-workspace-calendar-events";
 import { useCreateCalendarEvent } from "@/hooks/mutations/calendar/use-create-calendar-event";
 import { useUpdateCalendarEvent } from "@/hooks/mutations/calendar/use-update-calendar-event";
@@ -35,17 +35,12 @@ import {
 export function Calendar() {
   const { openMobileNav } = useDashboardContext();
 
-  const { data: workspacesResponse, isLoading: isLoadingWorkspaces } =
-    useGetUserWorkspaces();
-  const workspaces = workspacesResponse?.data || [];
-
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>("");
-
-  React.useEffect(() => {
-    if (workspaces.length > 0 && !selectedWorkspaceId) {
-      setSelectedWorkspaceId(workspaces[0]._id || workspaces[0].id);
-    }
-  }, [workspaces, selectedWorkspaceId]);
+  const {
+    workspaces,
+    currentWorkspaceId: selectedWorkspaceId,
+    setCurrentWorkspaceId: setSelectedWorkspaceId,
+    isLoadingWorkspaces,
+  } = useSyncedWorkspace();
 
   const [currentDate, setCurrentDate] = useState(new Date());
 

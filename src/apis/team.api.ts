@@ -1,13 +1,29 @@
 import { api } from "@/lib/api";
 import type {
-  TeamResponse,
-  TeamsListResponse,
-  CreateTeamRequest,
-  UpdateTeamRequest,
   AddTeamMemberRequest,
   ChangeTeamLeadRequest,
+  CreateTeamRequest,
+  GetWorkspaceTeamsParams,
   MessageResponse,
+  TeamResponse,
+  TeamsListResponse,
+  UpdateTeamRequest,
 } from "@/types/team";
+
+/**
+ * Team API — maps 1:1 to server routes in `server/src/modules/team/team.route.ts`
+ *
+ * | Client function     | Method | Server route                                    |
+ * |---------------------|--------|-------------------------------------------------|
+ * | createTeam          | POST   | /teams/workspaces/:workspaceId/teams            |
+ * | getWorkspaceTeams   | GET    | /teams/workspaces/:workspaceId/teams            |
+ * | getTeamById         | GET    | /teams/:teamId                                  |
+ * | updateTeam          | PATCH  | /teams/:teamId                                  |
+ * | deleteTeam          | DELETE | /teams/:teamId                                  |
+ * | addTeamMember       | POST   | /teams/:teamId/members                          |
+ * | removeTeamMember    | DELETE | /teams/:teamId/members/:userId                  |
+ * | changeTeamLead      | PATCH  | /teams/:teamId/lead                             |
+ */
 
 export const createTeam = async (
   workspaceId: string,
@@ -22,9 +38,11 @@ export const createTeam = async (
 
 export const getWorkspaceTeams = async (
   workspaceId: string,
+  params?: GetWorkspaceTeamsParams,
 ): Promise<TeamsListResponse> => {
   const response = await api.get<TeamsListResponse>(
     `/teams/workspaces/${workspaceId}/teams`,
+    { params },
   );
   return response.data;
 };

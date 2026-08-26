@@ -11,6 +11,9 @@ export const useRemoveWorkspaceMember = () => {
       toast.success(data.message ?? "Workspace member removed successfully");
 
       queryClient.invalidateQueries({
+        queryKey: ["workspace-sharing", variables.workspaceId],
+      });
+      queryClient.invalidateQueries({
         queryKey: ["workspace", variables.workspaceId],
       });
       queryClient.invalidateQueries({

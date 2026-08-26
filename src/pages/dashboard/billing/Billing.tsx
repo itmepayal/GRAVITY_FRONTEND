@@ -275,7 +275,7 @@ export const Billing: React.FC = () => {
                                 disabled={isLoadingWorkspaces}
                                 className="bg-transparent text-[13px] font-semibold text-[#0F2D29] outline-none cursor-pointer"
                             >
-                                {workspaces.map((w) => (
+                                {workspaces.map((w: { id: string; name: string }) => (
                                     <option key={w.id} value={w.id}>
                                         {w.name}
                                     </option>

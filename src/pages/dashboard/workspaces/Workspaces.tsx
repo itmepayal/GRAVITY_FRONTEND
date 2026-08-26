@@ -29,6 +29,8 @@ import { useGetWorkspaceRoles } from "@/hooks/queries/workspace/use-get-workspac
 import { useGetAllUsers } from "@/hooks/queries/users/use-get-all-users";
 import { useCreateEmailInvitation } from "@/hooks/mutations/invitation/use-create-email-invitation";
 import { useCreateInviteLink } from "@/hooks/mutations/invitation/use-create-invite-link";
+import { useAcceptInvitation } from "@/hooks/mutations/invitation/use-accept-invitation";
+import { useRejectInvitation } from "@/hooks/mutations/invitation/use-reject-invitation";
 import {
   CheckCircle2,
   Sparkles,
@@ -125,6 +127,10 @@ export const Workspaces = () => {
     useCreateEmailInvitation();
   const { mutate: generateLink, isPending: isGeneratingLink } =
     useCreateInviteLink();
+  const { mutate: acceptInvitation, isPending: isAcceptingInvitation } =
+    useAcceptInvitation();
+  const { mutate: rejectInvitation, isPending: isRejectingInvitation } =
+    useRejectInvitation();
 
   const resetInviteModal = () => {
     setInviteOpen(false);
@@ -274,12 +280,14 @@ export const Workspaces = () => {
             <WorkspacePendingInvitesBanner
               invitations={invitationsList}
               onDismiss={() => setDismissedInvites(true)}
-              onAccept={() =>
-                addToast?.("info", "Accept flow not wired up yet")
-              }
-              onDecline={() =>
-                addToast?.("info", "Decline flow not wired up yet")
-              }
+              onAccept={(token) => {
+                if (!token || isAcceptingInvitation) return;
+                acceptInvitation(token);
+              }}
+              onDecline={(token) => {
+                if (!token || isRejectingInvitation) return;
+                rejectInvitation(token);
+              }}
             />
           )}
 

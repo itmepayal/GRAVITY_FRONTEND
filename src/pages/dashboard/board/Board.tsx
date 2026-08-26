@@ -9,7 +9,7 @@ import { useGetBoardTasks } from "@/hooks/queries/board/use-get-board-tasks";
 import { useCreateBoard } from "@/hooks/mutations/project/use-create-board";
 import { useUpdateBoard } from "@/hooks/mutations/board/use-update-board";
 import { useDeleteBoard } from "@/hooks/mutations/board/use-delete-board";
-import { useGetUserWorkspaces } from "@/hooks/queries/workspace/use-get-user-workspaces";
+import { useSyncedWorkspace } from "@/hooks/useSyncedWorkspace";
 import { useGetWorkspaceProjects } from "@/hooks/queries/project/use-get-workspace-projects";
 import { CreateTaskModal } from "@/components/task/CreateTaskModal";
 import { TaskDetailModal } from "@/components/task/TaskDetailModal";
@@ -782,15 +782,20 @@ export const Board = () => {
 
   const { mutate: createBoard, isPending: isCreatingBoard } = useCreateBoard();
 
-  const { data: workspaces, isLoading: isLoadingWorkspaces } =
-    useGetUserWorkspaces();
+  const {
+    workspaces: syncedWorkspaces,
+    currentWorkspaceId: globalWorkspaceId,
+    setCurrentWorkspaceId: setGlobalWorkspaceId,
+    isLoadingWorkspaces,
+  } = useSyncedWorkspace();
 
   const { data: workspaceProjects, isLoading: isLoadingProjects } =
     useGetWorkspaceProjects(selectedWorkspaceId);
 
-  const workspaceOptions: WorkspaceOption[] = unwrapList<any>(workspaces).map(
-    (ws: any) => ({ id: ws._id ?? ws.id, name: ws.name }),
-  );
+  const workspaceOptions: WorkspaceOption[] = syncedWorkspaces.map((ws: any) => ({
+    id: ws._id ?? ws.id,
+    name: ws.name,
+  }));
 
   const projectOptions: ProjectOption[] = unwrapList<any>(
     workspaceProjects,
@@ -799,7 +804,7 @@ export const Board = () => {
   const handleOpenCreateBoard = () => {
     setShowBoardMenu(false);
 
-    const currentWorkspaceId = board?.workspace ?? "";
+    const currentWorkspaceId = board?.workspace ?? globalWorkspaceId ?? "";
     setSelectedWorkspaceId(currentWorkspaceId);
     setSelectedProjectId(
       projectId ?? getProjectId(board ?? ({} as ApiBoard)) ?? "",
@@ -812,6 +817,7 @@ export const Board = () => {
 
   const handleWorkspaceChange = (workspaceId: string) => {
     setSelectedWorkspaceId(workspaceId);
+    setGlobalWorkspaceId(workspaceId);
     setSelectedProjectId("");
   };
 

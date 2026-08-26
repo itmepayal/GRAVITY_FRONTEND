@@ -18,13 +18,16 @@ export const useCreateBoard = () => {
       };
     }) => createBoard(projectId, data),
 
-    onSuccess: (_, variables) => {
-      toast.success("Board created successfully");
+    onSuccess: (response, variables) => {
+      toast.success(response.message ?? "Board created successfully");
 
       queryClient.invalidateQueries({
         queryKey: ["project-boards", variables.projectId],
       });
-
+      queryClient.invalidateQueries({
+        queryKey: ["boards", variables.projectId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["boards"] });
       queryClient.invalidateQueries({
         queryKey: ["project", variables.projectId],
       });

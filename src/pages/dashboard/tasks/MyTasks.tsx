@@ -13,7 +13,7 @@ import { TaskDetailModal } from "@/components/task/TaskDetailModal";
 import { TaskLoadingSkeleton } from "@/components/task/TaskLoadingSkeleton";
 import { TaskEmptyState } from "@/components/task/TaskEmptyState";
 import { useTasksState } from "@/hooks/useTasksState";
-import { useGetUserWorkspaces } from "@/hooks/queries/workspace/use-get-user-workspaces";
+import { useSyncedWorkspace } from "@/hooks/useSyncedWorkspace";
 import { useGetWorkspaceProjects } from "@/hooks/queries/project/use-get-workspace-projects";
 import { useGetProjectBoards } from "@/hooks/queries/project/use-get-project-boards";
 import { useGetAllUserBoards } from "@/hooks/queries/board/use-get-all-user-boards";
@@ -75,11 +75,12 @@ const MyTask = () => {
   const isSpecificBoardSelected =
     !!selectedBoardId && selectedBoardId !== "all";
 
-  const { data: workspacesResponse, isLoading: isWorkspacesLoading } =
-    useGetUserWorkspaces();
-  const workspaces: IWorkspace[] = normalizeId<IWorkspace>(
-    unwrap(workspacesResponse),
-  );
+  const {
+    workspaces: syncedWorkspaces,
+    setCurrentWorkspaceId,
+    isLoadingWorkspaces: isWorkspacesLoading,
+  } = useSyncedWorkspace({ allowAll: true });
+  const workspaces: IWorkspace[] = normalizeId<IWorkspace>(syncedWorkspaces);
 
   const { data: projectsResponse, isLoading: isProjectsLoading } =
     useGetWorkspaceProjects(
@@ -339,6 +340,9 @@ const MyTask = () => {
           selectedWorkspaceId={selectedWorkspaceId}
           onWorkspaceChange={(id) => {
             setSelectedWorkspaceId(id);
+            if (id !== "all") {
+              setCurrentWorkspaceId(id);
+            }
             setSelectedProjectId("all");
             setSelectedBoardId("all");
           }}

@@ -340,7 +340,10 @@ export const TaskDetailModal = ({
       );
       return;
     }
-    archiveTaskMutate(taskDbId, { onSuccess: () => onChanged() });
+    archiveTaskMutate(
+      { taskId: taskDbId, isArchived: true },
+      { onSuccess: () => onChanged() },
+    );
   };
 
   // --- Quick assign (outside the edit form) ------------------------------

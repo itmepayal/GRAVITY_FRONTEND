@@ -255,7 +255,7 @@ export default function Dashboard() {
                                     className="bg-transparent text-xs font-bold text-white outline-none cursor-pointer"
                                 >
                                     <option value="" className="text-[#0F2D29]">All Workspaces</option>
-                                    {workspaces.map((w) => (
+                                    {workspaces.map((w: { id: string; name: string }) => (
                                         <option key={w.id} value={w.id} className="text-[#0F2D29]">
                                             {w.name}
                                         </option>

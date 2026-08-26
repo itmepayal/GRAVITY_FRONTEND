@@ -1,16 +1,20 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateWorkspace } from "@/apis/workspace.api";
 import { toast } from "sonner";
 
 export const useUpdateWorkspace = () => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: updateWorkspace,
-    onSuccess: (data) => {
-      console.log(data.message);
-      toast.success(data.message ?? "Workspace updated successfully");
+    onSuccess: (response, variables) => {
+      toast.success(response.message ?? "Workspace updated successfully");
+      queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+      queryClient.invalidateQueries({
+        queryKey: ["workspace", variables.workspaceId],
+      });
     },
     onError: (error: any) => {
-      console.log(error.response);
       toast.error(
         error.response?.data?.message ?? "Failed to update workspace",
       );

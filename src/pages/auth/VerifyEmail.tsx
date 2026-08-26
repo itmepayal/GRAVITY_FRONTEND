@@ -5,7 +5,7 @@ import { Loader2, ArrowLeft, MailCheck } from "lucide-react";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { BaseOtpInput } from "@/components/form/BaseOtpInput";
 import { useVerifyEmail } from "@/hooks/mutations/auth/use-verify-email";
-import { useResendVerificationEmail } from "@/hooks/mutations/auth/use-reset-verify-email";
+import { useResendVerificationEmail } from "@/hooks/mutations/auth/use-resend-verification-email";
 import { WhyWeAskCard } from "@/components/auth/verify-email/WhyWeAskCard";
 
 const RESEND_SECONDS = 30;

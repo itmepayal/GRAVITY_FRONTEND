@@ -15,7 +15,32 @@ import type {
   TwoFAResponse,
   SessionsResponse,
   LinkGoogleResponse,
+  RevokeSessionResponse,
+  RevokeOtherSessionsResponse,
 } from "@/types/auth";
+
+/**
+ * Auth API — maps 1:1 to server routes in `server/src/modules/auth/auth.router.ts`
+ *
+ * | Client function           | Method | Server route                    |
+ * |---------------------------|--------|---------------------------------|
+ * | register                  | POST   | /auth/register                  |
+ * | login                     | POST   | /auth/login                     |
+ * | googleLogin               | POST   | /auth/login/google              |
+ * | verifyEmail               | POST   | /auth/verify-email              |
+ * | resendVerificationEmail   | POST   | /auth/resend-verification-email |
+ * | forgotPassword            | POST   | /auth/forgot-password           |
+ * | resetPassword             | POST   | /auth/reset-password            |
+ * | verifyTwoFA               | POST   | /auth/2fa/verify                |
+ * | refreshToken              | POST   | /auth/refresh-token             |
+ * | logout                    | POST   | /auth/logout                    |
+ * | linkGoogleAccount         | POST   | /auth/link/google               |
+ * | getSessions               | GET    | /auth/sessions                  |
+ * | revokeSession             | DELETE | /auth/sessions/:sessionId       |
+ * | revokeOtherSessions       | DELETE | /auth/sessions/others           |
+ * | enableTwoFA               | PATCH  | /auth/2fa/enable                |
+ * | disableTwoFA              | PATCH  | /auth/2fa/disable               |
+ */
 
 export const register = async (
   data: RegisterFormData,
@@ -135,7 +160,36 @@ export const linkGoogleAccount = async (
   return response.data;
 };
 
-export const getSessions = async (): Promise<SessionsResponse> => {
-  const response = await api.get<SessionsResponse>("/auth/sessions");
+export const getSessions = async (
+  refreshToken?: string,
+): Promise<SessionsResponse> => {
+  const response = await api.get<SessionsResponse>("/auth/sessions", {
+    params: refreshToken ? { refreshToken } : undefined,
+  });
+  return response.data;
+};
+
+export const revokeSession = async (
+  sessionId: number,
+  refreshToken?: string,
+): Promise<RevokeSessionResponse> => {
+  const response = await api.delete<RevokeSessionResponse>(
+    `/auth/sessions/${sessionId}`,
+    {
+      data: refreshToken ? { refreshToken } : undefined,
+    },
+  );
+  return response.data;
+};
+
+export const revokeOtherSessions = async (
+  refreshToken: string,
+): Promise<RevokeOtherSessionsResponse> => {
+  const response = await api.delete<RevokeOtherSessionsResponse>(
+    "/auth/sessions/others",
+    {
+      data: { refreshToken },
+    },
+  );
   return response.data;
 };

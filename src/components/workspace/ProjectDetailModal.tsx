@@ -67,7 +67,7 @@ export const ProjectDetailModal = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose, isEditing]);
 
-  const fetched = projectResponse?.data ?? projectResponse;
+  const fetched = (projectResponse as any)?.data ?? (projectResponse as any);
   const current: Project = fetched
     ? {
         _id: fetched._id ?? fetched.id ?? project._id,

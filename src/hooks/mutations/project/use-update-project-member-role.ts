@@ -18,8 +18,10 @@ export const useUpdateProjectMemberRole = () => {
       };
     }) => updateProjectMemberRole(projectId, userId, data),
 
-    onSuccess: (_, variables) => {
-      toast.success("Project member role updated successfully");
+    onSuccess: (response, variables) => {
+      toast.success(
+        response.message ?? "Project member role updated successfully",
+      );
 
       queryClient.invalidateQueries({
         queryKey: ["project", variables.projectId],
@@ -27,6 +29,7 @@ export const useUpdateProjectMemberRole = () => {
       queryClient.invalidateQueries({
         queryKey: ["projects"],
       });
+      queryClient.invalidateQueries({ queryKey: ["workspaces"] });
     },
 
     onError: (error: any) => {

@@ -14,8 +14,8 @@ export const useRemoveProjectMember = () => {
       userId: string;
     }) => removeProjectMember(projectId, userId),
 
-    onSuccess: (_, variables) => {
-      toast.success("Project member removed successfully");
+    onSuccess: (response, variables) => {
+      toast.success(response.message ?? "Project member removed successfully");
 
       queryClient.invalidateQueries({
         queryKey: ["project", variables.projectId],
@@ -23,6 +23,7 @@ export const useRemoveProjectMember = () => {
       queryClient.invalidateQueries({
         queryKey: ["projects"],
       });
+      queryClient.invalidateQueries({ queryKey: ["workspaces"] });
     },
 
     onError: (error: any) => {

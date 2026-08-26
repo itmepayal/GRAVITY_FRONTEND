@@ -1,3 +1,10 @@
+export type NotificationPreferences = {
+  emailNotifications: boolean;
+  taskAssigned: boolean;
+  mentionAlerts: boolean;
+  weeklyDigest: boolean;
+};
+
 export type User = {
   id: string;
   email: string;
@@ -7,6 +14,7 @@ export type User = {
   isEmailVerified: boolean;
   lastLogin: string | null;
   is2FAEnabled: boolean;
+  notificationPreferences?: NotificationPreferences;
   createdAt: string;
   updatedAt: string;
 };

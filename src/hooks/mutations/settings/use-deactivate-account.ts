@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { deactivateAccount } from "@/apis/user.api";
+import { deactivateAccount } from "@/apis/settings.api";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth.store";
 import type { AccountActionInput } from "@/types/user";

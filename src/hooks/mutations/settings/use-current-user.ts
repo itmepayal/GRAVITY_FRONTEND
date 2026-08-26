@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getCurrentUser } from "@/apis/user.api";
+import { getCurrentUser } from "@/apis/settings.api";
 import { useAuthStore } from "@/store/auth.store";
 
 export const useCurrentUser = () => {

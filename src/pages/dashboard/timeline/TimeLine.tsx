@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { Topbar } from "@/components/layout/Topbar";
 import { useDashboardContext } from "@/components/layout/DashboardLayout";
-import { useGetUserWorkspaces } from "@/hooks/queries/workspace/use-get-user-workspaces";
+import { useSyncedWorkspace } from "@/hooks/useSyncedWorkspace";
 import { useGetWorkspaceProjects } from "@/hooks/queries/project/use-get-workspace-projects";
 import { useGetProjectMilestones } from "@/hooks/queries/timeline/use-get-project-milestones";
 import { useCreateMilestone } from "@/hooks/mutations/timeline/use-create-milestone";
@@ -36,17 +36,12 @@ import {
 export function TimeLine() {
   const { openMobileNav } = useDashboardContext();
 
-  const { data: workspacesResponse, isLoading: isLoadingWorkspaces } =
-    useGetUserWorkspaces();
-  const workspaces = workspacesResponse?.data || [];
-
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>("");
-
-  React.useEffect(() => {
-    if (workspaces.length > 0 && !selectedWorkspaceId) {
-      setSelectedWorkspaceId(workspaces[0]._id || workspaces[0].id);
-    }
-  }, [workspaces, selectedWorkspaceId]);
+  const {
+    workspaces,
+    currentWorkspaceId: selectedWorkspaceId,
+    setCurrentWorkspaceId: setSelectedWorkspaceId,
+    isLoadingWorkspaces,
+  } = useSyncedWorkspace();
 
   const { data: projectsResponse, isLoading: isLoadingProjects } =
     useGetWorkspaceProjects(selectedWorkspaceId);
@@ -60,7 +55,7 @@ export function TimeLine() {
         (p: any) => (p._id || p.id) === selectedProjectId,
       );
       if (!selectedProjectId || !currentValid) {
-        setSelectedProjectId(projects[0]._id || projects[0].id);
+        setSelectedProjectId(projects[0]._id || projects[0].id || "");
       }
     } else {
       setSelectedProjectId("");

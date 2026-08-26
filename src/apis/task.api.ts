@@ -1,4 +1,5 @@
 import { api } from "@/lib/api";
+import { getProjectTasks as fetchProjectTasks } from "@/apis/project.api";
 import type {
   CreateTaskData,
   UpdateTaskData,
@@ -9,8 +10,10 @@ import type {
   CommentData,
 } from "@/types/task";
 
-export const getMyTasks = async (): Promise<TasksResponse> => {
-  const response = await api.get<TasksResponse>("/tasks");
+export const getMyTasks = async (params?: {
+  isArchived?: boolean;
+}): Promise<TasksResponse> => {
+  const response = await api.get<TasksResponse>("/tasks", { params });
   return response.data;
 };
 
@@ -62,9 +65,13 @@ export const deleteTask = async (taskId: string): Promise<MessageResponse> => {
   return response.data;
 };
 
-export const archiveTask = async (taskId: string): Promise<TaskResponse> => {
-  const response = await api.patch<TaskResponse>(`/tasks/${taskId}/archive`);
-
+export const archiveTask = async (
+  taskId: string,
+  isArchived?: boolean,
+): Promise<TaskResponse> => {
+  const response = await api.patch<TaskResponse>(`/tasks/${taskId}/archive`, {
+    isArchived,
+  });
   return response.data;
 };
 
@@ -199,10 +206,17 @@ export const updateActualHours = async (
 
 export const getProjectTasks = async (
   projectId: string,
+  params?: {
+    status?: string;
+    priority?: string;
+    assignee?: string;
+    isArchived?: boolean;
+  },
 ): Promise<TasksResponse> => {
-  const response = await api.get<TasksResponse>(
-    `/tasks/projects/${projectId}/tasks`,
-  );
-
-  return response.data;
+  const response = await fetchProjectTasks(projectId, params);
+  return {
+    success: response.success,
+    message: response.message,
+    tasks: response.data as TasksResponse["tasks"],
+  };
 };

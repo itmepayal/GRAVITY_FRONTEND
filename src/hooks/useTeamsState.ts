@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   type NormalizedTeam,
@@ -8,7 +8,7 @@ import {
   getTeamSizeCategory,
   normalizeTeamData,
 } from "@/components/team/types";
-import { useGetUserWorkspaces } from "@/hooks/queries/workspace/use-get-user-workspaces";
+import { useSyncedWorkspace } from "@/hooks/useSyncedWorkspace";
 import { useGetWorkspaceById } from "@/hooks/queries/workspace/use-get-workspace-by-id";
 import { useGetAllUsers } from "@/hooks/queries/users/use-get-all-users";
 import { useGetWorkspaceTeams } from "@/hooks/queries/team/use-get-workspace-teams";
@@ -22,7 +22,12 @@ import { useChangeTeamLead } from "@/hooks/mutations/team/use-change-team-lead";
 export function useTeamsState() {
   const queryClient = useQueryClient();
 
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>("");
+  const {
+    workspaces: syncedWorkspaces,
+    currentWorkspaceId: selectedWorkspaceId,
+    setCurrentWorkspaceId: setSelectedWorkspaceId,
+    isLoadingWorkspaces,
+  } = useSyncedWorkspace();
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<TeamViewMode>("grid");
   const [sizeFilter, setSizeFilter] = useState<TeamSizeFilter>("all");
@@ -34,24 +39,14 @@ export function useTeamsState() {
   const [addingMemberTeam, setAddingMemberTeam] = useState<NormalizedTeam | null>(null);
   const [changingLeadTeam, setChangingLeadTeam] = useState<NormalizedTeam | null>(null);
 
-  const { data: workspacesResponse, isLoading: isLoadingWorkspaces } =
-    useGetUserWorkspaces();
-
-  const workspaces = useMemo(() => {
-    const raw = Array.isArray(workspacesResponse)
-      ? workspacesResponse
-      : (workspacesResponse?.data ?? []);
-    return raw.map((w: any) => ({
-      id: w._id ?? w.id,
-      name: w.name ?? "Untitled Workspace",
-    }));
-  }, [workspacesResponse]);
-
-  useEffect(() => {
-    if (workspaces.length > 0 && !selectedWorkspaceId) {
-      setSelectedWorkspaceId(workspaces[0].id);
-    }
-  }, [workspaces, selectedWorkspaceId]);
+  const workspaces = useMemo(
+    () =>
+      syncedWorkspaces.map((workspace: any) => ({
+        id: workspace.id ?? workspace._id,
+        name: workspace.name ?? "Untitled Workspace",
+      })),
+    [syncedWorkspaces],
+  );
 
   const activeWorkspaceId = selectedWorkspaceId || (workspaces[0]?.id ?? "");
 
@@ -64,8 +59,16 @@ export function useTeamsState() {
   const { data: allUsersResponse } = useGetAllUsers();
 
   const availableUsers: NormalizedUser[] = useMemo(() => {
-    const wsMembers = workspaceDetailResponse?.data?.members ?? workspaceDetailResponse?.members ?? [];
-    const allUsers = allUsersResponse || [];
+    const response = workspaceDetailResponse as
+      | { data?: { members?: unknown[] } }
+      | { members?: unknown[] }
+      | null
+      | undefined;
+    const wsMembers =
+      (response && "data" in response && response.data?.members) ||
+      (response && "members" in response && response.members) ||
+      [];
+    const allUsers = Array.isArray(allUsersResponse) ? allUsersResponse : [];
 
     if (wsMembers.length > 0) {
       return wsMembers.map((m: any) => {
@@ -292,7 +295,7 @@ export function useTeamsState() {
     changeLeadMutation(
       {
         teamId: changingLeadTeam.id,
-        data: { userId, leadId: userId },
+        data: { leadId: userId },
       },
       {
         onSuccess: () => {

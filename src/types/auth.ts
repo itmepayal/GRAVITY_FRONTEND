@@ -84,6 +84,25 @@ export type AuthSession = {
   id: number;
   userAgent: string;
   createdAt: string;
+  isCurrent: boolean;
+};
+
+export type RevokeSessionResponse = {
+  success: boolean;
+  statusCode: number;
+  message: string;
+  data: {
+    isCurrentSession: boolean;
+  };
+};
+
+export type RevokeOtherSessionsResponse = {
+  success: boolean;
+  statusCode: number;
+  message: string;
+  data: {
+    revokedCount: number;
+  };
 };
 
 export type SessionsResponse = {

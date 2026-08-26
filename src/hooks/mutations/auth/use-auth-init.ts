@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useAuthStore } from "@/store/auth.store";
-import { refreshToken as refreshTokenApi } from "@/apis/auth.api";
+import { refreshAuthSession } from "@/lib/refresh-session";
 import { getCurrentUser } from "@/apis/user.api";
 
 export function useAuthInit() {
@@ -23,8 +23,9 @@ export function useAuthInit() {
       }
 
       try {
-        const { data } = await refreshTokenApi(storedRefreshToken);
-        updateTokens(data.accessToken, data.refreshToken);
+        const { accessToken, refreshToken } =
+          await refreshAuthSession(storedRefreshToken);
+        updateTokens(accessToken, refreshToken);
 
         try {
           const currentUser = await getCurrentUser();

@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { googleLogin } from "@/apis/auth.api";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/auth.store";
 import type { LoginResponse } from "@/types/auth";
 
@@ -9,6 +10,7 @@ type GoogleLoginResult =
   | { type: "twoFA"; response: LoginResponse };
 
 export const useGoogleLogin = () => {
+  const navigate = useNavigate();
   const setAuth = useAuthStore((s) => s.setAuth);
 
   return useMutation({
@@ -30,6 +32,7 @@ export const useGoogleLogin = () => {
     onSuccess: (result) => {
       if (result.type === "success") {
         toast.success(result.response.message);
+        navigate("/dashboard");
       }
     },
     onError: (error: any) => {

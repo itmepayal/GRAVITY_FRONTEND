@@ -8,9 +8,12 @@ export const useDeleteTeam = () => {
   return useMutation({
     mutationFn: deleteTeam,
 
-    onSuccess: (data) => {
+    onSuccess: (data, teamId) => {
       toast.success(data.message ?? "Team deleted successfully.");
 
+      queryClient.invalidateQueries({
+        queryKey: ["team", teamId],
+      });
       queryClient.invalidateQueries({
         queryKey: ["workspace-teams"],
       });

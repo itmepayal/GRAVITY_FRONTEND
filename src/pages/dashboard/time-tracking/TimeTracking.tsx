@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { Topbar } from "@/components/layout/Topbar";
 import { useDashboardContext } from "@/components/layout/DashboardLayout";
-import { useGetUserWorkspaces } from "@/hooks/queries/workspace/use-get-user-workspaces";
+import { useSyncedWorkspace } from "@/hooks/useSyncedWorkspace";
 import { useGetWorkspaceProjects } from "@/hooks/queries/project/use-get-workspace-projects";
 import { useGetProjectTasks } from "@/hooks/queries/task/use-get-project-tasks";
 import { useGetWorkspaceTimeEntries } from "@/hooks/queries/time-entry/use-get-workspace-time-entries";
@@ -35,18 +35,12 @@ import {
 export function TimeTracking() {
   const { openMobileNav } = useDashboardContext();
 
-  // 1. Fetch Workspaces & Projects
-  const { data: workspacesResponse, isLoading: isLoadingWorkspaces } =
-    useGetUserWorkspaces();
-  const workspaces = workspacesResponse?.data || [];
-
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>("");
-
-  React.useEffect(() => {
-    if (workspaces.length > 0 && !selectedWorkspaceId) {
-      setSelectedWorkspaceId(workspaces[0]._id || workspaces[0].id);
-    }
-  }, [workspaces, selectedWorkspaceId]);
+  const {
+    workspaces,
+    currentWorkspaceId: selectedWorkspaceId,
+    setCurrentWorkspaceId: setSelectedWorkspaceId,
+    isLoadingWorkspaces,
+  } = useSyncedWorkspace();
 
   const { data: projectsResponse, isLoading: isLoadingProjects } =
     useGetWorkspaceProjects(selectedWorkspaceId);
@@ -175,7 +169,7 @@ export function TimeTracking() {
   const handleOpenModal = () => {
     resetForm();
     if (projects.length > 0) {
-      setTargetProjectId(projects[0]._id || projects[0].id);
+      setTargetProjectId(projects[0]._id || projects[0].id || "");
     }
     setIsModalOpen(true);
   };

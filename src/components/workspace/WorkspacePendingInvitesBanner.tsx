@@ -4,8 +4,8 @@ import { Mail, X } from "lucide-react";
 interface WorkspacePendingInvitesBannerProps {
   invitations: any[];
   onDismiss: () => void;
-  onAccept?: (inviteId: string) => void;
-  onDecline?: (inviteId: string) => void;
+  onAccept?: (token: string) => void;
+  onDecline?: (token: string) => void;
 }
 
 export const WorkspacePendingInvitesBanner: FC<
@@ -38,14 +38,14 @@ export const WorkspacePendingInvitesBanner: FC<
               <button
                 type="button"
                 className="border border-[#0F8A65] px-2 py-0.5 text-[11px] font-bold text-[#0F8A65] hover:bg-[#0F8A65] hover:text-white"
-                onClick={() => onAccept?.(invite._id)}
+                onClick={() => onAccept?.(invite.token)}
               >
                 Accept
               </button>
               <button
                 type="button"
                 className="border border-[#0F2D29]/20 px-2 py-0.5 text-[11px] font-bold text-[#0F2D29]/70 hover:bg-[#0F2D29]/5"
-                onClick={() => onDecline?.(invite._id)}
+                onClick={() => onDecline?.(invite.token)}
               >
                 Decline
               </button>

@@ -67,7 +67,12 @@ export const updateNotificationPreferences = async (data: {
   taskAssigned?: boolean;
   mentionAlerts?: boolean;
   weeklyDigest?: boolean;
-}) => {
+}): Promise<{
+  success: boolean;
+  statusCode: number;
+  message: string;
+  data: User;
+}> => {
   const response = await api.patch("/users/notifications/preferences", data);
   return response.data;
 };

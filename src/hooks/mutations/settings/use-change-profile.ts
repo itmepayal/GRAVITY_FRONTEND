@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { changeProfile } from "@/apis/user.api";
+import { changeProfile } from "@/apis/settings.api";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth.store";
 

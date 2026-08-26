@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { Topbar } from "@/components/layout/Topbar";
 import { useDashboardContext } from "@/components/layout/DashboardLayout";
-import { useGetUserWorkspaces } from "@/hooks/queries/workspace/use-get-user-workspaces";
+import { useSyncedWorkspace } from "@/hooks/useSyncedWorkspace";
 import { useGetAllUserBoards } from "@/hooks/queries/board/use-get-all-user-boards";
 import { useGetBoardById } from "@/hooks/queries/board/use-get-board-by-id";
 import { useCreateTask } from "@/hooks/mutations/task/use-create-task";
@@ -35,21 +35,16 @@ import {
 export function BackLog() {
   const { openMobileNav } = useDashboardContext();
 
-  const { data: workspacesResponse, isLoading: isLoadingWorkspaces } =
-    useGetUserWorkspaces();
-  const workspaces = workspacesResponse?.data || [];
+  const {
+    workspaces,
+    currentWorkspaceId: selectedWorkspaceId,
+    setCurrentWorkspaceId: setSelectedWorkspaceId,
+    isLoadingWorkspaces,
+  } = useSyncedWorkspace();
 
   const { data: boardsResponse, isLoading: isLoadingBoards } =
     useGetAllUserBoards();
   const allBoards = boardsResponse?.data || [];
-
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>("");
-
-  React.useEffect(() => {
-    if (workspaces.length > 0 && !selectedWorkspaceId) {
-      setSelectedWorkspaceId(workspaces[0]._id || workspaces[0].id);
-    }
-  }, [workspaces, selectedWorkspaceId]);
 
   const workspaceBoards = useMemo(() => {
     if (!selectedWorkspaceId) return allBoards;

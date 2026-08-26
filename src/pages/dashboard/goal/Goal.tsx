@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { Topbar } from "@/components/layout/Topbar";
 import { useDashboardContext } from "@/components/layout/DashboardLayout";
-import { useGetUserWorkspaces } from "@/hooks/queries/workspace/use-get-user-workspaces";
+import { useSyncedWorkspace } from "@/hooks/useSyncedWorkspace";
 import { useGetWorkspaceGoals } from "@/hooks/queries/goal/get-workspace-goals";
 import { useCreateGoal } from "@/hooks/mutations/goal/use-create-goal";
 import { useUpdateGoal } from "@/hooks/mutations/goal/use-update-goal";
@@ -32,18 +32,12 @@ import {
 export function Goal() {
   const { openMobileNav } = useDashboardContext();
 
-  // 1. Fetch Workspaces
-  const { data: workspacesResponse, isLoading: isLoadingWorkspaces } =
-    useGetUserWorkspaces();
-  const workspaces = workspacesResponse?.data || [];
-
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>("");
-
-  React.useEffect(() => {
-    if (workspaces.length > 0 && !selectedWorkspaceId) {
-      setSelectedWorkspaceId(workspaces[0]._id || workspaces[0].id);
-    }
-  }, [workspaces, selectedWorkspaceId]);
+  const {
+    workspaces,
+    currentWorkspaceId: selectedWorkspaceId,
+    setCurrentWorkspaceId: setSelectedWorkspaceId,
+    isLoadingWorkspaces,
+  } = useSyncedWorkspace();
 
   // 2. Fetch Workspace Goals
   const {

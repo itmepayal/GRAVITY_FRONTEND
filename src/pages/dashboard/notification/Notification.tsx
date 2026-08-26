@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import { Topbar } from "@/components/layout/Topbar";
 import { useDashboardContext } from "@/components/layout/DashboardLayout";
 import { useAuthStore } from "@/store/auth.store";
-import { useGetUserWorkspaces } from "@/hooks/queries/workspace/use-get-user-workspaces";
+import { useSyncedWorkspace } from "@/hooks/useSyncedWorkspace";
 import { useGetAllUsers } from "@/hooks/queries/users/use-get-all-users";
 
 import { useGetWorkspaceNotifications } from "@/hooks/queries/notification/use-get-workspace-notifications";
@@ -42,22 +42,16 @@ export function Notification() {
     const { openMobileNav } = useDashboardContext();
     const { user: authUser } = useAuthStore();
 
-    // 1. Fetch Workspaces
-    const { data: workspacesResponse, isLoading: isLoadingWorkspaces } =
-        useGetUserWorkspaces();
-    const workspaces = workspacesResponse?.data || [];
-
-    const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>("");
-
-    React.useEffect(() => {
-        if (workspaces.length > 0 && !selectedWorkspaceId) {
-            setSelectedWorkspaceId(workspaces[0]._id || workspaces[0].id);
-        }
-    }, [workspaces, selectedWorkspaceId]);
+    const {
+        workspaces,
+        currentWorkspaceId: selectedWorkspaceId,
+        setCurrentWorkspaceId: setSelectedWorkspaceId,
+        isLoadingWorkspaces,
+    } = useSyncedWorkspace();
 
     // 2. Fetch Users
     const { data: usersResponse, isLoading: isLoadingUsers } = useGetAllUsers();
-    const allUsers = usersResponse || [];
+    const allUsers = Array.isArray(usersResponse) ? usersResponse : [];
 
     // Filters
     const [activeTab, setActiveTab] = useState<string>("all");

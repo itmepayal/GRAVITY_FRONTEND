@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Topbar } from "@/components/layout/Topbar";
 import { useDashboardContext } from "@/components/layout/DashboardLayout";
-import { useGetUserWorkspaces } from "@/hooks/queries/workspace/use-get-user-workspaces";
+import { useSyncedWorkspace } from "@/hooks/useSyncedWorkspace";
 import { useGetWorkspaceActivityLogs } from "@/hooks/queries/activity-logs/use-get-workspace-activity-logs";
 import { useCreateActivityLog } from "@/hooks/mutations/activity-logs/use-create-activity-log";
 import type { ActivityAction, ActivityEntityType } from "@/apis/activity-log.api";
@@ -37,19 +37,12 @@ import {
 export function ActivityLog() {
     const { openMobileNav } = useDashboardContext();
 
-    // 1. Fetch user workspaces
-    const { data: workspacesResponse, isLoading: isLoadingWorkspaces } =
-        useGetUserWorkspaces();
-    const workspaces = workspacesResponse?.data || [];
-
-    // Selected workspace state (defaults to first workspace when loaded)
-    const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>("");
-
-    React.useEffect(() => {
-        if (workspaces.length > 0 && !selectedWorkspaceId) {
-            setSelectedWorkspaceId(workspaces[0]._id || workspaces[0].id);
-        }
-    }, [workspaces, selectedWorkspaceId]);
+    const {
+        workspaces,
+        currentWorkspaceId: selectedWorkspaceId,
+        setCurrentWorkspaceId: setSelectedWorkspaceId,
+        isLoadingWorkspaces,
+    } = useSyncedWorkspace();
 
     // 2. Filter & Pagination state
     const [searchQuery, setSearchQuery] = useState("");

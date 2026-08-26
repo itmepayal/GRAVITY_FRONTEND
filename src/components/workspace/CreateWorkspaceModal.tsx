@@ -33,7 +33,7 @@ export const CreateWorkspaceModal = ({
   const [description, setDescription] = useState("");
   const [color, setColor] = useState("#6366F1");
   const [icon, setIcon] = useState("💼");
-  const [isPrivate, setIsPrivate] = useState(false);
+  const [isPrivate, setIsPrivate] = useState(true);
 
   const submit = (e: FormEvent) => {
     e.preventDefault();

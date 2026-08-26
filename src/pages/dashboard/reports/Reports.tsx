@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { Topbar } from "@/components/layout/Topbar";
 import { useDashboardContext } from "@/components/layout/DashboardLayout";
-import { useGetUserWorkspaces } from "@/hooks/queries/workspace/use-get-user-workspaces";
+import { useSyncedWorkspace } from "@/hooks/useSyncedWorkspace";
 import { useGetWorkspaceProjects } from "@/hooks/queries/project/use-get-workspace-projects";
 
 import { useGetWorkspaceReports } from "@/hooks/queries/report/use-get-workspace-reports";
@@ -40,18 +40,12 @@ import type { IReport, ReportType, ReportFormat } from "@/types/report";
 export function Reports() {
   const { openMobileNav } = useDashboardContext();
 
-  // 1. Fetch Workspaces
-  const { data: workspacesResponse, isLoading: isLoadingWorkspaces } =
-    useGetUserWorkspaces();
-  const workspaces = workspacesResponse?.data || [];
-
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>("");
-
-  React.useEffect(() => {
-    if (workspaces.length > 0 && !selectedWorkspaceId) {
-      setSelectedWorkspaceId(workspaces[0]._id || workspaces[0].id);
-    }
-  }, [workspaces, selectedWorkspaceId]);
+  const {
+    workspaces,
+    currentWorkspaceId: selectedWorkspaceId,
+    setCurrentWorkspaceId: setSelectedWorkspaceId,
+    isLoadingWorkspaces,
+  } = useSyncedWorkspace();
 
   // 2. Fetch Projects
   const { data: projectsResponse } = useGetWorkspaceProjects(selectedWorkspaceId);

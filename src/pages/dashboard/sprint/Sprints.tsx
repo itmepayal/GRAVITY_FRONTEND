@@ -6,7 +6,10 @@ import { DashboardMetricsBanner } from "@/components/common/DashboardMetricsBann
 import { useCreateSprint } from "@/hooks/mutations/project/use-create-sprint";
 import { useUpdateSprint } from "@/hooks/mutations/sprint/use-update-sprint";
 import { useDeleteSprint } from "@/hooks/mutations/sprint/use-delete-sprint";
+import { useStartSprint } from "@/hooks/mutations/sprint/use-start-sprint";
+import { useCompleteSprint } from "@/hooks/mutations/sprint/use-complete-sprint";
 import { useGetProjectSprints } from "@/hooks/queries/project/use-get-project-sprints";
+import { useSyncedWorkspace } from "@/hooks/useSyncedWorkspace";
 import { useGetUserWorkspaces } from "@/hooks/queries/workspace/use-get-user-workspaces";
 import { useGetWorkspaceProjects } from "@/hooks/queries/project/use-get-workspace-projects";
 import { useGetWorkspaceGoals } from "@/hooks/queries/goal/get-workspace-goals";
@@ -247,10 +250,14 @@ function SprintCard({
   sprint,
   onEdit,
   onDelete,
+  onStart,
+  onComplete,
 }: {
   sprint: Sprint;
   onEdit: (sprint: Sprint) => void;
   onDelete: (sprint: Sprint) => void;
+  onStart?: (sprint: Sprint) => void;
+  onComplete?: (sprint: Sprint) => void;
 }) {
   const status = STATUS_META[sprint.status];
   const timing = getTiming(sprint);
@@ -310,6 +317,32 @@ function SprintCard({
                 style={{ borderColor: `${INK}22` }}
                 onClick={(e) => e.stopPropagation()}
               >
+                {sprint.status === "planned" && onStart && (
+                  <button
+                    onClick={() => {
+                      onStart(sprint);
+                      setMenuOpen(false);
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-semibold hover:bg-[#E7F5EF]"
+                    style={{ color: TEAL }}
+                  >
+                    <Rocket size={12} />
+                    Start
+                  </button>
+                )}
+                {sprint.status === "active" && onComplete && (
+                  <button
+                    onClick={() => {
+                      onComplete(sprint);
+                      setMenuOpen(false);
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-semibold hover:bg-[#EAF0FE]"
+                    style={{ color: "#2563EB" }}
+                  >
+                    <CheckCircle2 size={12} />
+                    Complete
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     onEdit(sprint);
@@ -417,12 +450,16 @@ function StatusColumn({
   onAddSprint,
   onEditSprint,
   onDeleteSprint,
+  onStartSprint,
+  onCompleteSprint,
 }: {
   status: SprintStatus;
   sprints: Sprint[];
   onAddSprint: (status: SprintStatus) => void;
   onEditSprint: (sprint: Sprint) => void;
   onDeleteSprint: (sprint: Sprint) => void;
+  onStartSprint?: (sprint: Sprint) => void;
+  onCompleteSprint?: (sprint: Sprint) => void;
 }) {
   const meta = STATUS_META[status];
   const EmptyIcon = meta.icon;
@@ -453,6 +490,8 @@ function StatusColumn({
             sprint={sprint}
             onEdit={onEditSprint}
             onDelete={onDeleteSprint}
+            onStart={onStartSprint}
+            onComplete={onCompleteSprint}
           />
         ))}
 
@@ -1209,16 +1248,23 @@ export const Sprints = () => {
   // Board.tsx: fetch the user's workspaces, fetch that workspace's projects,
   // default-select based on the route param, and let the user switch freely
   // from the toolbar). This drives which project's sprints are loaded below.
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState("");
+  const {
+    workspaces: syncedWorkspaces,
+    currentWorkspaceId: selectedWorkspaceId,
+    setCurrentWorkspaceId: setSelectedWorkspaceId,
+    isLoadingWorkspaces,
+  } = useSyncedWorkspace();
   const [selectedProjectId, setSelectedProjectId] = useState(
     routeProjectId ?? "",
   );
 
-  const { data: workspacesRes, isLoading: isLoadingWorkspaces } =
-    useGetUserWorkspaces();
   const workspaces = useMemo(
-    () => normalizeListResponse<ApiWorkspace>(workspacesRes),
-    [workspacesRes],
+    () =>
+      syncedWorkspaces.map((workspace: { id?: string; _id?: string; name?: string }) => ({
+        _id: workspace._id ?? workspace.id,
+        name: workspace.name,
+      })),
+    [syncedWorkspaces],
   );
 
   const { data: workspaceProjectsRes, isLoading: isLoadingWorkspaceProjects } =
@@ -1227,19 +1273,6 @@ export const Sprints = () => {
     () => normalizeListResponse<ApiProject>(workspaceProjectsRes),
     [workspaceProjectsRes],
   );
-
-  // Default workspace: keep current selection if still valid, otherwise
-  // fall back to the first workspace the user has access to.
-  useEffect(() => {
-    if (!workspaces.length) return;
-    if (
-      selectedWorkspaceId &&
-      workspaces.some((w) => w._id === selectedWorkspaceId)
-    ) {
-      return;
-    }
-    setSelectedWorkspaceId(workspaces[0]._id);
-  }, [workspaces, selectedWorkspaceId]);
 
   // Default project within the selected workspace: prefer the route's
   // projectId if it belongs to this workspace, otherwise keep the current
@@ -1258,7 +1291,7 @@ export const Sprints = () => {
 
   const handleWorkspaceSwitch = (workspaceId: string) => {
     setSelectedWorkspaceId(workspaceId);
-    setSelectedProjectId(""); // reset so the effect above picks the new workspace's first project
+    setSelectedProjectId("");
   };
 
   const selectedProjectName =
@@ -1320,6 +1353,9 @@ export const Sprints = () => {
     error: deleteSprintErrorObj,
     reset: resetDeleteSprintError,
   } = useDeleteSprint();
+
+  const { mutate: startSprintMutation } = useStartSprint();
+  const { mutate: completeSprintMutation } = useCompleteSprint();
 
   const createSprintError = createSprintErrorObj
     ? (createSprintErrorObj as any)?.response?.data?.message ||
@@ -1574,7 +1610,7 @@ export const Sprints = () => {
                   style={{ borderColor: `${INK}22`, color: INK }}
                 >
                   {workspaces.map((w) => (
-                    <option key={w._id} value={w._id}>
+                    <option key={w._id} value={w._id ?? ""}>
                       {w.name}
                     </option>
                   ))}
@@ -1773,6 +1809,8 @@ export const Sprints = () => {
                 onAddSprint={(s) => setAddSprintDefaultStatus(s)}
                 onEditSprint={(sprint) => setEditingSprint(sprint)}
                 onDeleteSprint={(sprint) => setDeletingSprint(sprint)}
+                onStartSprint={(sprint) => startSprintMutation(sprint.id)}
+                onCompleteSprint={(sprint) => completeSprintMutation(sprint.id)}
               />
             ))}
           </div>
