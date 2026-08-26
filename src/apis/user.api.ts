@@ -4,7 +4,14 @@ import type {
   ChangeProfileResponse,
 } from "@/types/settings";
 import type { MessageResponse } from "@/types/auth";
-import type { User } from "@/types/user";
+import type {
+  AccountActionInput,
+  GetUsersParams,
+  PaginatedUsersResponse,
+  ReactivateAccountInput,
+  User,
+  UserProfileResponse,
+} from "@/types/user";
 
 export const getCurrentUser = async (): Promise<User> => {
   const response = await api.get<{
@@ -14,6 +21,11 @@ export const getCurrentUser = async (): Promise<User> => {
     data: User;
   }>("/users/me");
 
+  return response.data.data;
+};
+
+export const getUserById = async (userId: string) => {
+  const response = await api.get<UserProfileResponse>(`/users/${userId}`);
   return response.data.data;
 };
 
@@ -55,17 +67,50 @@ export const updateNotificationPreferences = async (data: {
   taskAssigned?: boolean;
   mentionAlerts?: boolean;
   weeklyDigest?: boolean;
-}): Promise<any> => {
+}) => {
   const response = await api.patch("/users/notifications/preferences", data);
   return response.data;
 };
 
-export const getAllUsers = async (): Promise<User[]> => {
-  const response = await api.get<{
-    success: boolean;
-    statusCode: number;
-    message: string;
-    data: User[];
-  }>("/users");
-  return response.data.data;
+export const getUsers = async (
+  params?: GetUsersParams,
+): Promise<PaginatedUsersResponse> => {
+  const response = await api.get<PaginatedUsersResponse>("/users", {
+    params: { limit: 100, ...params },
+  });
+  return response.data;
+};
+
+export const getAllUsers = async (params?: GetUsersParams): Promise<User[]> => {
+  const response = await getUsers(params);
+  return response.data;
+};
+
+export const deactivateAccount = async (
+  data: AccountActionInput,
+): Promise<MessageResponse> => {
+  const response = await api.patch<MessageResponse>(
+    "/users/account/deactivate",
+    data,
+  );
+  return response.data;
+};
+
+export const deleteAccount = async (
+  data: AccountActionInput,
+): Promise<MessageResponse> => {
+  const response = await api.delete<MessageResponse>("/users/account", {
+    data,
+  });
+  return response.data;
+};
+
+export const reactivateAccount = async (
+  data: ReactivateAccountInput,
+): Promise<MessageResponse> => {
+  const response = await api.post<MessageResponse>(
+    "/users/account/reactivate",
+    data,
+  );
+  return response.data;
 };

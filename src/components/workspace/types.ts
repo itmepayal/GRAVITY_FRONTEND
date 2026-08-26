@@ -10,9 +10,33 @@ import {
   PauseCircle,
   type LucideIcon,
   Eye,
+  Lock,
+  Globe,
 } from "lucide-react";
 
+export type WorkspaceViewMode = "grid" | "table" | "kanban" | "detail";
+
+export type VisibilityFilter = "all" | "public" | "private";
+
 export type Role = "owner" | "admin" | "member" | "viewer";
+
+export type RoleFilter = "all" | Role;
+
+export const VISIBILITY_META = {
+  public: {
+    label: "Public Spaces",
+    color: "#0F8A65",
+    bg: "#E7F5EF",
+    icon: Globe,
+  },
+  private: {
+    label: "Private Spaces",
+    color: "#D97706",
+    bg: "#FEF3C7",
+    icon: Lock,
+  },
+} as const;
+
 export type Tab = "projects" | "members" | "roles" | "activity";
 export type ProjectView = "grid" | "list";
 export type ProjectStatus =

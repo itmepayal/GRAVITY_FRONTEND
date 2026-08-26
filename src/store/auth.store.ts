@@ -7,8 +7,11 @@ type AuthStore = {
   accessToken: string | null;
   refreshToken: string | null;
   isAuthenticated: boolean;
+  isAuthInitialized: boolean;
   setAuth: (user: User, accessToken: string, refreshToken: string) => void;
+  updateTokens: (accessToken: string, refreshToken: string) => void;
   updateUser: (user: User) => void;
+  setAuthInitialized: (value: boolean) => void;
   clearAuth: () => void;
 };
 
@@ -19,6 +22,7 @@ export const useAuthStore = create<AuthStore>()(
       accessToken: null,
       refreshToken: null,
       isAuthenticated: false,
+      isAuthInitialized: false,
 
       setAuth: (user, accessToken, refreshToken) =>
         set({
@@ -28,9 +32,21 @@ export const useAuthStore = create<AuthStore>()(
           isAuthenticated: true,
         }),
 
+      updateTokens: (accessToken, refreshToken) =>
+        set({
+          accessToken,
+          refreshToken,
+          isAuthenticated: true,
+        }),
+
       updateUser: (user) =>
         set({
           user,
+        }),
+
+      setAuthInitialized: (value) =>
+        set({
+          isAuthInitialized: value,
         }),
 
       clearAuth: () =>

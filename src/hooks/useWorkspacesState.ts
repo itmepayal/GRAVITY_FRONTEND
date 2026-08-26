@@ -5,6 +5,9 @@ import {
   type Member,
   type Toast,
   type Role,
+  type WorkspaceViewMode,
+  type VisibilityFilter,
+  type RoleFilter,
   nextId,
 } from "@/components/workspace";
 import { useCreateWorkspace } from "@/hooks/mutations/workspace/use-create-workspace";
@@ -92,7 +95,10 @@ export function useWorkspacesState() {
   const [activeSection, setActiveSection] = useState<"workspace" | "goals">(
     "workspace",
   );
-  const [viewMode, setViewMode] = useState<"grid" | "table" | "detail">("grid");
+  const [viewMode, setViewMode] = useState<WorkspaceViewMode>("grid");
+  const [visibilityFilter, setVisibilityFilter] =
+    useState<VisibilityFilter>("all");
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
 
   const {
     data: activeWorkspaceResponse,
@@ -154,11 +160,25 @@ export function useWorkspacesState() {
     [workspaces],
   );
 
-  const filtered = workspaces.filter(
-    (w) =>
-      w.name.toLowerCase().includes(query.toLowerCase()) ||
-      w.description?.toLowerCase().includes(query.toLowerCase()),
-  );
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return workspaces.filter((w) => {
+      const matchesSearch =
+        !q ||
+        w.name.toLowerCase().includes(q) ||
+        w.description?.toLowerCase().includes(q);
+
+      const matchesVisibility =
+        visibilityFilter === "all" ||
+        (visibilityFilter === "private" ? w.isPrivate : !w.isPrivate);
+
+      const normalizedRole = (w.role || "member").toLowerCase() as Role;
+      const matchesRole =
+        roleFilter === "all" || normalizedRole === roleFilter;
+
+      return matchesSearch && matchesVisibility && matchesRole;
+    });
+  }, [workspaces, query, visibilityFilter, roleFilter]);
 
   const handleCreated = (ws: Workspace) => {
     const safeWs = normalizeWorkspace(ws);
@@ -405,6 +425,10 @@ export function useWorkspacesState() {
     setActiveSection,
     viewMode,
     setViewMode,
+    visibilityFilter,
+    setVisibilityFilter,
+    roleFilter,
+    setRoleFilter,
     activeWorkspace,
     canManageActiveWorkspace,
     totals,

@@ -12,6 +12,11 @@ import {
   BarChart,
   Building2,
   RefreshCw,
+  Link2,
+  Trash2,
+  UserX,
+  Loader2,
+  AlertTriangle,
 } from "lucide-react";
 import { Topbar } from "@/components/layout/Topbar";
 import { useDashboardContext } from "@/components/layout/DashboardLayout";
@@ -35,10 +40,18 @@ import { useChangePassword } from "@/hooks/mutations/settings/use-change-passwor
 import { useEnableTwoFA } from "@/hooks/mutations/auth/use-enable-2fa";
 import { useDisableTwoFA } from "@/hooks/mutations/auth/use-disabled-2fa";
 import { useLogout } from "@/hooks/mutations/auth/use-logout";
+import { useLinkGoogleAccount } from "@/hooks/mutations/auth/use-link-google";
+import { useReactivateAccount } from "@/hooks/mutations/auth/use-reactivate-account";
+import { useGetSessions } from "@/hooks/queries/auth/use-get-sessions";
+import { useGetUserById } from "@/hooks/queries/users/use-get-user-by-id";
+import { useDeactivateAccount } from "@/hooks/mutations/settings/use-deactivate-account";
+import { useDeleteAccount } from "@/hooks/mutations/settings/use-delete-account";
 import { useUpdateNotificationPreferences } from "@/hooks/mutations/settings/use-update-notification-preferences";
 import { useGetUserWorkspaces } from "@/hooks/queries/workspace/use-get-user-workspaces";
 import { useRegenerateInviteCode } from "@/hooks/mutations/workspace/use-regenerate-invite-code";
 import { FONT_GOLDMAN } from "@/components/common/design-system";
+import { GoogleIcon, SocialButton } from "@/components/button/SocialButton";
+import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 
 export default function Settings() {
   const { openMobileNav } = useDashboardContext();
@@ -56,6 +69,14 @@ export default function Settings() {
   const enableTwoFAMutation = useEnableTwoFA();
   const disableTwoFAMutation = useDisableTwoFA();
   const updateNotifMutation = useUpdateNotificationPreferences();
+  const linkGoogleMutation = useLinkGoogleAccount();
+  const deactivateAccountMutation = useDeactivateAccount();
+  const deleteAccountMutation = useDeleteAccount();
+  const reactivateAccountMutation = useReactivateAccount();
+
+  const { data: sessions = [], isLoading: isSessionsLoading } =
+    useGetSessions();
+  const { data: publicProfile } = useGetUserById(user?.id ?? "");
 
   // Workspaces for Workspace Admin Card
   const { data: workspacesResponse } = useGetUserWorkspaces();
@@ -118,14 +139,151 @@ export default function Settings() {
   const is2FAEnabled = (user as any)?.is2FAEnabled ?? false;
   const is2FAPending =
     enableTwoFAMutation.isPending || disableTwoFAMutation.isPending;
+  const isLocalAccount = (user as any)?.authProvider !== "google";
+  const isGoogleAccount = (user as any)?.authProvider === "google";
+  const [show2FAPasswordForm, setShow2FAPasswordForm] = useState(false);
+  const [twoFAPassword, setTwoFAPassword] = useState("");
+  const [showGoogleLinkOverlay, setShowGoogleLinkOverlay] = useState(false);
+  const [showGoogleActionOverlay, setShowGoogleActionOverlay] = useState(false);
+  const [pendingAccountAction, setPendingAccountAction] = useState<
+    "deactivate" | "delete" | null
+  >(null);
+  const [accountActionPassword, setAccountActionPassword] = useState("");
+  const [showDeactivateForm, setShowDeactivateForm] = useState(false);
+  const [showDeleteForm, setShowDeleteForm] = useState(false);
+  const [reactivateEmail, setReactivateEmail] = useState("");
+  const [reactivatePassword, setReactivatePassword] = useState("");
 
   const handleToggle2FA = () => {
     if (is2FAPending) return;
-    if (is2FAEnabled) {
-      disableTwoFAMutation.mutate();
-    } else {
-      enableTwoFAMutation.mutate();
+
+    if (isLocalAccount) {
+      setShow2FAPasswordForm(true);
+      return;
     }
+
+    if (is2FAEnabled) {
+      disableTwoFAMutation.mutate(undefined, {
+        onSuccess: () => setShow2FAPasswordForm(false),
+      });
+    } else {
+      enableTwoFAMutation.mutate(undefined, {
+        onSuccess: () => setShow2FAPasswordForm(false),
+      });
+    }
+  };
+
+  const handleConfirm2FA = () => {
+    if (!twoFAPassword.trim()) {
+      toast.error("Please enter your password to continue.");
+      return;
+    }
+
+    const onComplete = {
+      onSuccess: () => {
+        setShow2FAPasswordForm(false);
+        setTwoFAPassword("");
+      },
+    };
+
+    if (is2FAEnabled) {
+      disableTwoFAMutation.mutate(twoFAPassword, onComplete);
+    } else {
+      enableTwoFAMutation.mutate(twoFAPassword, onComplete);
+    }
+  };
+
+  const formatSessionDate = (value: string) => {
+    try {
+      return new Intl.DateTimeFormat("en-IN", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(new Date(value));
+    } catch {
+      return "Unknown time";
+    }
+  };
+
+  const handleGoogleLinkSuccess = (credentialResponse: CredentialResponse) => {
+    if (!credentialResponse.credential) {
+      toast.error("Google sign-in failed. Please try again.");
+      setShowGoogleLinkOverlay(false);
+      return;
+    }
+
+    linkGoogleMutation.mutate(credentialResponse.credential, {
+      onSettled: () => setShowGoogleLinkOverlay(false),
+    });
+  };
+
+  const handleGoogleActionSuccess = (
+    credentialResponse: CredentialResponse,
+  ) => {
+    if (!credentialResponse.credential || !pendingAccountAction) {
+      toast.error("Google verification failed. Please try again.");
+      setShowGoogleActionOverlay(false);
+      setPendingAccountAction(null);
+      return;
+    }
+
+    const payload = { idToken: credentialResponse.credential };
+    const onSettled = () => {
+      setShowGoogleActionOverlay(false);
+      setPendingAccountAction(null);
+    };
+
+    if (pendingAccountAction === "deactivate") {
+      deactivateAccountMutation.mutate(payload, { onSettled });
+      return;
+    }
+
+    deleteAccountMutation.mutate(payload, { onSettled });
+  };
+
+  const handleConfirmDeactivate = () => {
+    if (!accountActionPassword.trim()) {
+      toast.error("Please enter your password to deactivate your account.");
+      return;
+    }
+
+    deactivateAccountMutation.mutate(
+      { password: accountActionPassword },
+      {
+        onSuccess: () => {
+          setShowDeactivateForm(false);
+          setAccountActionPassword("");
+        },
+      },
+    );
+  };
+
+  const handleConfirmDelete = () => {
+    if (!accountActionPassword.trim()) {
+      toast.error("Please enter your password to delete your account.");
+      return;
+    }
+
+    deleteAccountMutation.mutate(
+      { password: accountActionPassword },
+      {
+        onSuccess: () => {
+          setShowDeleteForm(false);
+          setAccountActionPassword("");
+        },
+      },
+    );
+  };
+
+  const handleReactivateAccount = () => {
+    if (!reactivateEmail.trim() || !reactivatePassword.trim()) {
+      toast.error("Email and password are required to reactivate an account.");
+      return;
+    }
+
+    reactivateAccountMutation.mutate({
+      email: reactivateEmail.trim(),
+      password: reactivatePassword,
+    });
   };
 
   const profileForm = useForm<ProfileFormData>({
@@ -308,6 +466,11 @@ export default function Settings() {
                         <p className="text-[#8FA69E] text-[11.5px] mt-0.5">
                           JPG or PNG, up to 2MB
                         </p>
+                        {publicProfile && (
+                          <p className="text-[#8FA69E] text-[11px] mt-1">
+                            Public profile: {publicProfile.name}
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -338,23 +501,57 @@ export default function Settings() {
             </div>
 
             <SettingsCard
-              title="Active Session"
-              description="End your session on this device."
+              title="Active Sessions"
+              description="Devices where your Gravity account is currently signed in."
             >
               <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-3 px-3.5 py-3 rounded-lg bg-[#0F2D29]/3 border border-[#0F2D29]/6">
-                  <div className="w-8 h-8 rounded-md bg-white border border-[#0F2D29]/8 flex items-center justify-center text-[#5B6E68] shrink-0">
-                    <Monitor size={14} />
+                {isSessionsLoading ? (
+                  <div className="flex items-center justify-center py-6 text-[#5B6E68] text-[12.5px] gap-2">
+                    <Loader2 size={14} className="animate-spin" />
+                    Loading sessions...
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[#0F2D29] text-[12.5px] font-medium truncate">
-                      Current Device
-                    </p>
-                    <p className="text-[#8FA69E] text-[11px] mt-0.5">
-                      Active session now
-                    </p>
+                ) : sessions.length > 0 ? (
+                  <div className="flex flex-col gap-2.5 max-h-56 overflow-y-auto pr-1">
+                    {sessions.map((session, index) => (
+                      <div
+                        key={`${session.id}-${index}`}
+                        className="flex items-center gap-3 px-3.5 py-3 rounded-lg bg-[#0F2D29]/3 border border-[#0F2D29]/6"
+                      >
+                        <div className="w-8 h-8 rounded-md bg-white border border-[#0F2D29]/8 flex items-center justify-center text-[#5B6E68] shrink-0">
+                          <Monitor size={14} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[#0F2D29] text-[12.5px] font-medium truncate">
+                            {session.userAgent}
+                          </p>
+                          <p className="text-[#8FA69E] text-[11px] mt-0.5">
+                            Signed in {formatSessionDate(session.createdAt)}
+                          </p>
+                        </div>
+                        {index === sessions.length - 1 && (
+                          <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded bg-[#8FE3C4]/25 text-[#0F2D29]">
+                            Current
+                          </span>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                </div>
+                ) : (
+                  <div className="flex items-center gap-3 px-3.5 py-3 rounded-lg bg-[#0F2D29]/3 border border-[#0F2D29]/6">
+                    <div className="w-8 h-8 rounded-md bg-white border border-[#0F2D29]/8 flex items-center justify-center text-[#5B6E68] shrink-0">
+                      <Monitor size={14} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[#0F2D29] text-[12.5px] font-medium truncate">
+                        Current Device
+                      </p>
+                      <p className="text-[#8FA69E] text-[11px] mt-0.5">
+                        Active session now
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 <button
                   onClick={() => logoutMutation.mutate()}
                   disabled={logoutMutation.isPending}
@@ -374,81 +571,118 @@ export default function Settings() {
                 title="Two-factor authentication"
                 description="Add an extra layer of security to your account."
               >
-                <div className="flex items-center justify-between gap-5 h-full">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-colors ${is2FAEnabled
-                        ? "bg-[#8FE3C4]/20 text-[#0F2D29]"
-                        : "bg-[#0F2D29]/6 text-[#8FA69E]"
-                        }`}
-                    >
-                      {is2FAEnabled ? (
-                        <ShieldCheck size={17} />
-                      ) : (
-                        <ShieldOff size={17} />
-                      )}
+                <div className="flex flex-col gap-4 h-full">
+                  <div className="flex items-center justify-between gap-5">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div
+                        className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-colors ${is2FAEnabled
+                          ? "bg-[#8FE3C4]/20 text-[#0F2D29]"
+                          : "bg-[#0F2D29]/6 text-[#8FA69E]"
+                          }`}
+                      >
+                        {is2FAEnabled ? (
+                          <ShieldCheck size={17} />
+                        ) : (
+                          <ShieldOff size={17} />
+                        )}
+                      </div>
                       <div className="min-w-0">
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-[#0F2D29] text-[13px] font-medium truncate">
-                          Email OTP Codes
+                        <div className="flex items-center gap-2">
+                          <p className="text-[#0F2D29] text-[13px] font-medium truncate">
+                            Email OTP Codes
+                          </p>
+                          <span
+                            className={`shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded ${is2FAEnabled
+                              ? "bg-[#8FE3C4]/25 text-[#0F2D29]"
+                              : "bg-[#0F2D29]/6 text-[#8FA69E]"
+                              }`}
+                          >
+                            {is2FAEnabled ? "On" : "Off"}
+                          </span>
+                        </div>
+                        <p className="text-[#5B6E68] text-[12px] mt-0.5 leading-snug">
+                          One-time code required on every sign-in.
                         </p>
-                        <span
-                          className={`shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded ${is2FAEnabled
-                            ? "bg-[#8FE3C4]/25 text-[#0F2D29]"
-                            : "bg-[#0F2D29]/6 text-[#8FA69E]"
-                            }`}
-                        >
-                          {is2FAEnabled ? "On" : "Off"}
-                        </span>
                       </div>
-                      <p className="text-[#5B6E68] text-[12px] mt-0.5 leading-snug">
-                        One-time code required on every sign-in.
-                      </p>
                     </div>
-                  </div>
-                  <button
-                    onClick={handleToggle2FA}
-                    disabled={is2FAPending || isUserLoading}
-                    role="switch"
-                    aria-checked={is2FAEnabled}
-                    style={{
-                      position: "relative",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      width: "44px",
-                      height: "24px",
-                      minWidth: "44px",
-                      borderRadius: "9999px",
-                      flexShrink: 0,
-                      border: "none",
-                      cursor: is2FAPending ? "not-allowed" : "pointer",
-                      padding: 0,
-                      opacity: is2FAPending ? 0.6 : 1,
-                      backgroundColor: is2FAEnabled
-                        ? "#0F2D29"
-                        : "rgba(15,45,41,0.15)",
-                      transition: "background-color 0.2s ease",
-                    }}
-                    className="focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8FE3C4] focus-visible:ring-offset-2"
-                  >
-                    <span
+                    <button
+                      onClick={handleToggle2FA}
+                      disabled={is2FAPending || isUserLoading}
+                      role="switch"
+                      aria-checked={is2FAEnabled}
                       style={{
-                        position: "absolute",
-                        top: "2px",
-                        left: "2px",
-                        width: "20px",
-                        height: "20px",
+                        position: "relative",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        width: "44px",
+                        height: "24px",
+                        minWidth: "44px",
                         borderRadius: "9999px",
-                        backgroundColor: "#fff",
-                        boxShadow: "0 1px 2px rgba(0,0,0,0.15)",
-                        transform: is2FAEnabled
-                          ? "translateX(20px)"
-                          : "translateX(0)",
-                        transition: "transform 0.2s ease",
+                        flexShrink: 0,
+                        border: "none",
+                        cursor: is2FAPending ? "not-allowed" : "pointer",
+                        padding: 0,
+                        opacity: is2FAPending ? 0.6 : 1,
+                        backgroundColor: is2FAEnabled
+                          ? "#0F2D29"
+                          : "rgba(15,45,41,0.15)",
+                        transition: "background-color 0.2s ease",
                       }}
-                    />
-                  </button>
+                      className="focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8FE3C4] focus-visible:ring-offset-2"
+                    >
+                      <span
+                        style={{
+                          position: "absolute",
+                          top: "2px",
+                          left: "2px",
+                          width: "20px",
+                          height: "20px",
+                          borderRadius: "9999px",
+                          backgroundColor: "#fff",
+                          boxShadow: "0 1px 2px rgba(0,0,0,0.15)",
+                          transform: is2FAEnabled
+                            ? "translateX(20px)"
+                            : "translateX(0)",
+                          transition: "transform 0.2s ease",
+                        }}
+                      />
+                    </button>
+                  </div>
+
+                  {show2FAPasswordForm && isLocalAccount && (
+                    <div className="rounded-lg border border-[#0F2D29]/8 bg-[#0F2D29]/3 p-3.5 space-y-3">
+                      <p className="text-[#5B6E68] text-[12px] leading-snug">
+                        Enter your password to {is2FAEnabled ? "disable" : "enable"}{" "}
+                        two-factor authentication.
+                      </p>
+                      <BasePasswordInput
+                        value={twoFAPassword}
+                        onChange={(event) => setTwoFAPassword(event.target.value)}
+                        placeholder="Your password"
+                        autoComplete="current-password"
+                      />
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleConfirm2FA}
+                          disabled={is2FAPending}
+                          className="text-[12.5px] font-medium text-white bg-[#0F2D29] px-3.5 py-2 rounded-lg hover:bg-[#0F2D29]/90 disabled:opacity-60"
+                        >
+                          {is2FAPending ? "Saving..." : "Confirm"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShow2FAPasswordForm(false);
+                            setTwoFAPassword("");
+                          }}
+                          className="text-[12.5px] font-medium text-[#5B6E68] px-3.5 py-2 rounded-lg hover:bg-[#0F2D29]/5"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </SettingsCard>
             </div>
@@ -462,7 +696,11 @@ export default function Settings() {
               >
                 <SettingsCard
                   title="Change password"
-                  description="We'll sign you out of other sessions once this is updated."
+                  description={
+                    isGoogleAccount
+                      ? "Password change is only available for email/password accounts."
+                      : "We'll sign you out of other sessions once this is updated."
+                  }
                 >
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
                     <FormField
@@ -473,6 +711,7 @@ export default function Settings() {
                         id="currentPassword"
                         placeholder="••••••••"
                         autoComplete="current-password"
+                        disabled={isGoogleAccount}
                         {...passwordForm.register("currentPassword")}
                       />
                     </FormField>
@@ -481,12 +720,13 @@ export default function Settings() {
                         id="newPassword"
                         placeholder="••••••••"
                         autoComplete="new-password"
+                        disabled={isGoogleAccount}
                         {...passwordForm.register("newPassword")}
                       />
                     </FormField>
                     <button
                       type="submit"
-                      disabled={changePasswordMutation.isPending}
+                      disabled={changePasswordMutation.isPending || isGoogleAccount}
                       className="w-full h-11 bg-[#0F2D29] text-white text-[13px] font-medium rounded-lg hover:bg-[#0F2D29]/90 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       {changePasswordMutation.isPending
@@ -498,6 +738,305 @@ export default function Settings() {
               </form>
             </div>
           </div>
+
+          {/* Connected Accounts & Account Actions */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
+            <SettingsCard
+              title="Connected accounts"
+              description="Link sign-in providers to your Gravity account."
+            >
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between gap-3 p-3.5 rounded-lg border border-[#0F2D29]/10 bg-white">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-lg bg-[#0F2D29]/6 flex items-center justify-center shrink-0">
+                      <GoogleIcon />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[#0F2D29] text-[13px] font-medium">
+                        Google
+                      </p>
+                      <p className="text-[#5B6E68] text-[12px] mt-0.5">
+                        {isGoogleAccount
+                          ? "Connected to your account"
+                          : "Link Google for faster sign-in"}
+                      </p>
+                    </div>
+                  </div>
+                  {isGoogleAccount ? (
+                    <span className="shrink-0 text-[10px] font-medium px-2 py-1 rounded bg-[#8FE3C4]/25 text-[#0F2D29]">
+                      Connected
+                    </span>
+                  ) : (
+                    <div className="relative h-10 min-w-[148px]">
+                      <SocialButton
+                        icon={
+                          linkGoogleMutation.isPending ? (
+                            <Loader2 size={14} className="animate-spin" />
+                          ) : (
+                            <Link2 size={14} />
+                          )
+                        }
+                        label={linkGoogleMutation.isPending ? "Linking..." : "Link Google"}
+                        onClick={() => setShowGoogleLinkOverlay(true)}
+                        className="h-10 px-3 text-[12.5px]"
+                      />
+                      {showGoogleLinkOverlay && (
+                        <div className="absolute inset-0 opacity-0 [&>div]:h-full [&>div]:w-full [&_iframe]:h-full! [&_iframe]:w-full! overflow-hidden">
+                          <GoogleLogin
+                            onSuccess={handleGoogleLinkSuccess}
+                            onError={() => {
+                              toast.error("Google linking failed. Please try again.");
+                              setShowGoogleLinkOverlay(false);
+                            }}
+                            width="100%"
+                            text="continue_with"
+                            useOneTap={false}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </SettingsCard>
+
+            <SettingsCard
+              title="Account recovery"
+              description="Reactivate a previously deactivated account."
+            >
+              <div className="flex flex-col gap-3">
+                <FormField label="Email" htmlFor="reactivateEmail">
+                  <BaseInput
+                    id="reactivateEmail"
+                    icon={Mail}
+                    type="email"
+                    placeholder="deactivated@example.com"
+                    value={reactivateEmail}
+                    onChange={(event) => setReactivateEmail(event.target.value)}
+                  />
+                </FormField>
+                <FormField label="Password" htmlFor="reactivatePassword">
+                  <BasePasswordInput
+                    id="reactivatePassword"
+                    placeholder="Account password"
+                    value={reactivatePassword}
+                    onChange={(event) => setReactivatePassword(event.target.value)}
+                    autoComplete="current-password"
+                  />
+                </FormField>
+                <button
+                  type="button"
+                  onClick={handleReactivateAccount}
+                  disabled={reactivateAccountMutation.isPending}
+                  className="w-full h-10 bg-[#0F2D29] text-white text-[12.5px] font-medium rounded-lg hover:bg-[#0F2D29]/90 disabled:opacity-60"
+                >
+                  {reactivateAccountMutation.isPending
+                    ? "Reactivating..."
+                    : "Reactivate account"}
+                </button>
+              </div>
+            </SettingsCard>
+          </div>
+
+          {/* Danger Zone */}
+          <SettingsCard
+            title="Danger zone"
+            description="Deactivate or permanently delete your Gravity account."
+          >
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="rounded-lg border border-[#E98A57]/25 bg-[#E98A57]/6 p-4 space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-white border border-[#E98A57]/20 flex items-center justify-center text-[#B85E2E] shrink-0">
+                    <UserX size={16} />
+                  </div>
+                  <div>
+                    <p className="text-[#0F2D29] text-[13px] font-medium">
+                      Deactivate account
+                    </p>
+                    <p className="text-[#5B6E68] text-[12px] mt-0.5 leading-snug">
+                      Temporarily disable your account. You can reactivate it later.
+                    </p>
+                  </div>
+                </div>
+
+                {!showDeactivateForm ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowDeactivateForm(true);
+                      setShowDeleteForm(false);
+                    }}
+                    className="text-[12.5px] font-medium text-[#B85E2E] bg-white border border-[#E98A57]/25 px-3.5 py-2 rounded-lg hover:bg-[#E98A57]/10"
+                  >
+                    Deactivate account
+                  </button>
+                ) : (
+                  <div className="space-y-3">
+                    {isLocalAccount ? (
+                      <BasePasswordInput
+                        value={accountActionPassword}
+                        onChange={(event) =>
+                          setAccountActionPassword(event.target.value)
+                        }
+                        placeholder="Confirm with your password"
+                        autoComplete="current-password"
+                      />
+                    ) : (
+                      <div className="relative h-10">
+                        <SocialButton
+                          icon={<GoogleIcon />}
+                          label="Verify with Google"
+                          onClick={() => {
+                            setPendingAccountAction("deactivate");
+                            setShowGoogleActionOverlay(true);
+                          }}
+                          className="h-10 text-[12.5px]"
+                        />
+                        {showGoogleActionOverlay &&
+                          pendingAccountAction === "deactivate" && (
+                            <div className="absolute inset-0 opacity-0 [&>div]:h-full [&>div]:w-full [&_iframe]:h-full! [&_iframe]:w-full! overflow-hidden">
+                              <GoogleLogin
+                                onSuccess={handleGoogleActionSuccess}
+                                onError={() => {
+                                  toast.error("Google verification failed.");
+                                  setShowGoogleActionOverlay(false);
+                                  setPendingAccountAction(null);
+                                }}
+                                width="100%"
+                                text="continue_with"
+                                useOneTap={false}
+                              />
+                            </div>
+                          )}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      {isLocalAccount && (
+                        <button
+                          type="button"
+                          onClick={handleConfirmDeactivate}
+                          disabled={deactivateAccountMutation.isPending}
+                          className="text-[12.5px] font-medium text-white bg-[#B85E2E] px-3.5 py-2 rounded-lg hover:bg-[#B85E2E]/90 disabled:opacity-60"
+                        >
+                          {deactivateAccountMutation.isPending
+                            ? "Deactivating..."
+                            : "Confirm deactivate"}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowDeactivateForm(false);
+                          setAccountActionPassword("");
+                        }}
+                        className="text-[12.5px] font-medium text-[#5B6E68] px-3.5 py-2 rounded-lg hover:bg-[#0F2D29]/5"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-lg border border-red-200 bg-red-50 p-4 space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-white border border-red-200 flex items-center justify-center text-red-600 shrink-0">
+                    <Trash2 size={16} />
+                  </div>
+                  <div>
+                    <p className="text-[#0F2D29] text-[13px] font-medium">
+                      Delete account
+                    </p>
+                    <p className="text-[#5B6E68] text-[12px] mt-0.5 leading-snug">
+                      Permanently remove your account and associated data.
+                    </p>
+                  </div>
+                </div>
+
+                {!showDeleteForm ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowDeleteForm(true);
+                      setShowDeactivateForm(false);
+                    }}
+                    className="text-[12.5px] font-medium text-red-600 bg-white border border-red-200 px-3.5 py-2 rounded-lg hover:bg-red-100"
+                  >
+                    Delete account
+                  </button>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-2 text-red-700 text-[12px]">
+                      <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                      <p>This action is permanent and cannot be undone.</p>
+                    </div>
+                    {isLocalAccount ? (
+                      <BasePasswordInput
+                        value={accountActionPassword}
+                        onChange={(event) =>
+                          setAccountActionPassword(event.target.value)
+                        }
+                        placeholder="Confirm with your password"
+                        autoComplete="current-password"
+                      />
+                    ) : (
+                      <div className="relative h-10">
+                        <SocialButton
+                          icon={<GoogleIcon />}
+                          label="Verify with Google"
+                          onClick={() => {
+                            setPendingAccountAction("delete");
+                            setShowGoogleActionOverlay(true);
+                          }}
+                          className="h-10 text-[12.5px]"
+                        />
+                        {showGoogleActionOverlay &&
+                          pendingAccountAction === "delete" && (
+                            <div className="absolute inset-0 opacity-0 [&>div]:h-full [&>div]:w-full [&_iframe]:h-full! [&_iframe]:w-full! overflow-hidden">
+                              <GoogleLogin
+                                onSuccess={handleGoogleActionSuccess}
+                                onError={() => {
+                                  toast.error("Google verification failed.");
+                                  setShowGoogleActionOverlay(false);
+                                  setPendingAccountAction(null);
+                                }}
+                                width="100%"
+                                text="continue_with"
+                                useOneTap={false}
+                              />
+                            </div>
+                          )}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      {isLocalAccount && (
+                        <button
+                          type="button"
+                          onClick={handleConfirmDelete}
+                          disabled={deleteAccountMutation.isPending}
+                          className="text-[12.5px] font-medium text-white bg-red-600 px-3.5 py-2 rounded-lg hover:bg-red-600/90 disabled:opacity-60"
+                        >
+                          {deleteAccountMutation.isPending
+                            ? "Deleting..."
+                            : "Confirm delete"}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowDeleteForm(false);
+                          setAccountActionPassword("");
+                        }}
+                        className="text-[12.5px] font-medium text-[#5B6E68] px-3.5 py-2 rounded-lg hover:bg-[#0F2D29]/5"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </SettingsCard>
 
           {/* Notification Preferences Card */}
           <SettingsCard

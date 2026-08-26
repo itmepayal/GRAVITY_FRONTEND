@@ -1,44 +1,101 @@
 import React, { useState } from "react";
-import { X, Crown, Plus, Check, Trash2, ShieldAlert } from "lucide-react";
-import { type NormalizedTeam, type NormalizedUser, BRAND_TEAM_PALETTE } from "./types";
+import {
+  X,
+  Crown,
+  Plus,
+  Check,
+  Trash2,
+  ShieldAlert,
+  Users,
+  Pencil,
+  Loader2,
+  UserPlus,
+} from "lucide-react";
+import {
+  type NormalizedTeam,
+  type NormalizedUser,
+  BRAND_TEAM_PALETTE,
+} from "./types";
+import { FONT_GOLDMAN } from "@/components/common/design-system";
+
+const INK = "#0F2D29";
+const TEAL = "#0F8A65";
+const MINT = "#8FE3C4";
 
 interface ModalShellProps {
   title: string;
   subtitle?: string;
+  icon?: React.ReactNode;
   onClose: () => void;
   children: React.ReactNode;
+  footer?: React.ReactNode;
+  maxWidth?: string;
 }
 
 const ModalShell: React.FC<ModalShellProps> = ({
   title,
   subtitle,
+  icon,
   onClose,
   children,
+  footer,
+  maxWidth = "max-w-md",
 }) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div
+    className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+    onClick={onClose}
+  >
     <div
-      className="absolute inset-0 bg-black/40 backdrop-blur-xs transition-opacity"
-      onClick={onClose}
-    />
-    <div className="relative w-full max-w-md rounded-2xl border border-[#0F2D29]/15 bg-white p-6 shadow-2xl z-10 animate-in zoom-in-95 duration-150">
-      <div className="flex items-start justify-between mb-4 border-b border-[#0F2D29]/10 pb-3">
-        <div>
-          <h2 className="text-base font-extrabold font-['Goldman',sans-serif] text-[#0F2D29]">
-            {title}
-          </h2>
-          {subtitle && (
-            <p className="text-xs font-semibold text-[#5B6E68] mt-0.5">{subtitle}</p>
+      className={`w-full ${maxWidth} border bg-white shadow-2xl`}
+      style={{ borderColor: `${INK}22` }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div
+        className="flex items-center justify-between gap-4 px-6 py-5"
+        style={{ backgroundColor: INK }}
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          {icon && (
+            <div
+              className="flex h-10 w-10 shrink-0 items-center justify-center"
+              style={{ backgroundColor: TEAL }}
+            >
+              {icon}
+            </div>
           )}
+          <div className="min-w-0">
+            <p className={`text-base font-black leading-none text-white ${FONT_GOLDMAN}`}>
+              {title}
+            </p>
+            {subtitle && (
+              <p
+                className="mt-1 text-xs font-medium truncate"
+                style={{ color: `${MINT}CC` }}
+              >
+                {subtitle}
+              </p>
+            )}
+          </div>
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="p-1 text-[#5B6E68] hover:bg-[#0F2D29]/5 hover:text-[#0F2D29] rounded-lg transition-colors"
+          className="shrink-0 text-white/70 hover:text-white"
         >
           <X size={18} />
         </button>
       </div>
-      {children}
+
+      <div className="max-h-[70vh] overflow-y-auto px-6 py-5">{children}</div>
+
+      {footer && (
+        <div
+          className="flex items-center justify-end gap-3 border-t px-6 py-4"
+          style={{ borderColor: `${INK}15`, backgroundColor: "#FAFAF7" }}
+        >
+          {footer}
+        </div>
+      )}
     </div>
   </div>
 );
@@ -79,11 +136,41 @@ export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({
   };
 
   return (
-    <ModalShell title="Create New Team" subtitle="Define team & assign team lead" onClose={onClose}>
-      <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+    <ModalShell
+      title="Create New Team"
+      subtitle="Define team & assign team lead"
+      icon={<Users size={18} color="white" />}
+      onClose={onClose}
+      footer={
+        <>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2.5 text-xs font-bold text-[#0F2D29]/55"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="create-team-form"
+            disabled={!name.trim() || !leadId || isSubmitting}
+            className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-40 ${FONT_GOLDMAN}`}
+            style={{ backgroundColor: INK }}
+          >
+            {isSubmitting ? (
+              <Loader2 size={13} className="animate-spin" />
+            ) : (
+              <Plus size={13} />
+            )}
+            {isSubmitting ? "Creating..." : "Create Team"}
+          </button>
+        </>
+      }
+    >
+      <form id="create-team-form" onSubmit={handleSubmit} className="space-y-4 text-xs">
         <div>
-          <label className="block font-extrabold font-['Goldman',sans-serif] text-[10px] text-[#0F2D29]/80 uppercase tracking-wider mb-1">
-            Team Name *
+          <label className="mb-1.5 block text-xs font-bold text-[#0F2D29]">
+            Team Name <span className="text-[#B3261E]">*</span>
           </label>
           <input
             type="text"
@@ -91,13 +178,14 @@ export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Mobile Platform"
-            className="w-full rounded-lg border border-[#0F2D29]/20 bg-[#0F2D29]/3 px-3 py-2 text-xs font-medium text-[#0F2D29] outline-none focus:border-[#0F2D29]"
+            className="w-full border px-3 py-2.5 text-sm outline-none focus:border-[#0F8A65]"
+            style={{ borderColor: `${INK}22`, color: INK }}
             autoFocus
           />
         </div>
 
         <div>
-          <label className="block font-extrabold font-['Goldman',sans-serif] text-[10px] text-[#0F2D29]/80 uppercase tracking-wider mb-1">
+          <label className="mb-1.5 block text-xs font-bold text-[#0F2D29]">
             Description
           </label>
           <textarea
@@ -105,18 +193,20 @@ export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="What does this team focus on?"
-            className="w-full rounded-lg border border-[#0F2D29]/20 bg-[#0F2D29]/3 px-3 py-2 text-xs font-medium text-[#0F2D29] outline-none focus:border-[#0F2D29] resize-none"
+            className="w-full resize-none border px-3 py-2.5 text-sm outline-none focus:border-[#0F8A65]"
+            style={{ borderColor: `${INK}22`, color: INK }}
           />
         </div>
 
         <div>
-          <label className="block font-extrabold font-['Goldman',sans-serif] text-[10px] text-[#0F2D29]/80 uppercase tracking-wider mb-1">
-            Team Lead *
+          <label className="mb-1.5 block text-xs font-bold text-[#0F2D29]">
+            Team Lead <span className="text-[#B3261E]">*</span>
           </label>
           <select
             value={leadId}
             onChange={(e) => setLeadId(e.target.value)}
-            className="w-full rounded-lg border border-[#0F2D29]/20 bg-[#0F2D29]/3 px-3 py-2 text-xs font-medium text-[#0F2D29] outline-none focus:border-[#0F2D29]"
+            className="w-full border bg-white px-3 py-2.5 text-sm outline-none focus:border-[#0F8A65]"
+            style={{ borderColor: `${INK}22`, color: INK }}
           >
             {availableUsers.map((u) => (
               <option key={u.id} value={u.id}>
@@ -127,7 +217,7 @@ export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({
         </div>
 
         <div>
-          <label className="block font-extrabold font-['Goldman',sans-serif] text-[10px] text-[#0F2D29]/80 uppercase tracking-wider mb-1.5">
+          <label className="mb-1.5 block text-xs font-bold text-[#0F2D29]">
             Team Color Tag
           </label>
           <div className="grid grid-cols-6 gap-2">
@@ -136,7 +226,7 @@ export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({
                 key={c}
                 type="button"
                 onClick={() => setColor(c)}
-                className="h-7 w-7 rounded-full flex items-center justify-center transition-transform hover:scale-110 ring-2 ring-white shadow-xs"
+                className="flex h-7 w-7 items-center justify-center ring-2 ring-white transition-transform hover:scale-110"
                 style={{ backgroundColor: c }}
                 title={`Color ${c}`}
               >
@@ -144,23 +234,6 @@ export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({
               </button>
             ))}
           </div>
-        </div>
-
-        <div className="pt-3 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-3.5 py-2 text-xs font-bold text-[#0F2D29]/70 hover:bg-[#0F2D29]/5 rounded-lg"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={!name.trim() || !leadId || isSubmitting}
-            className="rounded-lg bg-[#0F2D29] px-4 py-2 text-xs font-extrabold font-['Goldman',sans-serif] text-white hover:bg-[#081E1B] disabled:opacity-50 transition"
-          >
-            {isSubmitting ? "Creating..." : "Create Team"}
-          </button>
         </div>
       </form>
     </ModalShell>
@@ -196,35 +269,67 @@ export const EditTeamModal: React.FC<EditTeamModalProps> = ({
   };
 
   return (
-    <ModalShell title="Edit Team Details" subtitle={team.name} onClose={onClose}>
-      <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+    <ModalShell
+      title="Edit Team"
+      subtitle={team.name}
+      icon={<Pencil size={16} color="white" />}
+      onClose={onClose}
+      footer={
+        <>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2.5 text-xs font-bold text-[#0F2D29]/55"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="edit-team-form"
+            disabled={!name.trim() || isSubmitting}
+            className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold text-white disabled:opacity-40 ${FONT_GOLDMAN}`}
+            style={{ backgroundColor: INK }}
+          >
+            {isSubmitting ? (
+              <Loader2 size={13} className="animate-spin" />
+            ) : (
+              <Check size={13} />
+            )}
+            {isSubmitting ? "Saving..." : "Save Changes"}
+          </button>
+        </>
+      }
+    >
+      <form id="edit-team-form" onSubmit={handleSubmit} className="space-y-4 text-xs">
         <div>
-          <label className="block font-extrabold font-['Goldman',sans-serif] text-[10px] text-[#0F2D29]/80 uppercase tracking-wider mb-1">
-            Team Name *
+          <label className="mb-1.5 block text-xs font-bold text-[#0F2D29]">
+            Team Name <span className="text-[#B3261E]">*</span>
           </label>
           <input
             type="text"
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-lg border border-[#0F2D29]/20 bg-[#0F2D29]/3 px-3 py-2 text-xs font-medium text-[#0F2D29] outline-none focus:border-[#0F2D29]"
+            className="w-full border px-3 py-2.5 text-sm outline-none focus:border-[#0F8A65]"
+            style={{ borderColor: `${INK}22`, color: INK }}
           />
         </div>
 
         <div>
-          <label className="block font-extrabold font-['Goldman',sans-serif] text-[10px] text-[#0F2D29]/80 uppercase tracking-wider mb-1">
+          <label className="mb-1.5 block text-xs font-bold text-[#0F2D29]">
             Description
           </label>
           <textarea
             rows={3}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full rounded-lg border border-[#0F2D29]/20 bg-[#0F2D29]/3 px-3 py-2 text-xs font-medium text-[#0F2D29] outline-none focus:border-[#0F2D29] resize-none"
+            className="w-full resize-none border px-3 py-2.5 text-sm outline-none focus:border-[#0F8A65]"
+            style={{ borderColor: `${INK}22`, color: INK }}
           />
         </div>
 
         <div>
-          <label className="block font-extrabold font-['Goldman',sans-serif] text-[10px] text-[#0F2D29]/80 uppercase tracking-wider mb-1.5">
+          <label className="mb-1.5 block text-xs font-bold text-[#0F2D29]">
             Team Color Tag
           </label>
           <div className="grid grid-cols-6 gap-2">
@@ -233,31 +338,13 @@ export const EditTeamModal: React.FC<EditTeamModalProps> = ({
                 key={c}
                 type="button"
                 onClick={() => setColor(c)}
-                className="h-7 w-7 rounded-full flex items-center justify-center transition-transform hover:scale-110 ring-2 ring-white shadow-xs"
+                className="flex h-7 w-7 items-center justify-center ring-2 ring-white transition-transform hover:scale-110"
                 style={{ backgroundColor: c }}
-                title={`Color ${c}`}
               >
                 {color === c && <Check size={14} className="text-white" />}
               </button>
             ))}
           </div>
-        </div>
-
-        <div className="pt-3 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-3.5 py-2 text-xs font-bold text-[#0F2D29]/70 hover:bg-[#0F2D29]/5 rounded-lg"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={!name.trim() || isSubmitting}
-            className="rounded-lg bg-[#0F2D29] px-4 py-2 text-xs font-extrabold font-['Goldman',sans-serif] text-white hover:bg-[#081E1B] disabled:opacity-50 transition"
-          >
-            {isSubmitting ? "Saving..." : "Save Changes"}
-          </button>
         </div>
       </form>
     </ModalShell>
@@ -286,28 +373,34 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
   );
 
   return (
-    <ModalShell title="Add Team Member" subtitle={team.name} onClose={onClose}>
+    <ModalShell
+      title="Add Team Member"
+      subtitle={team.name}
+      icon={<UserPlus size={18} color="white" />}
+      onClose={onClose}
+      maxWidth="max-w-lg"
+    >
       {candidateUsers.length === 0 ? (
         <div className="py-8 text-center text-xs font-semibold text-[#5B6E68]">
           All workspace members are already assigned to this team.
         </div>
       ) : (
-        <div className="space-y-2 max-h-72 overflow-y-auto py-1 pr-1">
+        <div className="max-h-72 space-y-2 overflow-y-auto py-1 pr-1">
           {candidateUsers.map((u) => (
             <div
               key={u.id}
-              className="flex items-center justify-between rounded-xl border border-[#0F2D29]/12 p-2.5 bg-white hover:bg-[#0F2D29]/3 transition-colors"
+              className="flex items-center justify-between border border-[#0F2D29]/12 bg-white p-2.5 transition-colors hover:bg-[#0F2D29]/3"
             >
               <div className="flex items-center gap-2.5">
                 <div
-                  className="flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-extrabold text-white shrink-0"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center text-[10px] font-bold text-white"
                   style={{ backgroundColor: u.color }}
                 >
                   {u.avatar ? (
                     <img
                       src={u.avatar}
                       alt={u.name}
-                      className="h-full w-full rounded-full object-cover"
+                      className="h-full w-full object-cover"
                     />
                   ) : (
                     u.initials
@@ -315,7 +408,9 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
                 </div>
                 <div>
                   <p className="text-xs font-bold text-[#0F2D29]">{u.name}</p>
-                  <p className="text-[10px] font-semibold text-[#5B6E68]">{u.email || "Workspace Member"}</p>
+                  <p className="text-[10px] font-semibold text-[#5B6E68]">
+                    {u.email || "Workspace Member"}
+                  </p>
                 </div>
               </div>
 
@@ -323,7 +418,8 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
                 type="button"
                 disabled={isSubmitting}
                 onClick={() => onAdd(u.id)}
-                className="flex items-center gap-1 rounded-lg bg-[#0F2D29] px-2.5 py-1 text-[11px] font-extrabold font-['Goldman',sans-serif] text-white hover:bg-[#081E1B] disabled:opacity-50 transition"
+                className={`flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-white disabled:opacity-50 ${FONT_GOLDMAN}`}
+                style={{ backgroundColor: INK }}
               >
                 <Plus size={12} />
                 Add
@@ -361,16 +457,49 @@ export const ChangeLeadModal: React.FC<ChangeLeadModalProps> = ({
   };
 
   return (
-    <ModalShell title="Change Team Lead" subtitle={team.name} onClose={onClose}>
-      <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+    <ModalShell
+      title="Change Team Lead"
+      subtitle={team.name}
+      icon={<Crown size={16} color="white" />}
+      onClose={onClose}
+      footer={
+        <>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2.5 text-xs font-bold text-[#0F2D29]/55"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="change-lead-form"
+            disabled={
+              !selectedUserId || selectedUserId === team.lead.id || isSubmitting
+            }
+            className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold text-white disabled:opacity-40 ${FONT_GOLDMAN}`}
+            style={{ backgroundColor: INK }}
+          >
+            {isSubmitting ? (
+              <Loader2 size={13} className="animate-spin" />
+            ) : (
+              <Crown size={13} className="text-amber-300" />
+            )}
+            {isSubmitting ? "Updating..." : "Set Team Lead"}
+          </button>
+        </>
+      }
+    >
+      <form id="change-lead-form" onSubmit={handleSubmit} className="space-y-4 text-xs">
         <div>
-          <label className="block font-extrabold font-['Goldman',sans-serif] text-[10px] text-[#0F2D29]/80 uppercase tracking-wider mb-1">
+          <label className="mb-1.5 block text-xs font-bold text-[#0F2D29]">
             Select New Team Lead
           </label>
           <select
             value={selectedUserId}
             onChange={(e) => setSelectedUserId(e.target.value)}
-            className="w-full rounded-lg border border-[#0F2D29]/20 bg-[#0F2D29]/3 px-3 py-2 text-xs font-medium text-[#0F2D29] outline-none focus:border-[#0F2D29]"
+            className="w-full border bg-white px-3 py-2.5 text-sm outline-none focus:border-[#0F8A65]"
+            style={{ borderColor: `${INK}22`, color: INK }}
           >
             {availableUsers.map((u) => (
               <option key={u.id} value={u.id}>
@@ -378,24 +507,6 @@ export const ChangeLeadModal: React.FC<ChangeLeadModalProps> = ({
               </option>
             ))}
           </select>
-        </div>
-
-        <div className="pt-3 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-3.5 py-2 text-xs font-bold text-[#0F2D29]/70 hover:bg-[#0F2D29]/5 rounded-lg"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={!selectedUserId || selectedUserId === team.lead.id || isSubmitting}
-            className="flex items-center gap-1.5 rounded-lg bg-[#0F2D29] px-4 py-2 text-xs font-extrabold font-['Goldman',sans-serif] text-white hover:bg-[#081E1B] disabled:opacity-50 transition"
-          >
-            <Crown size={13} className="text-amber-400" />
-            {isSubmitting ? "Updating..." : "Set Team Lead"}
-          </button>
         </div>
       </form>
     </ModalShell>
@@ -420,38 +531,18 @@ export const DeleteTeamModal: React.FC<DeleteTeamModalProps> = ({
   const isMatch = typedName.trim().toLowerCase() === teamName.trim().toLowerCase();
 
   return (
-    <ModalShell title="Delete Team" onClose={onClose}>
-      <div className="space-y-4 text-xs">
-        <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50/60 p-3 text-red-900">
-          <ShieldAlert size={18} className="text-red-600 shrink-0 mt-0.5" />
-          <p className="text-xs font-medium leading-relaxed">
-            Are you sure you want to delete <strong className="font-bold underline">{teamName}</strong>?
-            This will permanently remove team assignments and cannot be undone.
-          </p>
-        </div>
-
-        <div>
-          <label className="block font-extrabold font-['Goldman',sans-serif] text-[10px] text-red-700 uppercase tracking-wider mb-1">
-            Type team name to confirm: <span className="text-[#0F2D29] font-bold">"{teamName}"</span>
-          </label>
-          <input
-            type="text"
-            value={typedName}
-            onChange={(e) => setTypedName(e.target.value)}
-            placeholder={`Type "${teamName}"`}
-            className={`w-full rounded-lg border px-3 py-2 text-xs font-medium outline-none transition ${isMatch
-              ? "border-red-500 bg-red-50/30 text-red-900 font-bold"
-              : "border-[#0F2D29]/20 bg-[#0F2D29]/3 text-[#0F2D29] focus:border-red-400"
-              }`}
-            autoFocus
-          />
-        </div>
-
-        <div className="pt-2 flex justify-end gap-2">
+    <ModalShell
+      title="Delete Team"
+      subtitle="This action cannot be undone"
+      icon={<Trash2 size={16} color="white" />}
+      onClose={onClose}
+      maxWidth="max-w-sm"
+      footer={
+        <>
           <button
             type="button"
             onClick={onClose}
-            className="px-3.5 py-2 text-xs font-bold text-[#0F2D29]/70 hover:bg-[#0F2D29]/5 rounded-lg"
+            className="px-4 py-2.5 text-xs font-bold text-[#0F2D29]/55"
           >
             Cancel
           </button>
@@ -459,11 +550,54 @@ export const DeleteTeamModal: React.FC<DeleteTeamModalProps> = ({
             type="button"
             disabled={!isMatch || isSubmitting}
             onClick={onConfirm}
-            className="flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-xs font-extrabold font-['Goldman',sans-serif] text-white hover:bg-red-700 disabled:opacity-40 transition shadow-2xs cursor-pointer disabled:cursor-not-allowed"
+            className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-40 ${FONT_GOLDMAN}`}
+            style={{ backgroundColor: "#B3261E" }}
           >
-            <Trash2 size={13} />
+            {isSubmitting ? (
+              <Loader2 size={13} className="animate-spin" />
+            ) : (
+              <Trash2 size={13} />
+            )}
             {isSubmitting ? "Deleting..." : "Delete Team"}
           </button>
+        </>
+      }
+    >
+      <div className="space-y-4 text-xs">
+        <div
+          className="flex items-start gap-3 border p-3"
+          style={{
+            borderColor: "#F3B8B4",
+            backgroundColor: "#FBEAE9",
+            color: "#B3261E",
+          }}
+        >
+          <ShieldAlert size={18} className="mt-0.5 shrink-0" />
+          <p className="text-xs font-medium leading-relaxed">
+            Are you sure you want to delete{" "}
+            <strong className="font-bold">{teamName}</strong>? This will
+            permanently remove team assignments.
+          </p>
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-xs font-bold text-[#B3261E]">
+            Type team name to confirm:{" "}
+            <span className="text-[#0F2D29]">"{teamName}"</span>
+          </label>
+          <input
+            type="text"
+            value={typedName}
+            onChange={(e) => setTypedName(e.target.value)}
+            placeholder={`Type "${teamName}"`}
+            className="w-full border px-3 py-2.5 text-sm font-medium outline-none focus:border-[#B3261E]"
+            style={{
+              borderColor: isMatch ? "#B3261E" : `${INK}22`,
+              color: INK,
+              backgroundColor: isMatch ? "#FBEAE9" : "white",
+            }}
+            autoFocus
+          />
         </div>
       </div>
     </ModalShell>

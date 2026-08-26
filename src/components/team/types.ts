@@ -1,6 +1,43 @@
 import type { TeamUser } from "@/types/team";
 
-export type TeamViewMode = "grid" | "table" | "detail";
+export type TeamViewMode = "grid" | "table" | "kanban";
+
+export type TeamSizeCategory = "small" | "medium" | "large";
+
+export type TeamSizeFilter = "all" | TeamSizeCategory;
+
+export const TEAM_SIZE_META: Record<
+  TeamSizeCategory,
+  { label: string; color: string; bg: string; min: number; max: number }
+> = {
+  small: {
+    label: "Small Squad",
+    color: "#0F8A65",
+    bg: "#E7F5EF",
+    min: 1,
+    max: 3,
+  },
+  medium: {
+    label: "Growing Team",
+    color: "#D97706",
+    bg: "#FEF3C7",
+    min: 4,
+    max: 8,
+  },
+  large: {
+    label: "Large Team",
+    color: "#2563EB",
+    bg: "#EAF0FE",
+    min: 9,
+    max: Infinity,
+  },
+};
+
+export function getTeamSizeCategory(memberCount: number): TeamSizeCategory {
+  if (memberCount <= 3) return "small";
+  if (memberCount <= 8) return "medium";
+  return "large";
+}
 
 export interface NormalizedUser {
   id: string;

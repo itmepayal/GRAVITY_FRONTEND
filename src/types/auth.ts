@@ -7,17 +7,38 @@ export type RegisterResponse = {
   data: User;
 };
 
+export type AuthTokensData = {
+  user?: User;
+  accessToken?: string;
+  refreshToken?: string;
+  requiresTwoFA?: boolean;
+  email?: string;
+};
+
 export type LoginResponse = {
   success: boolean;
   statusCode: number;
   message: string;
+  data: AuthTokensData;
+};
+
+export type RefreshTokenResponse = {
+  success: boolean;
+  statusCode: number;
+  message: string;
   data: {
-    user: User;
     accessToken: string;
     refreshToken: string;
-    requiresTwoFA?: boolean;
-    email?: string;
   };
+};
+
+export type VerifyEmailResponse = LoginResponse;
+
+export type TwoFAResponse = {
+  success: boolean;
+  statusCode: number;
+  message: string;
+  data: User;
 };
 
 export type MessageResponse = {
@@ -58,3 +79,27 @@ export interface VerifyTwoFAFormData {
   email: string;
   otp: string;
 }
+
+export type AuthSession = {
+  id: number;
+  userAgent: string;
+  createdAt: string;
+};
+
+export type SessionsResponse = {
+  success: boolean;
+  statusCode: number;
+  message: string;
+  data: AuthSession[];
+};
+
+export type LinkGoogleInput = {
+  idToken: string;
+};
+
+export type LinkGoogleResponse = {
+  success: boolean;
+  statusCode: number;
+  message: string;
+  data: User;
+};

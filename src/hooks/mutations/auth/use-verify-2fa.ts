@@ -13,9 +13,14 @@ export const useVerifyTwoFA = () => {
 
     onSuccess: (data) => {
       const { user, accessToken, refreshToken } = data.data;
+      if (!user || !accessToken || !refreshToken) {
+        toast.error("Invalid verification response.");
+        return;
+      }
+
       setAuth(user, accessToken, refreshToken);
       toast.success(data.message);
-      navigate("/");
+      navigate("/dashboard");
     },
 
     onError: (error: any) => {

@@ -14,7 +14,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useLogin } from "@/hooks/mutations/auth/use-login";
 import { loginSchema, type LoginFormData } from "@/validations/auth.validation";
 import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
-import { useGoogleLogin } from "@/hooks/mutations/auth/use-google-login.ts";
+import { useGoogleLogin } from "@/hooks/mutations/auth/use-google-login";
 import { useVerifyTwoFA } from "@/hooks/mutations/auth/use-verify-2fa";
 import { OrbitCard } from "@/components/auth/login/OrbitCard";
 import { TwoFACard } from "@/components/auth/login/TwoFACard";
@@ -84,7 +84,19 @@ const Login = () => {
       setShowGoogleOverlay(false);
       return;
     }
-    googleMutate(credentialResponse.credential);
+    googleMutate(credentialResponse.credential, {
+      onSuccess: (result) => {
+        setShowGoogleOverlay(false);
+        if (result.type === "twoFA") {
+          setRequiresTwoFA(true);
+          setTwoFAEmail(result.response.data.email ?? "");
+          toast.success(result.response.message || "OTP sent to your email.");
+        }
+      },
+      onError: () => {
+        setShowGoogleOverlay(false);
+      },
+    });
   };
 
   const handleGoogleError = () => {

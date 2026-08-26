@@ -6,7 +6,10 @@ import {
   TeamFilterBar,
   TeamGridView,
   TeamTableView,
+  TeamKanbanView,
   TeamDetailDrawer,
+  TeamLoadingSkeleton,
+  TeamEmptyState,
   CreateTeamModal,
   EditTeamModal,
   AddMemberModal,
@@ -14,6 +17,7 @@ import {
   DeleteTeamModal,
 } from "@/components/team";
 import { useTeamsState } from "@/hooks/useTeamsState";
+import { AlertTriangle, RefreshCw } from "lucide-react";
 
 export function Teams() {
   const { openMobileNav } = useDashboardContext();
@@ -24,6 +28,8 @@ export function Teams() {
     setSelectedWorkspaceId,
     searchQuery,
     setSearchQuery,
+    sizeFilter,
+    setSizeFilter,
     viewMode,
     setViewMode,
     teams,
@@ -43,6 +49,7 @@ export function Teams() {
     availableUsers,
     isLoadingWorkspaces,
     isLoadingTeams,
+    isTeamsError,
     isCreatingTeam,
     isUpdatingTeam,
     isDeletingTeam,
@@ -56,7 +63,6 @@ export function Teams() {
     handleChangeLead,
   } = useTeamsState();
 
-  // Keyboard shortcut listener for quick search
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
@@ -73,20 +79,22 @@ export function Teams() {
   }, []);
 
   const activeWorkspaceName =
-    workspaces.find((w: any) => w.id === selectedWorkspaceId)?.name ?? "Workspace";
+    workspaces.find((w: { id: string; name: string }) => w.id === selectedWorkspaceId)?.name ?? "Workspace";
+
+  const hasActiveFilters = Boolean(
+    searchQuery.trim() || sizeFilter !== "all",
+  );
 
   return (
     <>
       <Topbar
         variant="light"
         title="Teams"
-        subtitle={`${activeWorkspaceName} · ${metrics.totalTeams} team${metrics.totalTeams === 1 ? "" : "s"
-          } · ${metrics.totalMembers} members`}
+        subtitle={`${activeWorkspaceName} · ${metrics.totalTeams} team${metrics.totalTeams === 1 ? "" : "s"} · ${metrics.totalMembers} members`}
         onMenuClick={openMobileNav}
       />
 
       <main className="mx-auto w-full max-w-[1600px] flex-1 space-y-6 p-4 sm:p-6 lg:p-8">
-        {/* Metrics Banner */}
         <TeamMetricsBanner
           totalTeams={metrics.totalTeams}
           totalMembers={metrics.totalMembers}
@@ -94,48 +102,84 @@ export function Teams() {
           totalWorkspaces={metrics.totalWorkspaces}
         />
 
-        {/* Filter & Controls Bar */}
         <TeamFilterBar
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           workspaces={workspaces}
           selectedWorkspaceId={selectedWorkspaceId}
           onWorkspaceSelect={setSelectedWorkspaceId}
+          sizeFilter={sizeFilter}
+          onSizeFilterChange={setSizeFilter}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           onOpenCreate={() => setShowCreateModal(true)}
           isLoadingWorkspaces={isLoadingWorkspaces}
+          teamCount={teams.length}
         />
 
-        {/* Teams View (Grid or Table) */}
-        {viewMode === "grid" && (
-          <TeamGridView
-            teams={teams}
-            activeTeamId={selectedTeam?.id ?? null}
-            onSelectTeam={(t) => setSelectedTeamId(t.id)}
-            onOpenCreate={() => setShowCreateModal(true)}
-            onOpenAddMember={(t) => setAddingMemberTeam(t)}
-            onOpenEdit={(t) => setEditingTeam(t)}
-            onOpenDelete={(t) => setDeletingTeam(t)}
-            isLoading={isLoadingTeams}
+        {isLoadingTeams ? (
+          <TeamLoadingSkeleton viewMode={viewMode} />
+        ) : isTeamsError ? (
+          <div className="flex min-h-80 flex-col items-center justify-center gap-3 border border-dashed border-[#F3B8B4] bg-[#FBEAE9] p-8 text-center">
+            <AlertTriangle size={22} className="text-[#B3261E]" />
+            <p className="text-sm font-bold text-[#B3261E]">
+              Failed to load teams for this workspace.
+            </p>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="flex items-center gap-1.5 border border-[#B3261E] px-3 py-2 text-xs font-bold text-[#B3261E]"
+            >
+              <RefreshCw size={12} />
+              Retry
+            </button>
+          </div>
+        ) : teams.length === 0 ? (
+          <TeamEmptyState
+            hasActiveFilters={hasActiveFilters}
+            onCreateTeam={() => setShowCreateModal(true)}
           />
-        )}
+        ) : (
+          <>
+            {viewMode === "grid" && (
+              <TeamGridView
+                teams={teams}
+                activeTeamId={selectedTeam?.id ?? null}
+                onSelectTeam={(t) => setSelectedTeamId(t.id)}
+                onOpenCreate={() => setShowCreateModal(true)}
+                onOpenAddMember={(t) => setAddingMemberTeam(t)}
+                onOpenEdit={(t) => setEditingTeam(t)}
+                onOpenDelete={(t) => setDeletingTeam(t)}
+              />
+            )}
 
-        {viewMode === "table" && (
-          <TeamTableView
-            teams={teams}
-            activeTeamId={selectedTeam?.id ?? null}
-            onSelectTeam={(t) => setSelectedTeamId(t.id)}
-            onOpenCreate={() => setShowCreateModal(true)}
-            onOpenAddMember={(t) => setAddingMemberTeam(t)}
-            onOpenEdit={(t) => setEditingTeam(t)}
-            onOpenDelete={(t) => setDeletingTeam(t)}
-            isLoading={isLoadingTeams}
-          />
+            {viewMode === "table" && (
+              <TeamTableView
+                teams={teams}
+                activeTeamId={selectedTeam?.id ?? null}
+                onSelectTeam={(t) => setSelectedTeamId(t.id)}
+                onOpenCreate={() => setShowCreateModal(true)}
+                onOpenAddMember={(t) => setAddingMemberTeam(t)}
+                onOpenEdit={(t) => setEditingTeam(t)}
+                onOpenDelete={(t) => setDeletingTeam(t)}
+              />
+            )}
+
+            {viewMode === "kanban" && (
+              <TeamKanbanView
+                teams={teams}
+                activeTeamId={selectedTeam?.id ?? null}
+                onSelectTeam={(t) => setSelectedTeamId(t.id)}
+                onOpenCreate={() => setShowCreateModal(true)}
+                onOpenAddMember={(t) => setAddingMemberTeam(t)}
+                onOpenEdit={(t) => setEditingTeam(t)}
+                onOpenDelete={(t) => setDeletingTeam(t)}
+              />
+            )}
+          </>
         )}
       </main>
 
-      {/* Slide-over Detail Drawer */}
       {selectedTeam && (
         <TeamDetailDrawer
           team={selectedTeam}
@@ -148,7 +192,6 @@ export function Teams() {
         />
       )}
 
-      {/* Modals */}
       {showCreateModal && (
         <CreateTeamModal
           onClose={() => setShowCreateModal(false)}

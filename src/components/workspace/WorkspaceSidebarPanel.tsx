@@ -28,7 +28,7 @@ export const WorkspaceSidebarPanel: React.FC<WorkspaceSidebarPanelProps> = ({
 }) => {
   return (
     <aside className="w-full shrink-0 lg:sticky lg:top-20 lg:w-80 xl:w-84">
-      <div className="overflow-hidden border border-[#0F2D29]/12 bg-white shadow-2xs">
+      <div className="overflow-hidden border border-[#0F2D29]/15 bg-white shadow-2xs">
         <div className="border-b border-[#0F2D29]/10 bg-[#0F2D29]/4 p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
@@ -36,11 +36,11 @@ export const WorkspaceSidebarPanel: React.FC<WorkspaceSidebarPanelProps> = ({
                 <Layers size={17} />
               </div>
               <div>
-                <p className="text-[14px] font-bold text-[#0F2D29] font-['Goldman',sans-serif]">
-                  Workspaces
+                <p className="text-sm font-bold text-[#0F2D29] font-['Goldman',sans-serif]">
+                  All Spaces
                 </p>
                 <p className="text-[11px] font-semibold text-[#5B6E68]">
-                  {workspaces.length} active spaces
+                  {workspaces.length} workspace{workspaces.length === 1 ? "" : "s"}
                 </p>
               </div>
             </div>
@@ -61,11 +61,10 @@ export const WorkspaceSidebarPanel: React.FC<WorkspaceSidebarPanelProps> = ({
                 className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#8FA69E]"
               />
               <input
-                id="workspace-search-input"
                 value={query}
                 onChange={(e) => onQueryChange(e.target.value)}
-                placeholder="Search spaces... (Press '/' to focus)"
-                className="w-full border border-[#0F2D29]/15 bg-white py-2 pr-8 pl-9 text-[12.5px] font-semibold text-[#0F2D29] outline-none focus:border-[#0F2D29]"
+                placeholder="Filter sidebar list..."
+                className="w-full border border-[#0F2D29]/15 bg-white py-2 pr-8 pl-9 text-xs font-semibold text-[#0F2D29] outline-none focus:border-[#0F2D29]"
               />
               {query && (
                 <button

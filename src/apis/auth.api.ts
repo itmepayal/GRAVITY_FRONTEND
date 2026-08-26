@@ -1,4 +1,5 @@
 import { api } from "@/lib/api";
+import { useAuthStore } from "@/store/auth.store";
 import type {
   LoginFormData,
   RegisterFormData,
@@ -6,9 +7,14 @@ import type {
   EmailFormData,
   LoginResponse,
   VerifyEmailFormData,
+  VerifyEmailResponse,
   ResetPasswordFormData,
   VerifyTwoFAFormData,
   MessageResponse,
+  RefreshTokenResponse,
+  TwoFAResponse,
+  SessionsResponse,
+  LinkGoogleResponse,
 } from "@/types/auth";
 
 export const register = async (
@@ -33,8 +39,11 @@ export const googleLogin = async (idToken: string): Promise<LoginResponse> => {
 
 export const verifyEmail = async (
   data: VerifyEmailFormData,
-): Promise<MessageResponse> => {
-  const response = await api.post<MessageResponse>("/auth/verify-email", data);
+): Promise<VerifyEmailResponse> => {
+  const response = await api.post<VerifyEmailResponse>(
+    "/auth/verify-email",
+    data,
+  );
 
   return response.data;
 };
@@ -82,26 +91,51 @@ export const verifyTwoFA = async (
 };
 
 export const refreshToken = async (
-  refreshToken: string,
-): Promise<LoginResponse> => {
-  const response = await api.post<LoginResponse>("/auth/refresh-token", {
-    refreshToken,
+  token: string,
+): Promise<RefreshTokenResponse> => {
+  const response = await api.post<RefreshTokenResponse>("/auth/refresh-token", {
+    refreshToken: token,
   });
 
   return response.data;
 };
 
 export const logout = async (): Promise<MessageResponse> => {
-  const response = await api.post<MessageResponse>("/auth/logout");
+  const refreshToken = useAuthStore.getState().refreshToken;
+  const response = await api.post<MessageResponse>("/auth/logout", {
+    refreshToken,
+  });
   return response.data;
 };
 
-export const enableTwoFA = async (): Promise<MessageResponse> => {
-  const response = await api.patch<MessageResponse>("/auth/2fa/enable");
+export const enableTwoFA = async (
+  password?: string,
+): Promise<TwoFAResponse> => {
+  const response = await api.patch<TwoFAResponse>("/auth/2fa/enable", {
+    password,
+  });
   return response.data;
 };
 
-export const disableTwoFA = async (): Promise<MessageResponse> => {
-  const response = await api.patch<MessageResponse>("/auth/2fa/disable");
+export const disableTwoFA = async (
+  password?: string,
+): Promise<TwoFAResponse> => {
+  const response = await api.patch<TwoFAResponse>("/auth/2fa/disable", {
+    password,
+  });
+  return response.data;
+};
+
+export const linkGoogleAccount = async (
+  idToken: string,
+): Promise<LinkGoogleResponse> => {
+  const response = await api.post<LinkGoogleResponse>("/auth/link/google", {
+    idToken,
+  });
+  return response.data;
+};
+
+export const getSessions = async (): Promise<SessionsResponse> => {
+  const response = await api.get<SessionsResponse>("/auth/sessions");
   return response.data;
 };

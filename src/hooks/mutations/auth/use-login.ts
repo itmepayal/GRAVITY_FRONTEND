@@ -14,13 +14,18 @@ export const useLogin = () => {
       if (data?.data?.requiresTwoFA) {
         return;
       }
-      toast.success(data.message);
+
       const { user, accessToken, refreshToken } = data.data;
+      if (!user || !accessToken || !refreshToken) {
+        toast.error("Invalid login response.");
+        return;
+      }
+
+      toast.success(data.message);
       setAuth(user, accessToken, refreshToken);
-      navigate("/");
+      navigate("/dashboard");
     },
     onError: (error: any) => {
-      console.log(error.response);
       toast.error(error.response?.data?.message ?? "Login failed");
     },
   });

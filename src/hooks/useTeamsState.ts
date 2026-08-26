@@ -4,6 +4,8 @@ import {
   type NormalizedTeam,
   type NormalizedUser,
   type TeamViewMode,
+  type TeamSizeFilter,
+  getTeamSizeCategory,
   normalizeTeamData,
 } from "@/components/team/types";
 import { useGetUserWorkspaces } from "@/hooks/queries/workspace/use-get-user-workspaces";
@@ -23,6 +25,7 @@ export function useTeamsState() {
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<TeamViewMode>("grid");
+  const [sizeFilter, setSizeFilter] = useState<TeamSizeFilter>("all");
 
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -131,14 +134,20 @@ export function useTeamsState() {
 
   const filteredTeams = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return teams;
-    return teams.filter(
-      (t) =>
+    return teams.filter((t) => {
+      const matchesSearch =
+        !q ||
         t.name.toLowerCase().includes(q) ||
         t.description.toLowerCase().includes(q) ||
-        t.lead.name.toLowerCase().includes(q),
-    );
-  }, [teams, searchQuery]);
+        t.lead.name.toLowerCase().includes(q);
+
+      const matchesSize =
+        sizeFilter === "all" ||
+        getTeamSizeCategory(t.members.length) === sizeFilter;
+
+      return matchesSearch && matchesSize;
+    });
+  }, [teams, searchQuery, sizeFilter]);
 
   // Metrics
   const metrics = useMemo(() => {
@@ -302,6 +311,8 @@ export function useTeamsState() {
     setSelectedWorkspaceId,
     searchQuery,
     setSearchQuery,
+    sizeFilter,
+    setSizeFilter,
     viewMode,
     setViewMode,
     teams: filteredTeams,
