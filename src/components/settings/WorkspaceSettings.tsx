@@ -27,18 +27,22 @@ export function WorkspaceSettings({
 
   if (!activeWorkspace || !currentWorkspaceId) {
     return (
-      <SettingsPanel title="No workspace selected">
-        <p className="text-[12.5px] text-[#5B6E68]">
+      <div className="rounded-xl border border-dashed border-[#0F2D29]/15 bg-[#F8F7F3]/40 px-5 py-10 text-center">
+        <p className="text-[13px] font-semibold text-[#0F2D29]">
+          No workspace selected
+        </p>
+        <p className="mt-1 text-[12px] text-[#5B6E68]">
           Choose a workspace from the sidebar to manage sharing settings.
         </p>
-      </SettingsPanel>
+      </div>
     );
   }
 
   return (
     <SettingsPanel
       title={activeWorkspace.name}
-      description="Manage who can access this workspace."
+      description="Manage who can access this workspace and invite members."
+      className="overflow-hidden"
     >
       <WorkspaceShareSettings
         workspaceId={currentWorkspaceId}

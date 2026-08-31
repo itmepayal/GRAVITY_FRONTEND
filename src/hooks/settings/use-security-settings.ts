@@ -15,7 +15,6 @@ import {
   useEnableTwoFA,
   useLinkGoogleAccount,
   useLogout,
-  useReactivateAccount,
   useRevokeOtherSessions,
   useRevokeSession,
 } from "@/hooks/mutations/settings";
@@ -35,7 +34,6 @@ export function useSecuritySettings() {
   const linkGoogleMutation = useLinkGoogleAccount();
   const deactivateAccountMutation = useDeactivateAccount();
   const deleteAccountMutation = useDeleteAccount();
-  const reactivateAccountMutation = useReactivateAccount();
   const revokeSessionMutation = useRevokeSession();
   const revokeOtherSessionsMutation = useRevokeOtherSessions();
 
@@ -48,8 +46,6 @@ export function useSecuritySettings() {
   const [accountActionPassword, setAccountActionPassword] = useState("");
   const [showDeactivateForm, setShowDeactivateForm] = useState(false);
   const [showDeleteForm, setShowDeleteForm] = useState(false);
-  const [reactivateEmail, setReactivateEmail] = useState("");
-  const [reactivatePassword, setReactivatePassword] = useState("");
 
   const passwordForm = useForm<PasswordFormData>({
     resolver: zodResolver(passwordSchema),
@@ -156,17 +152,6 @@ export function useSecuritySettings() {
     );
   };
 
-  const handleReactivate = () => {
-    if (!reactivateEmail.trim() || !reactivatePassword.trim()) {
-      toast.error("Email and password are required.");
-      return;
-    }
-    reactivateAccountMutation.mutate({
-      email: reactivateEmail.trim(),
-      password: reactivatePassword,
-    });
-  };
-
   const onPasswordSubmit = (values: PasswordFormData) => {
     changePasswordMutation.mutate(values, {
       onSuccess: () => passwordForm.reset(),
@@ -198,16 +183,11 @@ export function useSecuritySettings() {
     setShowDeactivateForm,
     showDeleteForm,
     setShowDeleteForm,
-    reactivateEmail,
-    setReactivateEmail,
-    reactivatePassword,
-    setReactivatePassword,
     passwordForm,
     changePasswordMutation,
     logoutMutation,
     deactivateAccountMutation,
     deleteAccountMutation,
-    reactivateAccountMutation,
     revokeSessionMutation,
     revokeOtherSessionsMutation,
     handleToggle2FA,
@@ -217,7 +197,6 @@ export function useSecuritySettings() {
     handleGoogleActionSuccess,
     handleConfirmDeactivate,
     handleConfirmDelete,
-    handleReactivate,
     onPasswordSubmit,
   };
 }

@@ -1,20 +1,16 @@
-import { useEffect, useState } from "react";
-import { useTheme } from "next-themes";
+import { useState } from "react";
 import {
   Check,
   Link2,
   Loader2,
-  Moon,
   ShieldCheck,
   ShieldOff,
-  Sun,
 } from "lucide-react";
 import { GoogleLogin } from "@react-oauth/google";
 import { BasePasswordInput } from "@/components/form/BasePasswordInput";
 import { GoogleIcon, SocialButton } from "@/components/button/SocialButton";
 import { SettingsButton } from "@/components/settings/SettingsButton";
 import { SettingsPanel } from "@/components/settings/SettingsPanel";
-import { SettingsToggleRow } from "@/components/settings/SettingsToggleRow";
 import { useCurrentUser } from "@/hooks/queries/settings";
 import {
   useDisableTwoFA,
@@ -25,8 +21,6 @@ import { toast } from "sonner";
 import type { CredentialResponse } from "@react-oauth/google";
 
 export function AccountPreferencesPanel() {
-  const { theme, setTheme, resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
   const [show2FAPasswordForm, setShow2FAPasswordForm] = useState(false);
   const [twoFAPassword, setTwoFAPassword] = useState("");
   const [showGoogleLinkOverlay, setShowGoogleLinkOverlay] = useState(false);
@@ -36,22 +30,11 @@ export function AccountPreferencesPanel() {
   const disableTwoFAMutation = useDisableTwoFA();
   const linkGoogleMutation = useLinkGoogleAccount();
 
-  useEffect(() => setMounted(true), []);
-
-  const isDark = mounted && (theme === "dark" || resolvedTheme === "dark");
   const is2FAEnabled = user?.is2FAEnabled ?? false;
   const is2FAPending =
     enableTwoFAMutation.isPending || disableTwoFAMutation.isPending;
   const isLocalAccount = user?.authProvider !== "google";
   const isGoogleAccount = user?.authProvider === "google";
-
-  const themeDescription = !mounted
-    ? "Loading theme..."
-    : theme === "system"
-      ? "Following system preference"
-      : isDark
-        ? "Dark theme enabled"
-        : "Light theme enabled";
 
   const reset2FAForm = () => {
     setShow2FAPasswordForm(false);
@@ -97,19 +80,11 @@ export function AccountPreferencesPanel() {
 
   return (
     <SettingsPanel
-      title="Preferences & sign-in"
-      description="Appearance, security, and connected accounts."
+      title="Sign-in & security"
+      description="Two-factor authentication and connected accounts."
+      className="h-full"
     >
       <div className="flex flex-col gap-3">
-        <SettingsToggleRow
-          icon={isDark ? Moon : Sun}
-          title="Dark mode"
-          description={themeDescription}
-          checked={isDark}
-          onChange={(val) => setTheme(val ? "dark" : "light")}
-          disabled={!mounted}
-        />
-
         <div className="rounded-xl border border-[#0F2D29]/10 bg-[#F8F7F3]/50 p-4">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">

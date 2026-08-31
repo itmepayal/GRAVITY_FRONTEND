@@ -84,24 +84,30 @@ export function SettingsProfileBanner({
           </div>
         </div>
 
-        <div className="flex gap-2 sm:min-w-[200px]">
+        <div className="grid w-full shrink-0 grid-cols-3 gap-2 sm:w-auto sm:min-w-[300px] sm:max-w-[360px]">
           {stats.map((stat) => {
             const Icon = stat.icon;
+            const isTextStat = "isText" in stat && stat.isText;
+
             return (
               <div
                 key={stat.label}
-                className="flex-1 rounded-xl border border-white/10 bg-white/8 px-3 py-2 backdrop-blur-sm"
+                className="flex min-h-[72px] flex-col justify-between rounded-xl border border-white/10 bg-white/8 px-3 py-2.5 backdrop-blur-sm"
               >
-                <div className="flex items-center justify-between gap-2">
-                  <Icon size={12} className="text-[#8FE3C4] shrink-0" />
+                <div className="flex items-center justify-between gap-1">
+                  <Icon size={12} className="shrink-0 text-[#8FE3C4]" />
                   <span
-                    className={`text-right text-[11px] font-extrabold text-white leading-tight ${FONT_GOLDMAN} ${"isText" in stat && stat.isText ? "line-clamp-2" : "text-[16px] tabular-nums"}`}
+                    className={`text-right font-extrabold leading-tight text-white ${FONT_GOLDMAN} ${
+                      isTextStat
+                        ? "line-clamp-2 text-[10px]"
+                        : "text-[18px] tabular-nums"
+                    }`}
                   >
                     {stat.value}
                   </span>
                 </div>
                 <p
-                  className={`mt-0.5 text-[9.5px] font-semibold uppercase tracking-wide text-white/50 ${FONT_POPPINS}`}
+                  className={`mt-2 text-[9.5px] font-semibold uppercase tracking-wide text-white/50 ${FONT_POPPINS}`}
                 >
                   {stat.label}
                 </p>

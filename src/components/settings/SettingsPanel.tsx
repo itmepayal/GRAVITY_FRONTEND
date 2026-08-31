@@ -20,7 +20,7 @@ export function SettingsPanel({
   return (
     <div
       className={cn(
-        "flex h-full flex-col rounded-xl border border-[#0F2D29]/10 bg-[#F8F7F3]/40",
+        "flex h-full w-full flex-col rounded-xl border border-[#0F2D29]/10 bg-[#F8F7F3]/40",
         className,
       )}
     >

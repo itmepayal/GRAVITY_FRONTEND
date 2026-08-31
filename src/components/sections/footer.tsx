@@ -65,7 +65,7 @@ export const Footer = () => {
             © {new Date().getFullYear()} Gravity TMS. All rights reserved.
           </p>
           <a
-            href="https://itme-payal.vercel.app/"
+            href="https://itspayal.in/"
             target="_blank"
             rel="noopener noreferrer"
             className="text-[12px] font-semibold text-[#B7CFC7] transition-colors hover:text-[#8FE3C4]"

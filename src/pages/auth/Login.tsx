@@ -18,6 +18,7 @@ import { useGoogleLogin } from "@/hooks/mutations/auth/use-google-login";
 import { useVerifyTwoFA } from "@/hooks/mutations/auth/use-verify-2fa";
 import { OrbitCard } from "@/components/auth/login/OrbitCard";
 import { TwoFACard } from "@/components/auth/login/TwoFACard";
+import { ReactivateAccountCard } from "@/components/auth/login/ReactivateAccountCard";
 import { Link } from "react-router-dom";
 
 const Login = () => {
@@ -28,6 +29,7 @@ const Login = () => {
   const [requiresTwoFA, setRequiresTwoFA] = useState(false);
   const [twoFAEmail, setTwoFAEmail] = useState("");
   const [showGoogleOverlay, setShowGoogleOverlay] = useState(false);
+  const [showReactivate, setShowReactivate] = useState(false);
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -114,6 +116,10 @@ const Login = () => {
         onBack={() => setRequiresTwoFA(false)}
       />
     );
+  }
+
+  if (showReactivate) {
+    return <ReactivateAccountCard onBack={() => setShowReactivate(false)} />;
   }
 
   return (
@@ -231,7 +237,18 @@ const Login = () => {
           )}
         </div>
       </div>
-      <p className="text-[#5B6E68] text-[13px]">
+      <p className="text-[#5B6E68] text-[13px] text-center">
+        Account deactivated?{" "}
+        <button
+          type="button"
+          onClick={() => setShowReactivate(true)}
+          className="text-[#0F8A65] font-medium hover:text-[#0F8A65]/80 transition-colors"
+        >
+          Reactivate your account
+        </button>
+      </p>
+
+      <p className="text-[#5B6E68] text-[13px] text-center">
         New to Gravity?{" "}
         <Link
           to="/register"

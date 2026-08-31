@@ -21,42 +21,51 @@ export default function Settings() {
         subtitle="Manage your account, security, and workspace preferences"
         onMenuClick={openMobileNav}
       />
-      <main className="flex-1 bg-[#F8F7F3]/50 p-4 sm:p-6 lg:p-8">
-        <div className="mx-auto flex flex-col gap-5">
-          <SettingsProfileBanner notificationSummary={notificationSummary} />
-          <SettingsQuickNav />
-          <SettingsSection
-            id="profile"
-            icon={User}
-            title="Profile & Appearance"
-            subtitle="Your name, photo, and personal details."
-          >
-            <ProfileSettings />
-          </SettingsSection>
-          <SettingsSection
-            id="security"
-            icon={Shield}
-            title="Security & Account"
-            subtitle="Sessions, 2FA, password, and account actions."
-          >
-            <SecuritySettings />
-          </SettingsSection>
-          <SettingsSection
-            id="notifications"
-            icon={Bell}
-            title="Notifications"
-            subtitle={notificationSummary}
-          >
-            <NotificationSettings />
-          </SettingsSection>
-          <SettingsSection
-            id="workspace"
-            icon={Building2}
-            title="Workspace"
-            subtitle="Sharing and access for your current workspace."
-          >
-            <WorkspaceSettings currentWorkspaceId={currentWorkspaceId} />
-          </SettingsSection>
+      <main className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-5 p-4 sm:p-6 lg:p-8">
+        <SettingsProfileBanner notificationSummary={notificationSummary} />
+
+        <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-6 xl:grid-cols-[240px_minmax(0,1fr)]">
+          <aside className="w-full lg:sticky lg:top-6 lg:z-10 lg:w-[220px] xl:w-[240px]">
+            <SettingsQuickNav />
+          </aside>
+
+          <div className="flex min-w-0 w-full flex-col gap-5">
+            <SettingsSection
+              id="profile"
+              icon={User}
+              title="Profile"
+              subtitle="Your name, photo, and sign-in preferences."
+            >
+              <ProfileSettings />
+            </SettingsSection>
+
+            <SettingsSection
+              id="security"
+              icon={Shield}
+              title="Security & Account"
+              subtitle="Sessions, password, and account actions."
+            >
+              <SecuritySettings />
+            </SettingsSection>
+
+            <SettingsSection
+              id="notifications"
+              icon={Bell}
+              title="Notifications"
+              subtitle={notificationSummary}
+            >
+              <NotificationSettings />
+            </SettingsSection>
+
+            <SettingsSection
+              id="workspace"
+              icon={Building2}
+              title="Workspace"
+              subtitle="Sharing and access for your current workspace."
+            >
+              <WorkspaceSettings currentWorkspaceId={currentWorkspaceId} />
+            </SettingsSection>
+          </div>
         </div>
       </main>
     </>

@@ -1,9 +1,8 @@
 import { BarChart, CheckSquare, Loader2, Mail, MessageSquare } from "lucide-react";
-import { SettingsPanel } from "@/components/settings/SettingsPanel";
 import { SettingsToggleRow } from "@/components/settings/SettingsToggleRow";
 import { useNotificationSettings } from "@/hooks/settings/use-notification-settings";
 import type { NotificationPreferences } from "@/types/user";
-import { FONT_POPPINS } from "@/components/common/design-system";
+import { FONT_GOLDMAN, FONT_POPPINS } from "@/components/common/design-system";
 
 const NOTIFICATION_ITEMS: Array<{
   key: keyof NotificationPreferences;
@@ -47,7 +46,7 @@ export function NotificationSettings() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-[#0F2D29]/10 bg-[#F8F7F3]/40">
+      <div className="flex min-h-[200px] items-center justify-center rounded-xl border border-[#0F2D29]/10 bg-[#F8F7F3]/40">
         <Loader2 className="h-5 w-5 animate-spin text-[#0F8A65]" />
       </div>
     );
@@ -55,7 +54,7 @@ export function NotificationSettings() {
 
   if (isError) {
     return (
-      <div className="rounded-xl border border-[#E98A57]/25 bg-[#E98A57]/8 p-4 text-center">
+      <div className="rounded-xl border border-[#E98A57]/25 bg-[#E98A57]/8 p-6 text-center">
         <p className={`text-[13px] text-[#0F2D29] ${FONT_POPPINS}`}>
           Could not load notification preferences.
         </p>
@@ -72,39 +71,43 @@ export function NotificationSettings() {
 
   return (
     <div className="flex flex-col gap-4">
-      <SettingsPanel
-        title="Alert preferences"
-        description={`${summary}. Changes apply to in-app notifications and emails instantly.`}
-      >
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          {NOTIFICATION_ITEMS.map((item) => {
-            const emailBlocked =
-              item.requiresEmail &&
-              !prefs.emailNotifications &&
-              item.key !== "emailNotifications";
+      <div className="rounded-xl border border-[#0F2D29]/10 bg-[#F8F7F3]/50 px-4 py-3 sm:px-5">
+        <p className={`text-[12px] font-bold text-[#0F2D29] ${FONT_GOLDMAN}`}>
+          Current status
+        </p>
+        <p className={`mt-0.5 text-[11.5px] text-[#5B6E68] ${FONT_POPPINS}`}>
+          {summary}. Changes apply instantly to in-app alerts and emails.
+        </p>
+      </div>
 
-            return (
-              <div key={item.key} className="flex flex-col gap-1">
-                <SettingsToggleRow
-                  icon={item.icon}
-                  title={item.title}
-                  description={item.description}
-                  checked={prefs[item.key]}
-                  onChange={(value) => handleToggle(item.key, value)}
-                  disabled={isSaving}
-                />
-                {emailBlocked && prefs[item.key] && (
-                  <p
-                    className={`px-1 text-[10.5px] text-[#E98A57] ${FONT_POPPINS}`}
-                  >
-                    In-app only — turn on Email notifications to receive emails.
-                  </p>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </SettingsPanel>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
+        {NOTIFICATION_ITEMS.map((item) => {
+          const emailBlocked =
+            item.requiresEmail &&
+            !prefs.emailNotifications &&
+            item.key !== "emailNotifications";
+
+          return (
+            <div key={item.key} className="flex flex-col gap-1">
+              <SettingsToggleRow
+                icon={item.icon}
+                title={item.title}
+                description={item.description}
+                checked={prefs[item.key]}
+                onChange={(value) => handleToggle(item.key, value)}
+                disabled={isSaving}
+              />
+              {emailBlocked && prefs[item.key] && (
+                <p
+                  className={`px-1 text-[10.5px] text-[#E98A57] ${FONT_POPPINS}`}
+                >
+                  In-app only — turn on Email notifications to receive emails.
+                </p>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
